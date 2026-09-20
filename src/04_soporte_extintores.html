@@ -1,0 +1,140 @@
+<div class="page page-landscape" id="page-ext" data-module="mod-soporte">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Planilla de Control e Inspección Periódica de Extintores</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <h1 style="font-size:12px;color:#0b3d63;margin:0;">Planilla de Control y Verificación Técnica de Extintores (A4 Horizontal)</h1>
+    <div style="display:flex;gap:6px;" class="no-print">
+      <button type="button" class="btn-est-cmd" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="agregarFilaExtintor()">➕ Agregar Extintor</button>
+      <button type="button" class="btn-est-cmd" style="background:#22c55e;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="marcarTodosExtintoresSi()" title="Marcar todos los checks como Sí">✅ Todos SÍ</button>
+      <button type="button" class="btn-est-cmd" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="imprimirPlanillaExtintores()" title="Imprimir únicamente esta planilla técnica en hoja horizontal">🖨️ Imprimir Planilla</button>
+      <a href="control_extintores_movil.html" target="_blank" style="background:#475569;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;border-radius:3px;text-decoration:none;">📱 App Móvil</a>
+    </div>
+  </div>
+
+  <!-- Caja Superior 2x2 idéntica a la imagen -->
+  <table class="ext-header-box" style="width:100%;border:2px solid #000;border-collapse:collapse;margin-bottom:8px;">
+    <tr>
+      <td style="border:1px solid #000;padding:4px 8px;width:14%;font-weight:bold;background:#f1f5f9;">Empresa:</td>
+      <td style="border:1px solid #000;padding:3px 6px;width:36%;"><input class="field-line" type="text" id="ext_empresa" placeholder="Organismo o Razón Social" style="width:100%;font-weight:bold;"></td>
+      <td style="border:1px solid #000;padding:4px 8px;width:14%;font-weight:bold;background:#f1f5f9;">Área:</td>
+      <td style="border:1px solid #000;padding:3px 6px;width:36%;"><input class="field-line" type="text" id="ext_area" list="dl-sectores" placeholder="Sector inspeccionado o edificio" style="width:100%;"></td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:#f1f5f9;">Controlado Por:</td>
+      <td style="border:1px solid #000;padding:3px 6px;"><input class="field-line" type="text" id="ext_controlador" placeholder="Nombre y Matrícula del profesional" style="width:100%;"></td>
+      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:#f1f5f9;">Fecha De Inspección:</td>
+      <td style="border:1px solid #000;padding:3px 6px;"><input class="field-line" type="text" id="ext_fecha" placeholder="dd/mm/aaaa" style="width:100%;"></td>
+    </tr>
+  </table>
+
+  <!-- Barra de Gestión y Registro de Sectores del Establecimiento (no-print) -->
+  <div class="ext-sectores-box no-print" style="background:#f8fafc;border:1.5px solid #0284c7;border-radius:6px;padding:6px 10px;margin-bottom:6px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span style="font-size:10px;font-weight:bold;color:#0b3d63;">🏢 Sectores / Áreas Registradas del Establecimiento:</span>
+        <span id="sectores-count-badge" style="font-size:8.5px;background:#0284c7;color:#fff;border-radius:10px;padding:1px 6px;font-weight:bold;">0</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="text" id="inp-nuevo-sector" placeholder="Ej: Planta Baja - Guardia / Cocina / Depósito..." style="font-size:9.5px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;width:240px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarSectorDesdeInput();}">
+        <button type="button" class="btn-est-cmd" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9px;padding:3px 8px;" onclick="agregarSectorDesdeInput()">➕ Agregar Sector</button>
+        <button type="button" class="btn-est-cmd" style="background:#f1f5f9;color:#0369a1;border:1px solid #bae6fd;font-size:9px;padding:3px 7px;" onclick="autoDetectarSectoresDesdeExtintores()" title="Detectar e importar automáticamente los sectores escritos en la planilla de extintores">⚡ Auto-detectar</button>
+      </div>
+    </div>
+    <!-- Contenedor dinámico de chips de sectores -->
+    <div id="sectores-chips-container" style="display:flex;flex-wrap:wrap;gap:4px;min-height:22px;align-items:center;">
+      <!-- Se llena con los chips -->
+    </div>
+  </div>
+
+  <!-- Barra de aviso de fotos (no-print) -->
+  <div style="background:#eaf4fc;border:1px solid #0284c7;border-radius:4px;padding:4px 8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;" class="no-print">
+    <span style="font-size:9px;color:#0b3d63;">
+      📷 <strong>Relevamiento Fotográfico:</strong> Podés adjuntar <strong>Foto Marbete</strong> y <strong>Foto Acceso/Cartel</strong> por extintor o completar los puntos manualmente.
+    </span>
+    <span style="font-size:8.5px;color:#64748b;">Los sectores registrados se comparten automáticamente con Carga de Fuego y Mediciones.</span>
+  </div>
+
+  <!-- TABLA EXACTA DE LA IMAGEN ADJUNTA (media_1789847492687.png) -->
+  <div style="overflow-x:auto;flex:1;">
+    <table class="sched-table ext-table-exact" id="tabla-extintores-inspeccion" style="font-size:8px;width:100%;border-collapse:collapse;border:2px solid #000;">
+      <thead>
+        <tr style="background:#0b3d63;color:#fff;">
+          <th rowspan="3" style="width:13%;border:1px solid #000;padding:4px 3px;text-align:center;">Ubicación</th>
+          <th rowspan="3" style="width:8%;border:1px solid #000;padding:4px 3px;text-align:center;">Nº de Serie</th>
+          <th rowspan="3" style="width:8%;border:1px solid #000;padding:4px 3px;text-align:center;">Agente extintor</th>
+          <th rowspan="3" style="width:7%;border:1px solid #000;padding:4px 3px;text-align:center;">Capacidad<br>(kg)-(lbs)</th>
+          <th rowspan="3" style="width:9%;border:1px solid #000;padding:4px 3px;text-align:center;">Vencimiento<br>revisión de carga</th>
+          <th colspan="14" style="border:1px solid #000;padding:4px;text-align:center;font-size:9px;background:#092e4a;">Verifique los siguientes puntos de extintor</th>
+          <th rowspan="3" class="no-print" style="width:7%;border:1px solid #000;padding:4px 2px;text-align:center;">Fotos / Acción</th>
+        </tr>
+        <tr style="background:#155e96;color:#fff;font-size:7px;text-align:center;">
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Extintor<br>presurizado</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Extintor en<br>buenas condiciones</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">El extintor<br>está en su lugar</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Precinto en<br>buen estado</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Soporte<br>firme</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Carteles<br>claros y visibles</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Acceso libre<br>al extintor</th>
+        </tr>
+        <tr style="background:#f1f5f9;color:#0b3d63;font-size:7px;text-align:center;font-weight:bold;">
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+        </tr>
+      </thead>
+      <tbody id="ext-table-tbody">
+        <!-- Generado dinámicamente con filas interactivas e imprimibles -->
+      </tbody>
+    </table>
+  </div>
+  <!-- Panel de Soporte: Carga de Fuego por Sector vinculado a los sectores registrados -->
+    <div class="fuego-sectores-panel no-print" id="fuego-sectores-panel" style="margin-top:10px;background:#fff7ed;border:1.5px solid #ea580c;border-radius:6px;padding:8px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <div>
+          <strong style="font-size:10.5px;color:#9a3412;">🔥 Módulo de Soporte: Evaluación de Carga de Fuego por Sector</strong>
+          <span style="font-size:8.5px;color:#c2410c;display:block;">Utiliza directamente los sectores registrados arriba para calcular la carga ponderada y extintores mínimos (Dec. 351/79 Anexo VII).</span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button type="button" class="btn-est-cmd" style="background:#ea580c;color:#fff;font-size:8.5px;padding:3px 8px;" onclick="sincronizarSectoresConCargaFuego()" title="Cargar automáticamente los sectores registrados en la planilla de extintores">🔄 Sincronizar con Sectores</button>
+          <button type="button" class="btn-est-cmd" style="background:#0b3d63;color:#fff;font-size:8.5px;padding:3px 8px;" onclick="agregarFilaCargaFuego()">➕ Agregar Sector</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="sched-table" id="tabla-carga-fuego" style="font-size:8px;width:100%;border-collapse:collapse;background:#fff;">
+          <thead>
+            <tr style="background:#ea580c;color:#fff;">
+              <th style="width:26%;">Sector / Área</th>
+              <th style="width:12%;">Sup. (m²)</th>
+              <th style="width:24%;">Material Predominante</th>
+              <th style="width:14%;">Carga Est. (kg/m²)</th>
+              <th style="width:14%;">Extintores Requeridos</th>
+              <th class="no-print" style="width:10%;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-carga-fuego">
+            <!-- Generado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <div class="footer-page" style="margin-top:auto;">
+    <span>IAPSER ART — Planilla de Control e Inspección Periódica de Extintores</span>
+    <span>Relevamiento in situ (A4 Horizontal)</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 5: DOCUMENTACIÓN LEGAL Y VISITA 1 ================= -->

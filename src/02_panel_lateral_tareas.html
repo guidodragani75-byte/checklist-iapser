@@ -1,0 +1,219 @@
+<div id="panel-lateral-overlay" class="panel-lateral-overlay no-print" onclick="togglePanelLateralTareas(false)"></div>
+<aside id="panel-lateral-tareas" class="panel-lateral no-print" aria-label="Guía de Tareas por Visita">
+  <div class="panel-lateral-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px;">🗺️</span>
+      <div>
+        <h3 style="margin:0;font-size:12px;color:#fff;font-weight:bold;">Tareas por Visita — Línea de Base</h3>
+        <span style="font-size:9px;color:#bae6fd;">Guía interactiva in situ para el preventor</span>
+      </div>
+    </div>
+    <button type="button" class="btn-close-panel" onclick="togglePanelLateralTareas(false)" title="Cerrar panel lateral">✖</button>
+  </div>
+
+  <div class="panel-lateral-body">
+    <!-- Selector de Tamaño / Escala -->
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;">
+      <label style="font-size:9.5px;font-weight:bold;color:#0369a1;display:block;margin-bottom:3px;">
+        🏢 Tamaño del Establecimiento:
+      </label>
+      <select id="f_tamano_estab" onchange="actualizarTareasSegunTamano(); triggerAutoSave();" style="width:100%;font-weight:bold;color:#0b3d63;border:1.5px solid #0284c7;border-radius:4px;padding:4px 6px;font-size:10px;background:#fff;">
+        <option value="1">1. Muy Pequeño / Destacamento (&lt; 5 pers, &lt; 100 m²)</option>
+        <option value="2">2. Pequeño / Puesto Vial (5-15 pers, 100-300 m²)</option>
+        <option value="3" selected>3. Mediano / Comisaría Estándar (15-50 pers, 300-800 m²)</option>
+        <option value="4">4. Grande / Jefatura Departamental (50-150 pers, 800-2000 m²)</option>
+        <option value="5">5. Muy Grande / Complejo / Instituto (&gt; 150 pers, &gt; 2000 m²)</option>
+      </select>
+    </div>
+
+    <!-- 10 BOTONES INTERACTIVOS DE VISITA 1 -->
+    <div style="background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:10.5px;font-weight:bold;color:#0b3d63;">📋 10 TAREAS DE VISITA 1</span>
+        <span style="font-size:8.5px;color:#64748b;">(Línea de Base)</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:9.5px;">
+        
+        <!-- 1. Descripción del Predio -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('predio')" title="Hacé clic para ir a la descripción del predio">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🏢 1. Descripción del Predio</span>
+            <span class="v1-badge-scope" style="background:#dcfce7;color:#15803d;">Base Inicial</span>
+          </div>
+          <div class="v1-task-desc">
+            Nombre sede, superficies cubierta/total, plantas, dotación y estado edilicio general.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 2. RGRL -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rgrl')" title="Hacé clic para ir a RGRL">
+          <div class="v1-task-header">
+            <span class="v1-task-title">⚖️ 2. RGRL (Res. 463/09)</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0369a1;">Obligatorio</span>
+          </div>
+          <div class="v1-task-desc">
+            Estado de confección in situ y verificación de sustancias cancerígenas.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 3. RAR -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rar')" title="Hacé clic para ir a RAR">
+          <div class="v1-task-header">
+            <span class="v1-task-title">📋 3. RAR (Res. 37/10)</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0369a1;">Nómina</span>
+          </div>
+          <div class="v1-task-desc">
+            Nómina de expuestos a riesgos laborales y agentes cancerígenos declarados.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 4. SVCC -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('svcc')" title="Hacé clic para ir a SVCC">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🔬 4. SVCC (Res. 81/19)</span>
+            <span class="v1-badge-scope" style="background:#fef3c7;color:#b45309;">Consistencia</span>
+          </div>
+          <div class="v1-task-desc">
+            Consistencia estricta RGRL vs. RAR. Corresponde si se declaran cancerígenos.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 5. Ergonomía -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('ergo')" title="Hacé clic para ir a Ergonomía">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🧑‍💼 5. Ergonomía (Res. 886/15)</span>
+            <span class="v1-badge-scope" style="background:#ffedd5;color:#c2410c;">Puestos in situ</span>
+          </div>
+          <div class="v1-task-desc">
+            Identificación de puestos operativos/administrativos con exigencia física.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 6. Carga de Fuego -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('fuego')" id="box-task-cf" title="Hacé clic para ir a Carga de Fuego">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🔥 6. Carga de Fuego</span>
+            <span id="badge-task-cf" class="v1-badge-scope" style="background:#dcfce7;color:#15803d;">Visita 1</span>
+          </div>
+          <div class="v1-task-desc" id="desc-task-cf">
+            Verificación de cálculo en sedes 1-3; relevar planos/depósitos en sedes 4-5.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 7. Extintores -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('extintores')" title="Hacé clic para ir a Extintores">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🧯 7. Control de Extintores</span>
+            <span class="v1-badge-scope" style="background:#fee2e2;color:#b91c1c;">Planilla &amp; Fotos</span>
+          </div>
+          <div class="v1-task-desc">
+            Inspección de cantidad, vigencia, tarjeta y soporte en el checklist y planilla.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 8. RGI -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rgi')" title="Hacé clic para ir a Riesgos Graves e Inminentes">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🚨 8. Riesgos Graves e Inminentes</span>
+            <span class="v1-badge-scope" style="background:#fef2f2;color:#ef4444;">Alerta 24h</span>
+          </div>
+          <div class="v1-task-desc">
+            Inspección ocular de riesgos críticos (eléctrico, colapso edilicio).
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 9. Toma de Agua -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('agua')" title="Hacé clic para ir a Toma de Muestra de Agua">
+          <div class="v1-task-header">
+            <span class="v1-task-title">💧 9. Toma de Muestra de Agua</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0284c7;">Muestreo</span>
+          </div>
+          <div class="v1-task-desc">
+            Muestreo in situ para análisis físico-químico y bacteriológico Dec. 351/79.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 10. Capacitación en Visita 1 & Plan Anual -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('capacitacion')" title="Hacé clic para ir a Capacitación in situ y Plan Anual">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🎓 10. Cap. Visita 1 &amp; Plan Anual</span>
+            <span class="v1-badge-scope" style="background:#f3e8ff;color:#7e22ce;">Formación</span>
+          </div>
+          <div class="v1-task-desc">
+            Inducción in situ + detección de necesidades para estructurar el Plan Anual.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- PLANIFICACIÓN POST-VISITA 1 -->
+    <div style="background:#fff;border:1.5px solid #0b3d63;border-radius:8px;padding:8px 10px;">
+      <div style="font-size:10px;font-weight:bold;color:#0b3d63;margin-bottom:3px;">
+        🗺️ ETAPA SIGUIENTE (POST-VISITA 1)
+      </div>
+      <div style="font-size:8.5px;color:#64748b;margin-bottom:6px;">Metas y programación derivada de la Visita 1:</div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:9px;">
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('mediciones')">
+          <strong>💡 1. Mediciones Físicas:</strong> Iluminación, Ruido, PAT.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Cronograma ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('ergo')">
+          <strong>🧑‍🔧 2. Evaluaciones Ergo:</strong> Planilla 2 (Res. 886/15).
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Ergonomía ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('simulacro')">
+          <strong>🏃 3. Simulacro:</strong> Organización anual según dotación.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Plan de Acción ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('gantt')">
+          <strong>📅 4. Cronograma &amp; Gantt:</strong> 12 meses de visitas.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Gantt ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('matriz')">
+          <strong>🎯 5. Matriz Plan vs. Realidad:</strong> Auditoría de cumplimiento.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Matriz ➔</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Botón Flotante para acceder a las Tareas por Visita en todo momento -->
+<button type="button" class="floating-tareas-btn no-print" onclick="togglePanelLateralTareas()" title="Abrir u ocultar guía de tareas de Visita 1">
+  🗺️ <span>Tareas Visita 1</span>
+</button>
+
+<!-- ================= PÁGINA 1: DATOS Y DESCRIPCIÓN DEL ESTABLECIMIENTO ================= -->

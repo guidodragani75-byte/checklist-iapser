@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minuta de Coordinación Técnica - Jefatura de Policía de Entre Ríos</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  :root {
+    --primary: #0b3d63;
+    --primary-light: #e6f0f8;
+    --danger: #c53030;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 7.8px;
+    color: var(--text-main);
+    background: #e2e8f0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* BARRA SUPERIOR (PANTALLA) */
+  .toolbar-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #0f172a;
+    color: #fff;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .toolbar-title {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar-actions { display: flex; gap: 10px; }
+  .btn-tool {
+    background: var(--primary);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn-tool:hover { background: #0d4a78; transform: translateY(-1px); }
+  .btn-tool.btn-print { background: #0f9d58; }
+  .btn-tool.btn-print:hover { background: #0c8046; }
+  .btn-tool.btn-back { background: #475569; }
+
+  .report-container {
+    max-width: 210mm;
+    margin: 15px auto 40px auto;
+    padding: 0;
+  }
+
+  /* PÁGINA A4 ESTRICTA */
+  .page {
+    background: #fff;
+    width: 210mm;
+    height: 297mm;
+    max-height: 297mm;
+    min-height: 297mm;
+    padding: 8mm 14mm 7mm 14mm;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    position: relative;
+    box-sizing: border-box;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 17px;
+  }
+  .header-text h1 {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .header-text p {
+    font-size: 7.8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 1px 0 0 0;
+  }
+  .header-right { text-align: right; font-size: 7.5px; color: var(--text-muted); }
+  
+  .badge-tag {
+    background: var(--primary);
+    color: #fff;
+    padding: 1.5px 6px;
+    border-radius: 3px;
+    font-size: 7.5px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 2px;
+  }
+
+  .page-footer {
+    border-top: 1px solid #cbd5e1;
+    padding-top: 3px;
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.2px;
+    color: var(--text-muted);
+  }
+
+  /* TABLA METADATOS DE REUNIÓN */
+  table.meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.3px;
+    margin-bottom: 7px;
+  }
+  table.meta-table td {
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    line-height: 1.25;
+  }
+  table.meta-table td.meta-label {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: var(--primary);
+    width: 18%;
+  }
+
+  /* SECCIONES Y PUNTOS DE LA MINUTA */
+  .minuta-section {
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    margin-bottom: 5.5px;
+    overflow: hidden;
+  }
+  .minuta-section-header {
+    background: #f8fafc;
+    padding: 2.5px 7px;
+    font-size: 7.8px;
+    font-weight: 800;
+    color: var(--primary);
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+  }
+  .minuta-section-body {
+    padding: 4px 7px;
+    font-size: 7.2px;
+    line-height: 1.35;
+    color: var(--text-main);
+  }
+  .minuta-section.primary { border-left: 3.5px solid var(--primary); }
+  .minuta-section.accent { border-left: 3.5px solid #0f9d58; }
+  .minuta-section.warning { border-left: 3.5px solid #dd6b20; }
+  .minuta-section.info { border-left: 3.5px solid #0284c7; }
+
+  /* TABLA DE ACUERDOS */
+  table.acuerdos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 6.9px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  table.acuerdos-table th {
+    background: #1e293b;
+    color: #fff;
+    padding: 2.5px 5px;
+    font-size: 7.1px;
+    text-align: left;
+    font-weight: 700;
+    border: 1px solid #0f172a;
+  }
+  table.acuerdos-table td {
+    padding: 2.5px 5px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.25;
+  }
+  table.acuerdos-table tbody tr:nth-child(even) { background: #f8fafc; }
+
+  /* BLOQUE DE FIRMAS / CONFORMIDAD */
+  .signatures-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 6px;
+    padding-top: 4px;
+  }
+  .sig-box {
+    border: 1px dashed #94a3b8;
+    border-radius: 3px;
+    background: #fdfdfd;
+    padding: 6px 8px;
+    text-align: center;
+    font-size: 6.8px;
+    color: #475569;
+  }
+  .sig-line {
+    width: 75%;
+    margin: 18px auto 3px auto;
+    border-top: 1px solid #475569;
+  }
+
+  /* MEDIA PRINT */
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 210mm !important;
+      height: auto !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .toolbar-nav, .no-print {
+      display: none !important;
+    }
+    .report-container {
+      margin: 0 !important;
+      padding: 0 !important;
+      max-width: none !important;
+      width: 210mm !important;
+    }
+    .page {
+      box-shadow: none !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 7mm 12mm 6mm 12mm !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      max-height: 297mm !important;
+      min-height: 297mm !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+    }
+    .page:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar-nav">
+  <div class="toolbar-title">
+    <span>🛡️ POLICÍA DE ENTRE RÍOS</span>
+    <span>|</span>
+    <span>Minuta de Reunión y Coordinación Técnica Institucional</span>
+  </div>
+  <div class="toolbar-actions">
+    <button class="btn-tool btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <a href="reporte_ejecutivo_provincial.html" class="btn-tool">📊 Matriz Consolidada</a>
+    <a href="checklist_interactivo_v1.html" class="btn-tool btn-back">🔙 Visor de Checklists</a>
+  </div>
+</div>
+
+<div class="report-container">
+
+  <!-- ==================== PÁGINA ÚNICA: MINUTA DE REUNIÓN INSTITUCIONAL ==================== -->
+  <div class="page">
+    <div>
+      <div class="page-header">
+        <div class="header-left">
+          <div class="header-icon">🛡️</div>
+          <div class="header-text">
+            <h1>Minuta Ejecutiva de Reunión y Coordinación Técnica</h1>
+            <p>JEFATURA DE POLICÍA DE ENTRE RÍOS — PROGRAMA DE HIGIENE Y SEGURIDAD LABORAL</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="badge-tag">ACTA FORMAL</span><br>
+          <span style="font-weight:700;">Reunión de Coordinación</span>
+        </div>
+      </div>
+
+      <!-- TABLA FORMAL DE DATOS DE LA REUNIÓN -->
+      <table class="meta-table">
+        <tr>
+          <td class="meta-label">Carácter / Modalidad:</td>
+          <td style="width:32%;">Reunión presencial de coordinación operativa</td>
+          <td class="meta-label">Sede de Encuentro:</td>
+          <td style="width:32%;">Jefatura Central de Policía de Entre Ríos</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Convocados / Asistentes:</td>
+          <td colspan="3">
+            • <strong>Por Jefatura Central:</strong> Responsables del Área de Higiene y Seguridad de la Policía de Entre Ríos.<br>
+            • <strong>Por el Servicio Técnico:</strong> Equipo Profesional de Higiene y Seguridad en el Trabajo.
+          </td>
+        </tr>
+        <tr>
+          <td class="meta-label">Objeto del Encuentro:</td>
+          <td colspan="3">
+            Profundizar la coordinación de las actividades de Higiene y Seguridad Laboral a desarrollar en las dependencias policiales de la provincia, estableciendo los lineamientos de trabajo y la modalidad de inicio de las visitas técnicas.
+          </td>
+        </tr>
+      </table>
+
+      <!-- 1. UNIVERSO DE ESTABLECIMIENTOS -->
+      <div class="minuta-section primary">
+        <div class="minuta-section-header">
+          <span>1. Relevamiento del Universo de Establecimientos y Clasificación Progresiva</span>
+        </div>
+        <div class="minuta-section-body">
+          Se analizó el listado general de establecimientos pertenecientes a la Policía de Entre Ríos, identificándose un <strong>universo de aproximadamente 102 dependencias</strong> distribuidas en todo el territorio provincial. Se acordó que la <strong>clasificación de cada establecimiento se determinará de manera progresiva</strong>, sustentada en la información técnica objetiva recolectada durante las visitas y en el análisis de las condiciones edilicias y operativas particulares observadas in situ.
+        </div>
+      </div>
+
+      <!-- 2. COORDINACIÓN CON REFERENTES -->
+      <div class="minuta-section accent">
+        <div class="minuta-section-header">
+          <span>2. Coordinación Previa con Referentes Locales y Logística de Traslados</span>
+        </div>
+        <div class="minuta-section-body">
+          Dada la dispersión geográfica de las dependencias, se convino un procedimiento de enlace previo indispensable: el Área de Higiene y Seguridad de la Jefatura Central suministrará al equipo técnico los <strong>datos de contacto de los referentes de cada jurisdicción</strong>. Dicho referente tendrá la función expresa de <strong>comunicar con debida antelación al establecimiento la visita programada</strong>, facilitando el ingreso ágil del personal técnico, evitando demoras de coordinación y optimizando los itinerarios de traslado territorial.
+        </div>
+      </div>
+
+      <!-- 3. MEDICIONES TÉCNICAS -->
+      <div class="minuta-section info">
+        <div class="minuta-section-header">
+          <span>3. Participación del Área de Higiene y Seguridad Policial en Mediciones</span>
+        </div>
+        <div class="minuta-section-body">
+          Se abordó la ejecución de mediciones instrumentales reglamentarias (Puesta a Tierra Res. SRT 900/15, Iluminación Res. SRT 84/12, etc.). Las responsables del Área de Higiene y Seguridad de la Policía manifestaron su <strong>interés profesional en presenciar y acompañar determinadas mediciones</strong>, por lo que se convino coordinar previamente el cronograma de fechas en aquellos casos en los que resulte conveniente su participación conjunta.
+        </div>
+      </div>
+
+      <!-- 4. PLANOS Y CARGA DE FUEGO -->
+      <div class="minuta-section warning">
+        <div class="minuta-section-header">
+          <span>4. Planimetría y Estudios de Carga de Fuego (Dec. 351/79)</span>
+        </div>
+        <div class="minuta-section-body">
+          Se constató que diversas dependencias no disponen actualmente de planos actualizados, lo que dificulta la delimitación de sectores y superficies. Ante esta contingencia, las responsables policiales indicaron que <strong>gestionarán la elaboración o provisión de croquis esquemáticos de distribución sectorial</strong> por cada establecimiento, brindando una representación funcional que viabilice el desarrollo de los estudios reglamentarios de carga de fuego y cálculo de potencial extintor.
+        </div>
+      </div>
+
+      <!-- 5. ANÁLISIS DE AGUAS Y CONSTANCIAS DE VISITA -->
+      <div class="minuta-section primary">
+        <div class="minuta-section-header">
+          <span>5. Análisis de Aguas de Consumo y Circuito Formal de Constancias de Visita (CV)</span>
+        </div>
+        <div class="minuta-section-body">
+          • <strong>Muestreo de Aguas:</strong> Se ratificó la necesidad de efectuar análisis físico-químicos y bacteriológicos de muestras de agua en las dependencias relevadas para certificar su aptitud de consumo humano.<br>
+          • <strong>Constancias de Visita (CV):</strong> Se formalizó que toda CV deberá contar obligatoriamente con la <strong>firma y sello del responsable del establecimiento visitado</strong>, acreditando fehacientemente la realización de la visita técnica y la conformidad del servicio in situ, procediendo luego a su resguardo en el legajo documental.
+        </div>
+      </div>
+
+      <!-- TABLA SÍNTESIS DE RESPONSABILIDADES -->
+      <table class="acuerdos-table">
+        <thead>
+          <tr>
+            <th style="width:28%;">Eje Temático</th>
+            <th style="width:36%;">Área HyS — Jefatura Central</th>
+            <th style="width:36%;">Equipo Técnico Profesional</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Padrón (102 dependencias)</strong></td>
+            <td>Consolidación del listado y canalización institucional.</td>
+            <td>Relevamiento in situ y clasificación progresiva de riesgo.</td>
+          </tr>
+          <tr>
+            <td><strong>Enlace Territorial</strong></td>
+            <td>Suministro de contactos y aviso previo formal a dependencias.</td>
+            <td>Planificación de rutas de visita y cumplimiento de fechas.</td>
+          </tr>
+          <tr>
+            <td><strong>Mediciones y Planimetría</strong></td>
+            <td>Acompañamiento en mediciones y provisión de croquis.</td>
+            <td>Ejecución de protocolos técnicos y cálculo de carga de fuego.</td>
+          </tr>
+          <tr>
+            <td><strong>Aguas y Constancias (CV)</strong></td>
+            <td>Instrucción a jefes de dependencia para firma de actas.</td>
+            <td>Toma de muestras y confección de CV firmadas en destino.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- CUADRO DE FIRMAS -->
+      <div class="signatures-grid">
+        <div class="sig-box">
+          <div class="sig-line"></div>
+          <strong>Área de Higiene y Seguridad</strong><br>
+          Jefatura Central — Policía de Entre Ríos
+        </div>
+        <div class="sig-box">
+          <div class="sig-line"></div>
+          <strong>Equipo Profesional Técnico</strong><br>
+          Servicio de Higiene y Seguridad Laboral
+        </div>
+      </div>
+
+    </div>
+
+    <div class="page-footer">
+      <span>POLICÍA DE ENTRE RÍOS — Programa de Higiene y Seguridad en el Trabajo</span>
+      <span>Minuta de Reunión y Acuerdos de Coordinación Operativa — Documento Formal</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

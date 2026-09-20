@@ -1,0 +1,562 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T14:15:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Comisaría Quinta y Alcaldía",
+    "domicilio": "Ameghino 384",
+    "direccion": "Ameghino 384",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "58",
+    "rowIndex": 182,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Lic. Milva Trossero Luzzi (Mat. L0310 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Comisaría policial y alcaldía con celdas de detención transitoria.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede policial y de custodia propia",
+    "supTotal": "2800",
+    "supCubierta": "1600",
+    "plantas": "1",
+    "dotTotal": "52",
+    "dotAdm": "15",
+    "dotProd": "32",
+    "dotOtros": "5",
+    "condicionesGenerales": "Predio de dos edificios contiguos: Comisaría 5ta y Alcaldía con celdas de detenidos. Desvíos críticos detectados: extintor con carga vencida en comisaría, extintor en el suelo en alcaldía, tableros eléctricos de ambos edificios sin disyuntor diferencial, garrafa de gas en cocina de alcaldía y cilindro exterior sin sujeción."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Lic. Milva Trossero Luzzi",
+    "hysMatricula": "Mat. L0310 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.policiaer@entrerios.gov.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con servicio de medicina del trabajo documentado"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": [
+        "Falta medición objetiva con luxómetro"
+      ]
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "N",
+      "causas": [
+        "Cilindro de GLP exterior con corrosión y sin sujeción",
+        "Garrafa de GLP instalada en interior de cocina de Alcaldía"
+      ]
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": [
+        "Tablero principal (Comisaría 5ta) sin disyuntor diferencial y cables sin canalizar",
+        "Tablero secundario (Alcaldía) sin disyuntor ni cartel de riesgo eléctrico"
+      ]
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": [
+        "Sin medición reglamentaria de PAT bajo Res. 900/15"
+      ]
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": [
+        "Sin certificado de aptitud eléctrica"
+      ]
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "N",
+      "causas": [
+        "Extintor con carga vencida en Comisaría 5ta",
+        "Extintor apoyado en el piso sin soporte en Alcaldía"
+      ]
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": [
+        "Dotación no contrastada con carga de fuego"
+      ]
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "N",
+      "causas": [
+        "Extintor de Comisaría Quinta con recarga vencida (Foto 1)"
+      ]
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "N",
+      "causas": [
+        "Extintor de Alcaldía apoyado en piso sin soporte mural (Foto 2)"
+      ]
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": [
+        "Inexistencia de cálculo de carga de fuego"
+      ]
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Muestra de agua tomada en cocina de Comisaría 5ta pendiente de análisis"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": [
+        "Sin estudio de ruido según Res. SRT 85/12"
+      ]
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": [
+        "Pendiente Programa de Ergonomía Integrado"
+      ]
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "N",
+      "causas": [
+        "Falta programa documentado de mantenimiento de instalaciones eléctricas y gas"
+      ]
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "N",
+      "causas": [
+        "Sin registro de entrega de EPP según Res. SRT 299/11"
+      ]
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": [
+        "Falta Plan de Emergencias y Evacuación formalizado"
+      ]
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": [
+        "Sin simulacros realizados"
+      ]
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": [
+        "Brigada no conformada"
+      ]
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": [
+        "Sin exámenes periódicos"
+      ]
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_5": {
+      "causa": "Cilindro de GLP exterior con corrosión y sin fijación; garrafa de GLP instalada en interior de cocina de Alcaldía (Foto 5)",
+      "que": "Adecuación de cilindro exterior con sujeción y reubicación de garrafa al exterior",
+      "como": "Sujetar cilindro exterior con cadena y proteger válvula; trasladar garrafa de cocina de alcaldía a gabinete exterior ventilado con cañería rígida reglamentaria."
+    },
+    "item_6": {
+      "causa": "Tableros eléctricos de Comisaría 5ta y Alcaldía no disponen de interruptor diferencial y tienen cables sin canalizar (Fotos 3 y 4)",
+      "que": "Instalar interruptores diferenciales (disyuntores) y canalizar conductores en ambos tableros",
+      "como": "Instalar disyuntor de 30 mA en tablero principal y secundario, peinar cableado, colocar tapas y señalizar con carteles de riesgo eléctrico."
+    },
+    "item_7": {
+      "causa": "Ausencia de medición de puesta a tierra",
+      "que": "Medición de resistencia de Puesta a Tierra bajo Res. SRT 900/15",
+      "como": "Medir jabalinas y continuidad en tableros y masas metálicas con telurímetro con certificado de calibración."
+    },
+    "item_9": {
+      "causa": "Extintor de Comisaría 5ta vencido (Foto 1) y extintor de Alcaldía en el suelo sin soporte (Foto 2)",
+      "que": "Enviar a recarga extintor vencido e instalar soporte mural para extintor de Alcaldía",
+      "como": "Gestionar recarga inmediata con empresa habilitada y amurar soporte a 1,40 m con chapa baliza reflectante en Alcaldía."
+    },
+    "item_18": {
+      "causa": "Falta estudio de carga de fuego",
+      "que": "Elaborar Estudio Técnico de Carga de Fuego conforme Dec. 351/79 Anexo VII",
+      "como": "Relevar carga combustible de dependencias policiales y celdas."
+    },
+    "item_20": {
+      "causa": "Muestra tomada en cocina de Comisaría 5ta pendiente de análisis",
+      "que": "Obtener protocolo de potabilidad de agua de red",
+      "como": "Completar análisis bromatológico en laboratorio según Ley 19.587 Cap. 8."
+    },
+    "item_21": {
+      "causa": "Sin estudio de niveles de ruido",
+      "que": "Realizar medición de ruido laboral bajo Res. SRT 85/12",
+      "como": "Medición con decibelímetro en sectores de guardia y cocina."
+    },
+    "item_26": {
+      "causa": "Puestos de trabajo sin evaluación ergonómica",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Evaluar puestos de guardia, celdas y oficinas administrativas."
+    },
+    "item_29": {
+      "causa": "Plan de evacuación no formalizado",
+      "que": "Confeccionar Plan de Emergencias y Evacuación considerando sector de detenidos",
+      "como": "Definir procedimientos específicos y llaves de emergencia para traslado seguro ante siniestro."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Comisaría 5ta y Alcaldía",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Cocina Comisaría 5ta y suministro",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Oficinas, guardia y celdas",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Guardia y áreas comunes",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tableros principales y secundarios",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Guardia permanente y celdas",
+        "puesto": "Personal policial operativo",
+        "obs": "Res. SRT 886/15 - Bipedestación",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Oficinas de atención y denuncias",
+        "puesto": "Personal administrativo",
+        "obs": "Res. SRT 886/15 - Pantallas",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Recarga de extintor vencido e instalación de soporte en Alcaldía",
+        "sector": "Comisaría 5ta y Alcaldía",
+        "obs": "Fotos 1 y 2 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Instalación de disyuntores diferenciales en tableros eléctricos",
+        "sector": "Tableros de ambos sectores",
+        "obs": "Fotos 3 y 4 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Reubicación de garrafa y sujeción de cilindro de gas GLP",
+        "sector": "Cocina y patio exterior",
+        "obs": "Foto 5 informe técnico",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Relevamiento de elementos de lucha contra incendio",
+        "sector": "Todo el establecimiento",
+        "obs": "Revisión técnica",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Recorrido por establecimiento identificando nuevos desvíos",
+        "sector": "Todo el predio",
+        "obs": "Inspección semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el predio",
+        "obs": "Seguimiento semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Recorrido de control y verificación de fin de año",
+        "sector": "Todo el predio",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido evaluando corrección final",
+        "sector": "Todo el predio",
+        "obs": "Cierre de cronograma",
+        "month": "2026-12"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico y prevención de contactos indirectos",
+        "dest": "Personal policial general",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Uso de extintores)",
+        "dest": "Personal de Comisaría y Alcaldía",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios (No RCP)",
+        "dest": "Personal de guardia",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Orden y Limpieza en dependencias policiales",
+        "dest": "Personal de servicio y cocina",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para Comisaría Quinta y Alcaldía (Ameghino 384, Paraná). Acciones correctivas urgentes: colocación de disyuntores diferenciales, regularización de extintores (uno vencido y otro sin soporte), reubicación de garrafa de cocina y sujeción de cilindro de gas GLP."
+}

@@ -1,0 +1,829 @@
+<div class="page active-module-page" id="page-1" data-module="mod-check">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Ir a sección del checklist:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-1')">🏢 Datos Sede</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-2')">🔥 Incendio, Carga Fuego & Sanitarias</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-3')">⚡ Instalaciones, Iluminación & Ruido</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-4')">⚙️ Seguridad, Máquinas & Químicos</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-5')">⚖️ Controles Legales SRT (Pág. 5)</button>
+    <button type="button" class="btn-subnav-pill" style="color:#0284c7;font-weight:bold;" onclick="togglePanelLateralTareas(true)">🗺️ Tareas Visita 1 (Panel)</button>
+  </div>
+
+  <!-- Banner de Bloqueo tras Impacto en Sheets -->
+  <div id="banner-impactado-sheets" class="banner-impactado-sheets no-print" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">🔒</span>
+      <div>
+        <div style="font-weight:bold;font-size:11.5px;color:#1e3a8a;">
+          Relevamiento Inicial Impactado en Google Sheets
+        </div>
+        <div style="font-size:9.5px;color:#2563eb;">
+          El diagnóstico inicial (Páginas 1 a 5) está bloqueado para resguardar la auditoría. Únicamente están habilitadas las <strong>Páginas 6 a 10 (Plan de Acción y Programación)</strong>.
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn-desbloquear-rel" onclick="desbloquearRelevamientoConConfirmacion()">
+      🔓 Desbloquear Relevamiento
+    </button>
+  </div>
+
+  <div class="main-header">
+    <div class="main-header-logo" id="box-logo-main">
+      <img id="img-logo-main" src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Colonia Suiza">
+    </div>
+    <div class="main-header-titles">
+      <h1>Servicio de Higiene y Seguridad en el Trabajo</h1>
+      <div class="doc-subtitle">Relevamiento Inicial y Diagnóstico de Gestión — Visita 1</div>
+    </div>
+  </div>
+
+  <div class="subtitle">Marco Normativo: Ley 19.587 — Decreto Reglamentario 351/79 — Decreto 1338/96</div>
+
+  <h2>1. Datos generales del establecimiento</h2>
+  <table class="form-grid">
+    <tr>
+      <td width="55%"><span class="field-label">Organismo (Razón social):</span><input class="field-line" type="text" id="f_razonsocial" placeholder="Organismo o Ente empleador"></td>
+      <td width="45%"><span class="field-label">Nombre del establecimiento:</span><input class="field-line" type="text" id="f_nombre_establecimiento" placeholder="Completar nombre (sede, escuela, hospital...)" style="font-weight:bold;color:#0b3d63;background:#f0f7ff;"></td>
+    </tr>
+    <tr>
+      <td width="55%"><span class="field-label">Domicilio:</span><input class="field-line" type="text" id="f_direccion" placeholder="Calle y número"></td>
+      <td width="45%">
+        <span class="field-label">N° Estab.:</span><input class="field-line" style="width:75px;display:inline-block;font-weight:bold;" type="text" id="f_nro_estab" placeholder="N°">
+        &nbsp;&nbsp;<span class="field-label">C.P.:</span><input class="field-line" style="width:60px;display:inline-block;" type="text" id="f_cp" placeholder="CP">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="field-label">Localidad:</span><input class="field-line" style="width:130px;display:inline-block;" type="text" id="f_localidad">
+        &nbsp;&nbsp;<span class="field-label">Provincia:</span><input class="field-line" style="width:120px;display:inline-block;" type="text" id="f_provincia" value="Entre Ríos">
+      </td>
+      <td>
+        <span class="field-label">CUIT:</span><input class="field-line" style="width:115px;display:inline-block;" type="text" id="f_cuit" placeholder="XX-XXXXXXXX-X">
+        &nbsp;&nbsp;<span class="field-label">ART:</span><input class="field-line" style="width:105px;display:inline-block;" type="text" id="f_art" value="IAPSER ART">
+      </td>
+    </tr>
+    <tr>
+      <td><span class="field-label">Fecha de relevamiento:</span><input class="field-line" type="text" id="f_fecha" placeholder="dd/mm/aaaa"></td>
+      <td><span class="field-label">Relevado por (Profesional HyS):</span><input class="field-line" type="text" id="f_relevador" placeholder="Nombre, apellido y matrícula del profesional"></td>
+    </tr>
+  </table>
+
+  <h2>2. Descripción y características del establecimiento</h2>
+  <table class="form-grid">
+    <tr>
+      <td colspan="2"><span class="field-label">Actividad principal desarrollada:</span><input class="field-line" type="text" id="f_actividad" placeholder="Detalle de rubro y procesos productivos o comerciales principales"></td>
+    </tr>
+    <tr>
+      <td width="48%">
+        <span class="field-label">Inmueble:</span>
+        <span class="radio-group-inline">
+          <label><input type="radio" name="inmueble_tipo" value="Propio">Propio</label>
+          <label><input type="radio" name="inmueble_tipo" value="Terceros">De terceros</label>
+        </span>
+      </td>
+      <td width="52%"><span class="field-label">Condición / Contrato:</span><input class="field-line" type="text" id="f_inmueble_cond" placeholder="Alquiler, comodato, cesión, etc."></td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="field-label">Dimensiones y superficie:</span>
+        Superficie total predio: <input class="field-line" style="width:65px;display:inline-block;" type="text" id="f_suptotal" placeholder="m²"> &nbsp;|&nbsp;
+        Superficie cubierta: <input class="field-line" style="width:65px;display:inline-block;" type="text" id="f_supcubierta" placeholder="m²"> &nbsp;|&nbsp;
+        Cantidad de plantas/niveles: <input class="field-line" style="width:45px;display:inline-block;" type="text" id="f_plantas" placeholder="1, 2...">
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="field-label">Dotación de personal:</span>
+        Total empleados: <input class="field-line" style="width:42px;display:inline-block;" type="text" id="f_dottotal" placeholder="Total"> &nbsp;|&nbsp;
+        Administrativos: <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dotadm"> &nbsp;|&nbsp;
+        Producción / Operativos: <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dotprod"> &nbsp;|&nbsp;
+        Otros (logística/serv.): <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dototros">
+      </td>
+    </tr>
+  </table>
+
+  <h2>3. Detalle de condiciones generales del establecimiento</h2>
+  <textarea class="area-box" id="f_condiciones" rows="4" style="min-height:60px;" placeholder="Detalle del estado general de conservación edilicia, características constructivas (mampostería, tinglado parabólico/dos aguas, losa), entorno inmediato, accesos y vías de circulación interna, ventilación natural, orden y limpieza general observado en el predio..."></textarea>
+
+  <h2>4. Servicios profesionales y organización (Dec. 1338/96)</h2>
+
+  <!-- Servicio HyS -->
+  <div class="citem" data-eje="organizacional" data-que="Regularizar Servicio de Higiene y Seguridad en el Trabajo (Dec. 1338/96)" data-como-default="Designar o gestionar profesional/consultora habilitada"
+       data-causas="No dispone de profesional habilitado designado|Carga horaria asignada insuficiente según Dec. 1338/96|Falta constancia de designación y registro profesional">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Servicio de Higiene y Seguridad en el Trabajo (interno/externo)</strong><span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q1" value="S" onchange="toggleProfBox('prof_hys', true)">Sí</label>
+        <label><input type="radio" name="q1" value="N" onchange="toggleProfBox('prof_hys', false)">No</label>
+        <label><input type="radio" name="q1" value="NC" onchange="toggleProfBox('prof_hys', false)">NC</label>
+      </span>
+    </div>
+    <div class="prof-data-box" id="prof_hys">
+      <table>
+        <tr>
+          <td width="35%"><span class="field-label">Nombre y Apellido:</span><input class="field-line" type="text" id="hys_nom" placeholder="Profesional responsable"></td>
+          <td width="20%"><span class="field-label">Matrícula:</span><input class="field-line" type="text" id="hys_mat"></td>
+          <td width="20%"><span class="field-label">Teléfono:</span><input class="field-line" type="text" id="hys_tel"></td>
+          <td width="15%">
+            <span class="radio-group-inline">
+              <label><input type="radio" name="hys_mod" value="Int">Int.</label>
+              <label><input type="radio" name="hys_mod" value="Ext">Ext.</label>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding-top:3px;">
+            <span class="field-label">Correo electrónico / Email:</span>
+            <input class="field-line" type="email" id="hys_email" placeholder="profesional@empresa.com o contacto@consultora.com" style="width:calc(100% - 155px);display:inline-block;">
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <!-- Servicio Medicina -->
+  <div class="citem" data-eje="organizacional" data-que="Regularizar Servicio de Medicina Laboral (Dec. 1338/96)" data-como-default="Designar o gestionar médico laboral habilitado"
+       data-causas="No cuenta con médico del trabajo designado|Carga horaria médica insuficiente|Sin cobertura médica laboral documentada">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Servicio de Medicina Laboral</strong><span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q2" value="S" onchange="toggleProfBox('prof_med', true)">Sí</label>
+        <label><input type="radio" name="q2" value="N" onchange="toggleProfBox('prof_med', false)">No</label>
+        <label><input type="radio" name="q2" value="NC" onchange="toggleProfBox('prof_med', false)">NC</label>
+      </span>
+    </div>
+    <div class="prof-data-box" id="prof_med">
+      <table>
+        <tr>
+          <td width="45%"><span class="field-label">Nombre y Apellido del Médico:</span><input class="field-line" type="text" id="med_nom" placeholder="Médico laboral"></td>
+          <td width="30%"><span class="field-label">Matrícula:</span><input class="field-line" type="text" id="med_mat"></td>
+          <td width="25%"><span class="field-label">Teléfono:</span><input class="field-line" type="text" id="med_tel"></td>
+        </tr>
+      </table>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <!-- Comité Mixto -->
+  <div class="citem" data-eje="organizacional" data-que="Conformar Comité Mixto / designar delegados de H y S" data-como-default="Convocatoria formal y acta de conformación">
+    <div class="citem-row">
+      <span class="citem-label">Comité Mixto / Delegados de H y S (si corresponde por dotación o actividad)<span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q3" value="S">Sí</label>
+        <label><input type="radio" name="q3" value="N">No</label>
+        <label><input type="radio" name="q3" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS — Caracterización del Establecimiento</span>
+    <span>Página 1 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 2: EDILICIO E INSTALACIONES ================= -->
+<div class="page active-module-page" id="page-2" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>5. Aspectos edilicios y estructurales</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento y verificación edilicia (pisos, techos, escaleras, circulación)" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Pisos, paredes, techos, escaleras y vías de circulación en buen estado<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q4" value="S">Sí</label>
+        <label><input type="radio" name="q4" value="N">No</label>
+        <label><input type="radio" name="q4" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de iluminación por sector (Anexo IV Dec. 351/79)" data-como-default="Gestionar medición con técnico habilitado (luxómetro)">
+    <div class="citem-row">
+      <span class="citem-label">Iluminación adecuada por sector (relevamiento visual)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q5" value="S">Sí</label>
+        <label><input type="radio" name="q5" value="N">No</label>
+        <label><input type="radio" name="q5" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Inspección de ventilación y disposición de depósitos/estibas" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Ventilación adecuada / depósitos y estibas correctamente dispuestos<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q6" value="S">Sí</label>
+        <label><input type="radio" name="q6" value="N">No</label>
+        <label><input type="radio" name="q6" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>6. Instalaciones</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <h3>6.1 Eléctrica</h3>
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar tableros seccionales y certificación de instalación eléctrica (AEA 90364)" data-como-default="Gestionar electricista matriculado (AEA 90364)">
+    <div class="citem-row">
+      <span class="citem-label">Tablero, seccionales y certificación de instalación eléctrica<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q7" value="S">Sí</label>
+        <label><input type="radio" name="q7" value="N">No</label>
+        <label><input type="radio" name="q7" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de puesta a tierra y verificación de disyuntores diferenciales" data-como-default="Gestionar electricista matriculado con instrumental homologado">
+    <div class="citem-row">
+      <span class="citem-label">Puesta a tierra / disyuntores diferenciales medidos<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q8" value="S">Sí</label>
+        <label><input type="radio" name="q8" value="N">No</label>
+        <label><input type="radio" name="q8" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.2 Gas</h3>
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar certificación de instalación de gas" data-como-default="Gestionar gasista matriculado habilitado">
+    <div class="citem-row">
+      <span class="citem-label">Certificado de instalador matriculado / habilitación vigente<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q9" value="S">Sí</label>
+        <label><input type="radio" name="q9" value="N">No</label>
+        <label><input type="radio" name="q9" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.3 Protección contra incendios</h3>
+  <div class="citem" id="citem_matafuegos" data-eje="infraestructura" data-plan="Registro de Extintores y Control" data-que="Adecuar cantidad, tipo y vigencia de matafuegos según carga de fuego (Dec. 351/79 Anexo VII)" data-como-default="Gestionar empresa habilitada de recarga; verificar potencial extintor mínimo (2A/10B) y tipo según clase de fuego"
+       data-causas="No hay matafuegos instalados|Matafuegos vencidos / sin control de recarga|Sin control periódico documentado|Cantidad insuficiente para la superficie/carga de fuego|Tipo inadecuado para la clase de fuego del sector|Sin prueba hidráulica vigente|Sin chapa baliza / señalización">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Matafuegos: sistema completo</strong> — cantidad, tipo, vigencia, montaje y señalización (Dec. 351/79 — Res. SRT 189/08)<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10" value="S">Sí</label>
+        <label><input type="radio" name="q10" value="N">No</label>
+        <label><input type="radio" name="q10" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Verificar cantidad adecuada de matafuegos por sector" data-como-default="1 unidad cada 200 m² mínimo; ajustar según estudio de carga de fuego">
+    <div class="citem-row">
+      <span class="citem-label">Cantidad adecuada a la carga de fuego del sector<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10a" value="S">Sí</label>
+        <label><input type="radio" name="q10a" value="N">No</label>
+        <label><input type="radio" name="q10a" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Verificar tipo de agente extintor según clase de fuego del sector (A / B / C)" data-como-default="Potencial extintor mínimo: 2A (Clase A) / 10B (Clase B)">
+    <div class="citem-row">
+      <span class="citem-label">Tipo de agente extintor adecuado a la clase de fuego del sector<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10b" value="S">Sí</label>
+        <label><input type="radio" name="q10b" value="N">No</label>
+        <label><input type="radio" name="q10b" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar recarga y control periódico de matafuegos" data-como-default="Gestionar empresa habilitada de recarga; exigir certificado y etiqueta vigente">
+    <div class="citem-row">
+      <span class="citem-label">Recarga vigente — certificado de empresa habilitada y etiqueta con fecha<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10c" value="S">Sí</label>
+        <label><input type="radio" name="q10c" value="N">No</label>
+        <label><input type="radio" name="q10c" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Realizar prueba hidráulica y registrarla" data-como-default="Gestionar empresa habilitada; registrar (5 años polvo/agua; norma IRAM)">
+    <div class="citem-row">
+      <span class="citem-label">Prueba hidráulica vigente y documentada<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10d" value="S">Sí</label>
+        <label><input type="radio" name="q10d" value="N">No</label>
+        <label><input type="radio" name="q10d" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Instalar matafuegos en soporte visible con chapa baliza y señalética" data-como-default="Montar en soporte a máx. 1,50 m de altura; chapa baliza roja visible a 10 m">
+    <div class="citem-row">
+      <span class="citem-label">Montaje correcto en soporte (máx. 1,50 m) con chapa baliza y señalética visible<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10e" value="S">Sí</label>
+        <label><input type="radio" name="q10e" value="N">No</label>
+        <label><input type="radio" name="q10e" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-que="Capacitar al personal en uso de matafuegos (técnica PASS)" data-como-default="Ejercicio práctico sobre fuego controlado; registrar asistentes">
+    <div class="citem-row">
+      <span class="citem-label">Personal capacitado en uso de matafuegos — técnica PASS (fuego controlado)<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10f" value="S">Sí</label>
+        <label><input type="radio" name="q10f" value="N">No</label>
+        <label><input type="radio" name="q10f" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar red de incendio / hidrantes" data-como-default="Gestionar mantenimiento de red contra incendios">
+    <div class="citem-row">
+      <span class="citem-label">Red de incendio / hidrantes<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q11" value="S">Sí</label>
+        <label><input type="radio" name="q11" value="N">No</label>
+        <label><input type="radio" name="q11" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Instalar/actualizar detectores y señalética de emergencia" data-como-default="Gestionar instalación con proveedor especializado">
+    <div class="citem-row">
+      <span class="citem-label">Detectores de humo/calor y señalética de emergencia<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q12" value="S">Sí</label>
+        <label><input type="radio" name="q12" value="N">No</label>
+        <label><input type="radio" name="q12" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" id="citem_fuego" data-eje="mediciones" data-form="medicion" data-plan="Adecuación Documental + Plan de Mediciones" data-que="Gestionar cálculo de carga de fuego por sector (Dec. 351/79 Anexo VII)" data-como-default="Realizar estudio de carga de fuego por sector para determinar potencial extintor mínimo requerido"
+       data-causas="Nunca se realizó estudio de carga de fuego|Estudio de carga de fuego desactualizado / con modificaciones edilicias|Sin memoria de cálculo documental">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Cálculo de carga de fuego por sector</strong> (Dec. 351/79 Anexo VII)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q13" value="S">Sí</label>
+        <label><input type="radio" name="q13" value="N">No</label>
+        <label><input type="radio" name="q13" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>6.4 Sanitarias</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de condiciones sanitarias (baños, vestuarios, comedor)" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Baños, vestuarios y comedor según dotación<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q14" value="S">Sí</label>
+        <label><input type="radio" name="q14" value="N">No</label>
+        <label><input type="radio" name="q14" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.5 Agua de consumo humano</h3>
+  <div class="citem" id="citem_agua" data-eje="mediciones" data-form="medicion" data-plan="Adecuación Documental + Plan de Mediciones" data-que="Realizar análisis físico-químico y bacteriológico del agua (Ley 19.587)" data-como-default="Gestionar laboratorio habilitado"
+       data-causas="Nunca se realizó|Vencido|Se hizo pero no hay registro escrito">
+    <div class="citem-row">
+      <span class="citem-label">Análisis físico-químico y bacteriológico vigente (Ley 19.587)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q15" value="S">Sí</label>
+        <label><input type="radio" name="q15" value="N">No</label>
+        <label><input type="radio" name="q15" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 2 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 3: AGENTES DE RIESGO ================= -->
+<div class="page active-module-page" id="page-3" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>7. Agentes de riesgo presentes</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <h3>7.1 Físicos</h3>
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de ruido (Res. SRT 85/12)" data-como-default="Gestionar técnico habilitado (sonómetro)">
+    <div class="citem-row">
+      <span class="citem-label">Medición de ruido realizada (Res. SRT 85/12)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q16" value="S">Sí</label>
+        <label><input type="radio" name="q16" value="N">No</label>
+        <label><input type="radio" name="q16" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Evaluar necesidad de medición de vibraciones" data-como-default="Gestionar técnico habilitado si la actividad lo requiere">
+    <div class="citem-row">
+      <span class="citem-label">Vibraciones (si aplica a la actividad) — medidas<span class="citem-eje-tag tag-mediciones">Mediciones (condicional)</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q17" value="S">Sí</label>
+        <label><input type="radio" name="q17" value="N">No</label>
+        <label><input type="radio" name="q17" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Evaluar necesidad de medición de material particulado" data-como-default="Gestionar técnico habilitado si la actividad lo requiere">
+    <div class="citem-row">
+      <span class="citem-label">Material particulado (si aplica a la actividad) — medido<span class="citem-eje-tag tag-mediciones">Mediciones (condicional)</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q18" value="S">Sí</label>
+        <label><input type="radio" name="q18" value="N">No</label>
+        <label><input type="radio" name="q18" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.2 Químicos</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Inspección de almacenamiento de sustancias químicas y disponibilidad de MSDS" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Hojas de seguridad (MSDS) disponibles y almacenamiento correcto<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q19" value="S">Sí</label>
+        <label><input type="radio" name="q19" value="N">No</label>
+        <label><input type="radio" name="q19" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.3 Biológicos</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de exposición a agentes biológicos en puestos operativos" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Exposición a agentes biológicos evaluada (si aplica)<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q20" value="S">Sí</label>
+        <label><input type="radio" name="q20" value="N">No</label>
+        <label><input type="radio" name="q20" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.4 Ergonómicos (Res. SRT 886/15)</h3>
+  <div class="citem" id="citem_ergo" data-eje="ergonomia" data-form="ergonomia" data-que="Realizar evaluación de puestos de trabajo con riesgo ergonómico (Res. SRT 886/15)" data-como-default="Aplicar metodología SRT (Res. 886/15); gestionar evaluación profesional">
+    <div class="citem-row">
+      <span class="citem-label">Evaluación de puestos de trabajo con riesgo ergonómico realizada (Res. SRT 886/15)<span class="citem-eje-tag tag-ergonomia">Ergonomía</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q21" value="S">Sí</label>
+        <label><input type="radio" name="q21" value="N">No</label>
+        <label><input type="radio" name="q21" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 3 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 4: MÁQUINAS, EPP Y EMERGENCIAS ================= -->
+<div class="page active-module-page" id="page-4" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>8. Máquinas, equipos y herramientas</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-form="visita" data-que="Regularizar resguardos y mantenimiento preventivo de máquinas críticas" data-como-default="Programar mantenimiento con proveedor/técnico especializado">
+    <div class="citem-row">
+      <span class="citem-label">Resguardos y mantenimiento preventivo en máquinas críticas<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q23" value="S">Sí</label>
+        <label><input type="radio" name="q23" value="N">No</label>
+        <label><input type="radio" name="q23" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>9. Elementos de Protección Personal (EPP)</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de uso efectivo y entrega de EPP según Res. SRT 299/11" data-como-default="Confeccionar estudio de EPP por puesto; implementar registro de entrega firmado">
+    <div class="citem-row">
+      <span class="citem-label">EPP definidos por puesto, entregados y con registro firmado <span class="norma-badge">Res. SRT 299/11</span><span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q24" value="S">Sí</label>
+        <label><input type="radio" name="q24" value="N">No</label>
+        <label><input type="radio" name="q24" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>10. Emergencias</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Elaborar/actualizar Plan de Evacuación y roles ante la emergencia" data-como-default="Elaboración interna o con consultora">
+    <div class="citem-row">
+      <span class="citem-label">Plan de evacuación existente y difundido<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q25" value="S">Sí</label>
+        <label><input type="radio" name="q25" value="N">No</label>
+        <label><input type="radio" name="q25" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Programar y realizar simulacro de evacuación" data-como-default="Coordinar fecha con brigada y personal">
+    <div class="citem-row">
+      <span class="citem-label">Simulacros de evacuación realizados<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q26" value="S">Sí</label>
+        <label><input type="radio" name="q26" value="N">No</label>
+        <label><input type="radio" name="q26" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Conformar y capacitar brigada de emergencia" data-como-default="Designar integrantes y coordinar capacitación">
+    <div class="citem-row">
+      <span class="citem-label">Brigada de emergencia conformada y capacitada<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q27" value="S">Sí</label>
+        <label><input type="radio" name="q27" value="N">No</label>
+        <label><input type="radio" name="q27" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-form="visita" data-que="Inspección y reposición de botiquines de primeros auxilios" data-como-default="Reposición y ubicación adecuada">
+    <div class="citem-row">
+      <span class="citem-label">Botiquín de primeros auxilios: ubicación y contenido correctos<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q28" value="S">Sí</label>
+        <label><input type="radio" name="q28" value="N">No</label>
+        <label><input type="radio" name="q28" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 4 de 10</span>
+  </div>
+</div>
+
+<!-- ================= MÓDULO: PLANILLA DE CONTROL DE EXTINTORES ================= -->
+
+<div class="page active-module-page" id="page-5" data-module="mod-check">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Secciones:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-1')">🏢 Sede (Pág. 1)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-2')">🔥 Incendio & Fuego (Pág. 2)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-3')">⚡ Instalaciones (Pág. 3)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-4')">⚙️ Seguridad & EPP (Pág. 4)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-5')">⚖️ Controles Legales SRT (Pág. 5)</button>
+    <button type="button" class="btn-subnav-pill" style="color:#0284c7;" onclick="switchModule('mod-v1')">🗺️ Guía Visita 1</button>
+  </div>
+
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>11. Documentación legal y Control Visita 1</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <!-- PANEL PRINCIPAL VISITA 1: RGRL, RAR, SVCC, RGI Y CAPACITACIÓN IN SITU -->
+  <div class="panel-control-v1 no-print">
+    <div class="panel-control-title">
+      <span>⚖️ Módulo Visita 1 — Estado Legal y Riesgos Críticos</span>
+      <span style="font-size:9.5px;color:#0284c7;font-weight:normal;">Alimenta la Matriz de Control de Google Sheets</span>
+    </div>
+    <div class="v1-grid">
+      <div class="v1-box">
+        <label>1. RGRL (Res. 463/09):</label>
+        <select id="ctrl_rgrl" onchange="evaluarSVCCEnVivo(); triggerAutoSave();">
+          <option value="No realizado">No realizado</option>
+          <option value="Realizado - Pendiente carga">Realizado - Pendiente carga</option>
+          <option value="Con RGRL (Cargado)">Con RGRL (Cargado estándar)</option>
+          <option value="Con RGRL con Cancerígenos">Con RGRL con Cancerígenos ⚠️</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>2. RAR (Res. 37/10 Nómina):</label>
+        <select id="ctrl_rar" onchange="evaluarSVCCEnVivo(); triggerAutoSave();">
+          <option value="Sin nómina">Sin nómina</option>
+          <option value="Nómina pendiente carga">Nómina pendiente carga</option>
+          <option value="Sin expuestos">Sin expuestos</option>
+          <option value="Con expuestos">Con expuestos</option>
+          <option value="Con expuestos con Cancerígenos">Con expuestos con Cancerígenos ⚠️</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>3. SVCC (Res. 81/19):</label>
+        <select id="ctrl_svcc" onchange="triggerAutoSave();">
+          <option value="N/A">N/A (No aplica)</option>
+          <option value="Pendiente carga">Pendiente carga</option>
+          <option value="Cargada">Cargada</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>4. Riesgo Grave e Inminente (RGI):</label>
+        <select id="ctrl_rgi" onchange="toggleRgiBox(this.value); triggerAutoSave();">
+          <option value="No">No (Sin riesgo inminente)</option>
+          <option value="Sí">Sí (RGI Detectado) 🔴</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Alertas en vivo de SVCC -->
+    <div id="svcc-live-alert" style="margin-top:6px;"></div>
+
+    <!-- Detalle de RGI si se activa -->
+    <div id="rgi-live-box" class="box-rgi" style="display:none;">
+      <label style="color:#b91c1c;font-weight:bold;display:block;margin-bottom:3px;">🚨 Condición de Riesgo Grave e Inminente observada:</label>
+      <input type="text" id="ctrl_rgi_desc" class="form-control" placeholder="Detalle circunstanciado y sector (Aviso urgente a ART dentro de las 24 hs)..." oninput="triggerAutoSave()">
+    </div>
+
+    <!-- Capacitación en ocasión de visita -->
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <label style="font-size:9.5px;font-weight:bold;color:#334155;display:block;margin-bottom:2px;">🎓 Cap. en Ocasión de Visita (Fecha):</label>
+        <input type="date" id="ctrl_cap_fecha" style="width:100%;font-size:10px;padding:3.5px 6px;border:1px solid #cbd5e1;border-radius:3px;" onchange="triggerAutoSave()">
+      </div>
+      <div style="flex:2;min-width:260px;">
+        <label style="font-size:9.5px;font-weight:bold;color:#334155;display:block;margin-bottom:2px;">Temario impartido in situ:</label>
+        <input type="text" id="ctrl_cap_temario" placeholder="Ej: Uso de extintores, evacuación y orden y limpieza" style="width:100%;font-size:10px;padding:3.5px 6px;border:1px solid #cbd5e1;border-radius:3px;" oninput="triggerAutoSave()">
+      </div>
+    </div>
+  </div>
+
+  <h3>11.1 RGRL (Res. SRT 463/09)</h3>
+  <div class="citem" data-eje="documental" data-que="Confeccionar/actualizar y presentar el RGRL ante la ART (Res. SRT 463/09)" data-como-default="Elaboración interna o con consultora, presentación formal a ART"
+       data-causas="No confeccionado|Confeccionado pero desactualizado|Confeccionado, sin constancia de presentación ante ART">
+    <div class="citem-row">
+      <span class="citem-label">RGRL confeccionado y presentado ante ART<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q29" value="S">Sí</label>
+        <label><input type="radio" name="q29" value="N">No</label>
+        <label><input type="radio" name="q29" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>11.2 RAR (Res. SRT 37/10)</h3>
+  <div class="citem" data-eje="documental" data-que="Confeccionar/actualizar el RAR (Res. SRT 37/10)" data-como-default="Elaboración interna o con consultora"
+       data-causas="No confeccionado|Desactualizado respecto a agentes reales|Sin vínculo con vigilancia de la salud">
+    <div class="citem-row">
+      <span class="citem-label">RAR confeccionado y remitido a ART<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q30" value="S">Sí</label>
+        <label><input type="radio" name="q30" value="N">No</label>
+        <label><input type="radio" name="q30" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>11.3 SVCC (Res. SRT 81/19)</h3>
+  <div class="citem" data-eje="documental" data-que="Realizar carga de información en el sistema SVCC (Res. SRT 81/19)" data-como-default="Gestión con responsable de H y S / ART">
+    <div class="citem-row">
+      <span class="citem-label">Carga de información en el sistema SVCC realizada<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q31" value="S">Sí</label>
+        <label><input type="radio" name="q31" value="N">No</label>
+        <label><input type="radio" name="q31" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>11.4 Exámenes médicos y siniestralidad</h3>
+  <div class="citem" data-eje="organizacional" data-que="Regularizar exámenes preocupacionales y periódicos" data-como-default="Coordinar con servicio de medicina laboral">
+    <div class="citem-row">
+      <span class="citem-label">Exámenes preocupacionales y periódicos al día<span class="citem-eje-tag tag-organizacional">Organizacional*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q32" value="S">Sí</label>
+        <label><input type="radio" name="q32" value="N">No</label>
+        <label><input type="radio" name="q32" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="organizacional" data-que="Solicitar estadísticas de siniestralidad y registro de accidentes/enfermedades" data-como-default="Solicitar a la ART / relevar registros internos">
+    <div class="citem-row">
+      <span class="citem-label">Registro de accidentes, enfermedades profesionales y estadísticas de siniestralidad<span class="citem-eje-tag tag-organizacional">Organizacional*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q33" value="S">Sí</label>
+        <label><input type="radio" name="q33" value="N">No</label>
+        <label><input type="radio" name="q33" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 5 de 10</span>
+  </div>
+</div>
+
+<!-- ================= MÓDULO 3: PLAN DE ACCIÓN Y PROGRAMACIÓN ================= -->

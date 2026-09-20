@@ -1,0 +1,541 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T14:15:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Centro de Capacitación",
+    "domicilio": "25 de Junio 72",
+    "direccion": "25 de Junio 72",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "121",
+    "rowIndex": 245,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Téc. Estefania N. Meiler (Mat. T0151 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Capacitación y apoyo educativo para personal policial y familiar (idiomas, apoyo escolar).",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede educativa institucional propia",
+    "supTotal": "900",
+    "supCubierta": "650",
+    "plantas": "1",
+    "dotTotal": "20",
+    "dotAdm": "8",
+    "dotProd": "10",
+    "dotOtros": "2",
+    "condicionesGenerales": "Establecimiento educativo y administrativo con aulas, biblioteca, sala de reuniones, recepción y cocina-comedor. Buenas condiciones generales de orden y limpieza. Desvíos detectados: humedad con moho en pared de sanitario, módulo sin tapa ciega en tablero eléctrico, falta cartel de salida de emergencia en puerta principal y pendiente análisis de agua."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Téc. Estefania N. Meiler",
+    "hysMatricula": "Mat. T0151 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.policiaer@entrerios.gov.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "N",
+      "causas": [
+        "Presencia de humedad y desarrollo de moho/hongos sobre muro próximo al lavabo en sanitarios (Foto Baño)"
+      ]
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": [
+        "Falta medición objetiva con luxómetro"
+      ]
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": [
+        "Módulo sin tapa ciega en tablero eléctrico principal permitiendo acceso a partes energizadas; falta identificar circuitos (Foto Tablero)"
+      ]
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": [
+        "Falta medición reglamentaria de PAT bajo Res. 900/15"
+      ]
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": [
+        "Sin certificado de aptitud eléctrica"
+      ]
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": [
+        "Dotación no contrastada con carga de fuego"
+      ]
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "N",
+      "causas": [
+        "Falta cartel de salida de emergencia en puerta principal"
+      ]
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": [
+        "Inexistencia de cálculo de carga de fuego"
+      ]
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "N",
+      "causas": [
+        "Humedad y moho en sector sanitario"
+      ]
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Muestra tomada en bidones pendiente de análisis bacteriológico"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": [
+        "Pendiente Programa de Ergonomía Integrado"
+      ]
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": [
+        "Falta Plan de Emergencias y Evacuación"
+      ]
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": [
+        "Sin simulacros realizados"
+      ]
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": [
+        "Brigada no conformada"
+      ]
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": [
+        "Sin exámenes periódicos"
+      ]
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_3": {
+      "causa": "Humedad y desarrollo de moho/hongos en muro próximo al lavabo del sanitario",
+      "que": "Reparar humedad y revocar/pintar muro de sanitario con pintura antihongos",
+      "como": "Reparar cañería con pérdida si corresponde, aplicar tratamiento antihongos y pintar con esmalte impermeable."
+    },
+    "item_6": {
+      "causa": "Módulo sin tapa ciega en tablero eléctrico principal permitiendo acceso a partes vivas; circuitos sin identificar",
+      "que": "Colocar tapa ciega en tablero eléctrico e identificar circuitos con rótulos",
+      "como": "Instalar módulo plástico ciego normalizado DIN y colocar etiquetas con la identificación de cada circuito."
+    },
+    "item_7": {
+      "causa": "Falta medición de PAT y verificación de continuidad",
+      "que": "Medición de resistencia de Puesta a Tierra según Res. SRT 900/15",
+      "como": "Efectuar medición de jabalina y tableros con telurímetro calibrado."
+    },
+    "item_17": {
+      "causa": "Falta señalización de salida de emergencia en la puerta principal de egreso",
+      "que": "Instalar cartel de 'Salida de Emergencia' fotoluminiscente en acceso principal",
+      "como": "Fijar cartel IRAM fotoluminiscente sobre el marco superior de la puerta principal de salida a la vía pública."
+    },
+    "item_18": {
+      "causa": "Falta estudio de carga de fuego",
+      "que": "Elaborar Estudio Técnico de Carga de Fuego",
+      "como": "Relevar carga combustible de aulas, biblioteca y oficinas conforme Dec. 351/79 Anexo VII."
+    },
+    "item_20": {
+      "causa": "Muestra de agua tomada de bidones pendiente de análisis de laboratorio",
+      "que": "Obtener protocolo de análisis bromatológico del agua de consumo",
+      "como": "Verificar calidad bacteriológica y físico-química bajo Ley 19.587 Cap. 8."
+    },
+    "item_26": {
+      "causa": "Puestos administrativos y docentes sin evaluación ergonómica",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Evaluar posturas en puestos de atención informática y aulas de capacitación."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Aulas, biblioteca y oficinas",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Agua de bidones para consumo",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Aulas, biblioteca y recepción",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Sectores comunes",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tablero eléctrico principal",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Oficinas de recepción y administración",
+        "puesto": "Personal administrativo",
+        "obs": "Res. SRT 886/15 - Pantallas",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Aulas de capacitación",
+        "puesto": "Docentes e instructores",
+        "obs": "Res. SRT 886/15 - Bipedestación",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Colocación de tapa ciega y rótulos en tablero eléctrico",
+        "sector": "Tablero principal",
+        "obs": "Foto tablero informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Colocación de cartel fotoluminiscente de Salida de Emergencia",
+        "sector": "Puerta principal de ingreso",
+        "obs": "Foto acceso",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Reparación de humedad y pintura en sanitarios",
+        "sector": "Sanitarios",
+        "obs": "Foto sanitario informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Relevamiento de elementos de lucha contra incendio",
+        "sector": "Todo el edificio",
+        "obs": "Revisión técnica",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Recorrido por establecimiento identificando nuevos desvíos",
+        "sector": "Todo el predio",
+        "obs": "Inspección semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el predio",
+        "obs": "Seguimiento semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Recorrido de control y verificación de fin de año",
+        "sector": "Todo el predio",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido evaluando corrección final",
+        "sector": "Todo el predio",
+        "obs": "Cierre anual",
+        "month": "2026-12"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico en oficinas e instalaciones",
+        "dest": "Personal administrativo y docente",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Uso de extintores)",
+        "dest": "Todo el personal",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios (No RCP)",
+        "dest": "Personal administrativo y docente",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Orden y Limpieza en aulas y sectores comunes",
+        "dest": "Personal de maestranza y general",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para Centro de Capacitación (25 de Junio 72, Paraná). Muy buenas condiciones edilicias generales. Acciones de regularización: colocación de tapa ciega en tablero eléctrico, cartel de salida de emergencia en acceso principal, reparación de humedad en sanitarios y cronograma anual."
+}

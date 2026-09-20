@@ -1,0 +1,8 @@
+﻿{
+  "name": "informes-iapser-hys",
+  "version": "2.0.0",
+  "description": "Sistema Interactivo de Relevamiento Inicial HyS - IAPSER",
+  "scripts": {
+    "build": "node build.js"
+  }
+}

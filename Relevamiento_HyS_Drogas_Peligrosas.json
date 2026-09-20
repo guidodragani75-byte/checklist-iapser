@@ -1,0 +1,621 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T11:45:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Dirección General de Drogas Peligrosas",
+    "domicilio": "Villaguay 245",
+    "direccion": "Villaguay 245",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "40",
+    "rowIndex": 167,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Téc. Estefania N. Meiler (Mat. T0151 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Prevención y lucha contra el narcotráfico.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede operativa institucional de la Policía de Entre Ríos",
+    "supTotal": "1800",
+    "supCubierta": "1200",
+    "plantas": "2",
+    "dotTotal": "45",
+    "dotAdm": "15",
+    "dotProd": "25",
+    "dotOtros": "5",
+    "condicionesGenerales": "Edificio de dos plantas destinado a la investigación y lucha contra el narcotráfico. Dispone de oficinas administrativas, sala de operaciones, dormitorios para guardia rotativa de 24 hs con cuchetas, cocina-comedor, sanitarios con duchas, dos depósitos de estupefacientes con ventilación mecánica (cadena de custodia judicial) y depósito de secuestros policiales. Se observan cables sueltos en puestos informáticos, acumulación de materiales en depósitos, garrafa de gas en cocina y escalera hacia terraza sin baranda en un lateral."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Téc. Estefania N. Meiler",
+    "hysMatricula": "Mat. T0151 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.drogaspeligrosas@policiadeentrerios.gob.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo designado"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "N",
+      "causas": [
+        "Cantidad insuficiente para la superficie/carga de fuego"
+      ]
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Nunca se realizó"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No confeccionado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No confeccionado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "N",
+      "causas": [
+        "No existe plan"
+      ]
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_1": {
+      "causa": "Falta de servicio médico laboral asignado y seguimiento de exámenes de salud",
+      "que": "Gestionar designación de médico laboral y seguimiento de salud",
+      "como": "Articular con Sanidad Policial la asignación de horas médicas para guardias rotativas de 24 hs."
+    },
+    "item_3": {
+      "causa": "Escalera hacia terraza y parrilla sin baranda de protección lateral, sin antideslizantes (Foto 19); cables sueltos en oficinas (Foto 2)",
+      "que": "Instalación de baranda reglamentaria en escalera a terraza y ordenamiento de cables",
+      "como": "Colocar baranda metálica resistente con pasamanos y zócalo; aplicar bandas antideslizantes e iluminar el acceso; canalizar cables en oficinas."
+    },
+    "item_4": {
+      "causa": "Inexistencia de estudio de iluminación con luxómetro en puestos de trabajo",
+      "que": "Realizar estudio y medición de niveles de iluminación (Res. SRT 84/12)",
+      "como": "Medición instrumental en oficinas de operaciones, dormitorios de guardia, depósitos y accesos."
+    },
+    "item_5": {
+      "causa": "Garrafa de gas GLP en interior de cocina-comedor; depósito de secuestros con acumulación desordenada de materiales (Fotos 7 y 8)",
+      "que": "Reubicar garrafa de gas al exterior y ordenar depósito de secuestros",
+      "como": "Instalar garrafa en exterior en gabinete ventilado con cañería fija; sectorizar y ordenar estibas de materiales secuestrados para reducir carga de fuego."
+    },
+    "item_6": {
+      "causa": "Tableros eléctricos antiguos con conductores expuestos, conexiones sin protección y falta de tapas (Fotos 9 y 10)",
+      "que": "Reemplazo y regularización de tableros eléctricos antiguos",
+      "como": "Instalar gabinetes estancos con contratapas que impidan acceso a partes energizadas, peinar cableados e identificar circuitos."
+    },
+    "item_7": {
+      "causa": "Ausencia de medición de puesta a tierra y continuidad de masas bajo protocolo oficial",
+      "que": "Medición de Puesta a Tierra y continuidad según Res. SRT 900/15",
+      "como": "Efectuar medición de jabalina y continuidad en masas metálicas con telurímetro calibrado y firma de matriculado."
+    },
+    "item_8": {
+      "causa": "Inexistencia de certificación de aptitud eléctrica por electricista matriculado",
+      "que": "Obtener Certificado de Aptitud de Instalación Eléctrica",
+      "como": "Revisión técnica de circuitos y gestión de habilitación eléctrica ante colegio profesional correspondiente."
+    },
+    "item_9": {
+      "causa": "Matafuegos con acceso parcialmente obstruido por mobiliario, herramientas y objetos en varios sectores (Fotos 5 y 6)",
+      "que": "Despeje, reubicación y libre accesibilidad a extintores portátiles",
+      "como": "Despejar áreas frente a extintores, colocar señalización visible y balizas IRAM a distancia reglamentaria."
+    },
+    "item_10": {
+      "causa": "Falta de verificación de la dotación de extintores contra cálculo de carga de fuego",
+      "que": "Adecuar dotación de extintores al resultado del estudio de carga de fuego",
+      "como": "Verificar potencial extintor mínimo y cobertura en metros cuadrados en oficinas y depósitos."
+    },
+    "item_14": {
+      "causa": "Extintores montados con acceso dificultado o fuera de visualización inmediata",
+      "que": "Reubicar y amurar extintores en soportes accesibles (máx. 1,50 m)",
+      "como": "Montar a altura reglamentaria con chapa baliza IRAM despejada de muebles y objetos."
+    },
+    "item_17": {
+      "causa": "Falta de cartelería fotoluminiscente de vías de escape y medios de salida",
+      "que": "Instalar señalética reglamentaria de medios de escape",
+      "como": "Colocar carteles fotoluminiscentes de evacuación y flechas direccionales hacia salidas."
+    },
+    "item_18": {
+      "causa": "No se realizó cálculo de carga de fuego según Dec. 351/79 Anexo VII",
+      "que": "Elaborar Estudio Técnico de Carga de Fuego por sector",
+      "como": "Relevar carga combustible de papelería, mobiliario, dormitorios y depósitos de secuestros."
+    },
+    "item_20": {
+      "causa": "Agua de consumo en bidones sin protocolos analíticos actualizados de laboratorio",
+      "que": "Completar análisis bacteriológico y fisicoquímico del agua de consumo",
+      "como": "Toma de muestras y envío a laboratorio bromatológico para verificar potabilidad según Ley 19.587 Cap. 8."
+    },
+    "item_21": {
+      "causa": "Sectores de guardia y operaciones sin evaluación acústica Res. SRT 85/12",
+      "que": "Efectuar medición de Ruido Laboral",
+      "como": "Medición con decibelímetro integrador clase 2 en áreas de trabajo y descanso."
+    },
+    "item_26": {
+      "causa": "Inexistencia de evaluación ergonómica para puestos informáticos, guardias y depósitos",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Completar Planillas 1 y 2 evaluando posturas, uso de PVD y manipulación de cargas en secuestros."
+    },
+    "item_27": {
+      "causa": "Falta de programa documentado de mantenimiento preventivo de climatización e instalaciones",
+      "que": "Implementar programa de mantenimiento preventivo con registros",
+      "como": "Formalizar libro de intervenciones y revisiones periódicas de sistemas eléctricos y de aire acondicionado."
+    },
+    "item_28": {
+      "causa": "Falta de constancia formal de entrega de EPP bajo Res. SRT 299/11",
+      "que": "Implementar planillas individuales de entrega de EPP",
+      "como": "Registrar entrega de calzado de seguridad, guantes y protección personal para operativos."
+    },
+    "item_29": {
+      "causa": "Plan de evacuación no formalizado ni difundido al personal",
+      "que": "Confeccionar Plan de Emergencias y Evacuación",
+      "como": "Definir planos de escape, roles de guardia y consignas operativas ante siniestros."
+    },
+    "item_30": {
+      "causa": "Nunca se realizó simulacro de evacuación en el establecimiento",
+      "que": "Programar y ejecutar simulacro de evacuación",
+      "como": "Realizar ejercicio práctico de evacuación con personal de guardia y elaborar informe."
+    },
+    "item_31": {
+      "causa": "Brigada de emergencia no conformada",
+      "que": "Conformar y capacitar Brigada de Emergencia",
+      "como": "Asignar funciones de brigadistas por turno de guardia y capacitar en extinción y escape."
+    },
+    "item_32": {
+      "causa": "Botiquines de primeros auxilios incompletos y sin control periódico",
+      "que": "Reponer y estandarizar botiquines de primeros auxilios",
+      "como": "Completar elementos de curación básicos, descartar insumos vencidos y mantener registro de control periódico."
+    },
+    "item_33": {
+      "causa": "RGRL pendiente de presentación ante la ART",
+      "que": "Confeccionar y presentar RGRL actualizado ante IAPSER ART",
+      "como": "Remitir formalmente el relevamiento con constancia de recepción de la aseguradora."
+    },
+    "item_34": {
+      "causa": "RAR pendiente de confección ante la ART",
+      "que": "Confeccionar y remitir RAR ante IAPSER ART",
+      "como": "Declarar riesgos laborales evaluados en el establecimiento."
+    },
+    "item_36": {
+      "causa": "Falta de exámenes periódicos de salud laboral para personal de guardia",
+      "que": "Coordinar exámenes periódicos con Sanidad Policial y ART",
+      "como": "Gestionar la realización de controles médicos periódicos al personal expuesto."
+    },
+    "item_38": {
+      "causa": "No acredita implementación efectiva de instancias de capacitación en HyS",
+      "que": "Implementar el Plan Anual de Capacitación en materia de Higiene y Seguridad",
+      "como": "Ejecutar cronograma propuesto en Anexo II sobre riesgo eléctrico, incendios, primeros auxilios, 5S y ergonomía."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Oficinas, depósitos de secuestros y dormitorios",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Cocina y dispensers de bidones",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Puestos informáticos, operaciones y depósitos",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-09"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tableros eléctricos generales y seccionales",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Oficinas administrativas y Operaciones",
+        "puesto": "Personal administrativo e investigadores",
+        "obs": "Res. SRT 886/15 - Posturas y PVD",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Depósitos y guardias 24 horas",
+        "puesto": "Personal de guardia y custodia de secuestros",
+        "obs": "Res. SRT 886/15 - Bipedestación y cargas",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Reubicación de garrafa de gas al exterior con gabinete",
+        "sector": "Sector cocina y patio exterior",
+        "obs": "Gases licuados de petróleo",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Instalación de baranda en escalera hacia terraza y parrilla",
+        "sector": "Escalera exterior terraza",
+        "obs": "Foto 19 informe técnico",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Despeje y libre acceso a extintores portátiles",
+        "sector": "Oficinas y depósitos",
+        "obs": "Fotos 5 y 6 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Recorrido identificando nuevos desvíos y evaluando correcciones",
+        "sector": "Todo el establecimiento",
+        "obs": "Inspección trimestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Relevamiento trimestral de extintores y reposición botiquines",
+        "sector": "Todos los sectores",
+        "obs": "Control periódico",
+        "month": "2026-09"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el edificio",
+        "obs": "Seguimiento técnico semestral",
+        "month": "2026-09"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Confección de Plan de Evacuación y Roles ante la emergencia",
+        "sector": "Edificio general",
+        "obs": "Plan de autoprotección",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido de control y verificación de desvíos",
+        "sector": "Todo el establecimiento",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_9",
+        "label": "Simulacro General de Incendio y Evacuación",
+        "sector": "Edificio Villaguay 245",
+        "obs": "Anexo I Cronograma",
+        "month": "2027-03"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico y prevención en oficinas",
+        "dest": "Personal administrativo y de guardia",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Uso de extintores)",
+        "dest": "Todo el personal de la dependencia",
+        "modal": "Teórico-práctica",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios y respuesta ante emergencias",
+        "dest": "Personal de guardia rotativa",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Orden y Limpieza (Metodología 5S en puestos y depósitos)",
+        "dest": "Personal general y de custodia",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Ergonomía, posturas y uso de pantallas (PVD)",
+        "dest": "Personal administrativo y de operaciones",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Plan de Evacuación (específica para brigada de emergencia)",
+        "dest": "Brigada designada y jefes de guardia",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para la Dirección General de Drogas Peligrosas (Villaguay 245, Paraná). Se establecieron acciones de regularización para tableros eléctricos antiguos, reubicación de garrafa de gas, baranda de escalera a terraza y despeje de extintores portátiles."
+}

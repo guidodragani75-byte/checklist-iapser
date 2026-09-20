@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Checklist Interactivo - Relevamiento Inicial HyS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ================= BARRA SUPERIOR DE APLICACIÓN ================= -->
+<header class="app-topbar no-print">
+  <div class="app-topbar-left">
+    <div class="app-brand">
+      🏢 <span>IAPSER HyS</span>
+    </div>
+    <div class="topbar-current-estab-chip" id="topbar-current-estab" title="Sede actualmente cargada en el informe">
+      📍 [Cargando sede...]
+    </div>
+  </div>
+
+  <div class="app-topbar-center">
+    <span class="topbar-view-label">Vista:</span>
+    <button type="button" class="btn-view-mode active" id="btn-mode-mod" onclick="setViewMode('modules')" title="Navegar ágilmente por módulo en pantalla">📱 Módulos</button>
+    <button type="button" class="btn-view-mode" id="btn-mode-doc" onclick="setViewMode('document')" title="Ver documento A4 completo en pantalla">📄 Doc Completo</button>
+  </div>
+
+  <div class="app-topbar-right">
+    <!-- BOTÓN 1: NUEVO RELEVAMIENTO (Destacado Verde) -->
+    <button type="button" class="btn-action-main btn-action-nuevo" onclick="abrirModalNuevoChecklist()" title="Iniciar un nuevo checklist de relevamiento en blanco">
+      ✨ + Nuevo Relevamiento
+    </button>
+
+    <!-- BOTÓN 2: GUARDAR EN SHEETS (Destacado Azul Nube) -->
+    <button type="button" class="btn-action-main btn-action-sheets" onclick="enviarAGoogleSheets()" title="Guardar informe e impactar datos en Google Sheets">
+      ☁️ Guardar en Sheets
+    </button>
+
+    <!-- BOTÓN 3: IMPRIMIR / PDF (Gris Oscuro Oficial) -->
+    <button type="button" class="btn-action-main btn-action-print" onclick="window.print()" title="Imprimir o guardar en PDF (10 Páginas Oficiales A4)">
+      🖨️ Imprimir / PDF
+    </button>
+
+    <!-- MENÚ DESPLEGABLE: HERRAMIENTAS ADICIONALES -->
+    <div class="dropdown-wrap">
+      <button type="button" class="btn-action-more" onclick="toggleMenuOpciones(event)" title="Más opciones y herramientas">
+        ⚙️ Más ▾
+      </button>
+      <div id="dropdown-menu-opciones" class="dropdown-menu-content">
+        <button type="button" class="dropdown-item" onclick="crearNuevoEstablecimiento(); closeMenuOpciones();">
+          ➕ Crear Sede No Listada
+        </button>
+        <button type="button" class="dropdown-item" onclick="descargarJSON(); closeMenuOpciones();">
+          💾 Descargar Respaldo (.json)
+        </button>
+        <button type="button" class="dropdown-item" onclick="document.getElementById('file-loader').click(); closeMenuOpciones();">
+          📂 Abrir Respaldo (.json)
+        </button>
+        <button type="button" class="dropdown-item" onclick="openSheetsModal(); closeMenuOpciones();">
+          ☁️ Configurar URL Google Sheets
+        </button>
+        <button type="button" class="dropdown-item" onclick="toggleLogoStyle(); closeMenuOpciones();">
+          🌓 Alternar Fondo del Logo
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item dropdown-item-danger" onclick="eliminarEstablecimientoActual(); closeMenuOpciones();">
+          🗑️ Eliminar Relevamiento Actual
+        </button>
+      </div>
+    </div>
+    <input type="file" id="file-loader" accept=".json" style="display:none" onchange="cargarJSON(this)">
+
+    <span class="save-indicator" id="save-status">💾 Guardado local</span>
+  </div>
+</header>
+
+<!-- ================= BARRA DE FILTROS Y SELECCIÓN DE ESTABLECIMIENTO ================= -->
+<section class="est-filter-bar no-print" aria-label="Filtros de Establecimientos">
+  <div class="filter-col filter-col-cuit">
+    <label for="filtro-cuit">1. CUIT / Organismo:</label>
+    <select id="filtro-cuit" onchange="onFiltroCuitChange(this.value)">
+      <option value="">🏢 Todos los CUITs / Organismos</option>
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-loc">
+    <label for="filtro-localidad">2. Localidad:</label>
+    <select id="filtro-localidad" onchange="onFiltroLocalidadChange(this.value)">
+      <option value="">📍 Todas las localidades</option>
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-search">
+    <label for="filtro-busqueda-texto">3. Buscar por N° o Nombre:</label>
+    <input type="text" id="filtro-busqueda-texto" placeholder="🔍 N°, Comisaría, Calle..." oninput="onFiltroTextoChange(this.value)">
+  </div>
+
+  <div class="filter-col filter-col-target">
+    <label for="sel-establecimiento">4. Sede a Relevar (<span id="count-estab-filtrados">0</span> disponibles):</label>
+    <select id="sel-establecimiento" onchange="cambiarEstablecimiento(this.value)">
+      <!-- Opciones filtradas dinámicamente -->
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-btn">
+    <button type="button" class="btn-clear-filters" onclick="limpiarFiltrosEstablecimiento()" title="Restablecer todos los filtros a ver todo el padrón">
+      ✕ Limpiar
+    </button>
+  </div>
+</section>
+
+<!-- ================= BARRA DE MENÚ DE MÓDULOS (TABS) ================= -->
+<div class="app-module-nav no-print" id="module-nav">
+  <button type="button" class="nav-module-btn btn-nav-panel" onclick="togglePanelLateralTareas()" style="background:#082f49;color:#fff;border:1px solid #38bdf8;" title="Abrir u ocultar el panel lateral con las 10 tareas de la Visita 1">
+    🗺️ <span>Tareas Visita 1 (Panel)</span>
+    <span class="module-badge" id="badge-v1-status">10 Tareas</span>
+  </button>
+  <button class="nav-module-btn active" data-mod="mod-sedes" onclick="switchModule('mod-sedes')" title="Ver directorio completo de sedes agrupadas por CUIT y Razón Social">
+    🏢 <span>Sedes por CUIT</span>
+    <span class="module-badge" id="badge-sedes-count" style="background:#0284c7;color:#fff;">Directorio</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-check" onclick="switchModule('mod-check')" title="Relevar los 5 apartados del checklist inicial">
+    📋 <span>1. Relevamiento Checklist</span>
+    <span class="module-badge" id="badge-desvios">Págs 1-5</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-plan" onclick="switchModule('mod-plan')" title="Gestionar Plan de Acción, Programación por sector y Gantt">
+    📊 <span>2. Plan de Acción y Programación</span>
+    <span class="module-badge" id="badge-pt-status">Págs 6-10</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-soporte" onclick="switchModule('mod-soporte')" title="Planilla horizontal de extintores y cálculo de carga de fuego">
+    🛠️ <span>3. Soporte: Extintores y Fuego</span>
+    <span class="module-badge" style="background:#0284c7;color:#fff;">A4 Horizontal</span>
+  </button>
+</div>
+
+<!-- Modal Confirmación de Modificación de Relevamiento en Sheets -->
+<div class="modal-overlay" id="modal-confirmar-modificacion-sheets">
+  <div class="modal-box" style="max-width:520px;border-top:4px solid #f59e0b;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;color:#9a3412;display:flex;align-items:center;gap:8px;font-size:13px;">
+        ⚠️ Relevamiento ya completado en Google Sheets
+      </h3>
+      <button type="button" onclick="closeConfirmarModificacionModal()" style="border:none;background:transparent;font-size:14px;cursor:pointer;color:#64748b;" title="Cerrar">✖</button>
+    </div>
+
+    <div id="modal-confirmar-desc" style="font-size:11px;color:#334155;line-height:1.5;margin-bottom:12px;">
+      <!-- Texto explicativo dinámico -->
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:10.5px;color:#92400e;margin-bottom:16px;line-height:1.4;">
+      ℹ️ <strong>Recordatorio importante:</strong> Los cambios modificarán los datos guardados en la planilla que ya pudieron haberse utilizado para emitir algún informe previo al cliente.<br><br>
+      Si se trata de una nueva visita al establecimiento, te recomendamos <strong>dar de alta un nuevo relevamiento</strong> diferenciado por fecha para no pisar el registro histórico.
+    </div>
+
+    <div class="modal-actions" style="display:flex;flex-direction:column;gap:8px;">
+      <button type="button" style="background:#0284c7;color:#fff;font-weight:bold;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="confirmarSobreescrituraSheets()">
+        ✏️ Modificar registro existente en Sheets
+      </button>
+      <button type="button" style="background:#16a34a;color:#fff;font-weight:bold;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="derivarANuevoRelevamientoDesdeSheets()">
+        ✨ Dar de alta un nuevo relevamiento (otra fecha)
+      </button>
+      <button type="button" style="background:#e2e8f0;color:#475569;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="closeConfirmarModificacionModal()">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Google Sheets -->
+<div class="modal-overlay" id="sheets-modal">
+  <div class="modal-box">
+    <h3>☁️ Conexión con Google Sheets — Informes IAPSER</h3>
+    <p>Ingresá la <strong>URL de la Aplicación Web de Google Apps Script</strong> (termina en /exec) para sincronizar directamente con tu planilla.</p>
+    <input type="text" id="sheets-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="modal-actions">
+      <button style="background:#e2e8f0;color:#333;" onclick="closeSheetsModal()">Cancelar</button>
+      <button style="background:#0f9d58;color:#fff;font-weight:bold;" onclick="guardarUrlSheetsYEnviar()">Guardar y Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nuevo Checklist / Establecimiento -->
+<div class="modal-overlay" id="nuevo-est-modal">
+  <div class="modal-box" style="max-width:540px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0b3d63;padding-bottom:6px;margin-bottom:10px;">
+      <h3 style="margin:0;color:#0b3d63;display:flex;align-items:center;gap:6px;font-size:12.5px;">
+        📋 Iniciar Nuevo Checklist de Relevamiento
+      </h3>
+      <button type="button" onclick="closeNuevoEstModal()" style="border:none;background:transparent;font-size:14px;cursor:pointer;color:#64748b;" title="Cerrar">✖</button>
+    </div>
+
+    <!-- Pestañas del Modal -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid #cbd5e1;padding-bottom:6px;">
+      <button type="button" id="tab-btn-sel-existente" class="btn-view-mode active" onclick="setModalTab('existente')" style="font-size:10px;padding:5px 12px;border-radius:4px;">
+        🏢 1. Elegir Sede del Listado Oficial
+      </button>
+      <button type="button" id="tab-btn-crear-nuevo" class="btn-view-mode" onclick="setModalTab('nuevo')" style="font-size:10px;padding:5px 12px;border-radius:4px;">
+        ➕ 2. Crear Sede No Listada
+      </button>
+    </div>
+
+    <!-- PANEL 1: ELEGIR SEDE EXISTENTE -->
+    <div id="modal-panel-existente" style="display:block;">
+      <p style="font-size:10.5px;color:#334155;margin-bottom:8px;">
+        Seleccioná un establecimiento para iniciar una nueva visita de auditoría con <strong>preguntas en blanco</strong>:
+      </p>
+
+      <div style="margin-bottom:10px;">
+        <label style="font-weight:bold;color:#0b3d63;display:block;margin-bottom:4px;font-size:10.5px;">Establecimiento / Dependencia a relevar:</label>
+        <select id="modal_sel_existente" onchange="actualizarInfoSedeModal(this.value)" style="width:100%;padding:6px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:10.5px;background:#fff;">
+          <!-- Se llena dinámicamente con las sedes disponibles -->
+        </select>
+      </div>
+
+      <!-- Ficha resumen de la sede elegida -->
+      <div id="modal_sede_preview" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;font-size:10px;color:#0369a1;margin-bottom:10px;line-height:1.4;">
+        <!-- Se actualiza con domicilio, nro y localidad -->
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label style="font-weight:bold;color:#0b3d63;display:block;margin-bottom:4px;font-size:10.5px;">🗓️ Fecha de Relevamiento de la Visita:</label>
+        <input type="date" id="modal_nuevo_fecha" style="width:100%;padding:6px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:11px;background:#fff;">
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:7px 10px;font-size:9.5px;color:#166534;margin-bottom:12px;line-height:1.4;">
+        ✨ <strong>Checklist limpio en blanco:</strong> Se iniciará una nueva visita conservando la dirección oficial y los datos del organismo. Todas las respuestas Sí/No/NC quedarán en blanco y se diferenciará en el listado por la <strong>fecha seleccionada</strong>.
+      </div>
+
+      <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" style="background:#e2e8f0;color:#334155;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:10px;" onclick="closeNuevoEstModal()">Cancelar</button>
+        <button type="button" style="background:#16a34a;color:#fff;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:10.5px;" onclick="confirmarNuevoChecklistSedeExistente()">✨ Iniciar Checklist en Blanco</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2: CREAR SEDE TOTALMENTE NUEVA -->
+    <div id="modal-panel-nuevo" style="display:none;">
+      <p style="font-size:10.5px;color:#475569;margin-bottom:10px;">
+        Completá los datos básicos del nuevo establecimiento. Se creará una ficha limpia lista para relevar in situ.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:10px;">
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Organismo / Razón Social *:</label>
+          <input type="text" id="modal_nuevo_org" value="JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Nombre de la Sede / Dependencia *:</label>
+          <input type="text" id="modal_nuevo_nom" placeholder="Ej: Comisaría 5ta / Destacamento Colonia / División Montada..." style="width:100%;padding:5px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:11px;">
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">N° Establecimiento:</label>
+            <input type="text" id="modal_nuevo_nro" placeholder="Ej: 185" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+          </div>
+          <div style="flex:2;">
+            <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Localidad:</label>
+            <input type="text" id="modal_nuevo_loc" value="Paraná" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Domicilio / Dirección:</label>
+          <input type="text" id="modal_nuevo_dom" placeholder="Calle, número y referencias" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Escala / Tamaño del Establecimiento:</label>
+          <select id="modal_nuevo_tamano" style="width:100%;padding:5px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:10.5px;background:#fff;">
+            <option value="1">1. Muy Pequeño / Destacamento (&lt; 5 pers, &lt; 100 m²)</option>
+            <option value="2">2. Pequeño / Puesto Vial (5-15 pers, 100-300 m²)</option>
+            <option value="3" selected>3. Mediano / Comisaría Estándar (15-50 pers, 300-800 m²)</option>
+            <option value="4">4. Grande / Jefatura Departamental (50-150 pers, 800-2000 m²)</option>
+            <option value="5">5. Muy Grande / Complejo / Instituto (&gt; 150 pers, &gt; 2000 m²)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" style="background:#e2e8f0;color:#334155;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:10px;" onclick="closeNuevoEstModal()">Cancelar</button>
+        <button type="button" style="background:#0284c7;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:10.5px;" onclick="confirmarCrearNuevoEstablecimiento()">✅ Crear y Relevar</button>
+      </div>
+    </div>
+  </div>
+</div>

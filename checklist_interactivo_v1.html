@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Checklist Interactivo - Relevamiento Inicial HyS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ================= BARRA SUPERIOR DE APLICACIÓN ================= -->
+<header class="app-topbar no-print">
+  <div class="app-topbar-left">
+    <div class="app-brand">
+      🏢 <span>IAPSER HyS</span>
+    </div>
+    <div class="topbar-current-estab-chip" id="topbar-current-estab" title="Sede actualmente cargada en el informe">
+      📍 [Cargando sede...]
+    </div>
+  </div>
+
+  <div class="app-topbar-center">
+    <span class="topbar-view-label">Vista:</span>
+    <button type="button" class="btn-view-mode active" id="btn-mode-mod" onclick="setViewMode('modules')" title="Navegar ágilmente por módulo en pantalla">📱 Módulos</button>
+    <button type="button" class="btn-view-mode" id="btn-mode-doc" onclick="setViewMode('document')" title="Ver documento A4 completo en pantalla">📄 Doc Completo</button>
+  </div>
+
+  <div class="app-topbar-right">
+    <!-- BOTÓN 1: NUEVO RELEVAMIENTO (Destacado Verde) -->
+    <button type="button" class="btn-action-main btn-action-nuevo" onclick="abrirModalNuevoChecklist()" title="Iniciar un nuevo checklist de relevamiento en blanco">
+      ✨ + Nuevo Relevamiento
+    </button>
+
+    <!-- BOTÓN 2: GUARDAR EN SHEETS (Destacado Azul Nube) -->
+    <button type="button" class="btn-action-main btn-action-sheets" onclick="enviarAGoogleSheets()" title="Guardar informe e impactar datos en Google Sheets">
+      ☁️ Guardar en Sheets
+    </button>
+
+    <!-- BOTÓN 3: IMPRIMIR / PDF (Gris Oscuro Oficial) -->
+    <button type="button" class="btn-action-main btn-action-print" onclick="window.print()" title="Imprimir o guardar en PDF (10 Páginas Oficiales A4)">
+      🖨️ Imprimir / PDF
+    </button>
+
+    <!-- MENÚ DESPLEGABLE: HERRAMIENTAS ADICIONALES -->
+    <div class="dropdown-wrap">
+      <button type="button" class="btn-action-more" onclick="toggleMenuOpciones(event)" title="Más opciones y herramientas">
+        ⚙️ Más ▾
+      </button>
+      <div id="dropdown-menu-opciones" class="dropdown-menu-content">
+        <button type="button" class="dropdown-item" onclick="crearNuevoEstablecimiento(); closeMenuOpciones();">
+          ➕ Crear Sede No Listada
+        </button>
+        <button type="button" class="dropdown-item" onclick="descargarJSON(); closeMenuOpciones();">
+          💾 Descargar Respaldo (.json)
+        </button>
+        <button type="button" class="dropdown-item" onclick="document.getElementById('file-loader').click(); closeMenuOpciones();">
+          📂 Abrir Respaldo (.json)
+        </button>
+        <button type="button" class="dropdown-item" onclick="openSheetsModal(); closeMenuOpciones();">
+          ☁️ Configurar URL Google Sheets
+        </button>
+        <button type="button" class="dropdown-item" onclick="toggleLogoStyle(); closeMenuOpciones();">
+          🌓 Alternar Fondo del Logo
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item dropdown-item-danger" onclick="eliminarEstablecimientoActual(); closeMenuOpciones();">
+          🗑️ Eliminar Relevamiento Actual
+        </button>
+      </div>
+    </div>
+    <input type="file" id="file-loader" accept=".json" style="display:none" onchange="cargarJSON(this)">
+
+    <span class="save-indicator" id="save-status">💾 Guardado local</span>
+  </div>
+</header>
+
+<!-- ================= BARRA DE FILTROS Y SELECCIÓN DE ESTABLECIMIENTO ================= -->
+<section class="est-filter-bar no-print" aria-label="Filtros de Establecimientos">
+  <div class="filter-col filter-col-cuit">
+    <label for="filtro-cuit">1. CUIT / Organismo:</label>
+    <select id="filtro-cuit" onchange="onFiltroCuitChange(this.value)">
+      <option value="">🏢 Todos los CUITs / Organismos</option>
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-loc">
+    <label for="filtro-localidad">2. Localidad:</label>
+    <select id="filtro-localidad" onchange="onFiltroLocalidadChange(this.value)">
+      <option value="">📍 Todas las localidades</option>
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-search">
+    <label for="filtro-busqueda-texto">3. Buscar por N° o Nombre:</label>
+    <input type="text" id="filtro-busqueda-texto" placeholder="🔍 N°, Comisaría, Calle..." oninput="onFiltroTextoChange(this.value)">
+  </div>
+
+  <div class="filter-col filter-col-target">
+    <label for="sel-establecimiento">4. Sede a Relevar (<span id="count-estab-filtrados">0</span> disponibles):</label>
+    <select id="sel-establecimiento" onchange="cambiarEstablecimiento(this.value)">
+      <!-- Opciones filtradas dinámicamente -->
+    </select>
+  </div>
+
+  <div class="filter-col filter-col-btn">
+    <button type="button" class="btn-clear-filters" onclick="limpiarFiltrosEstablecimiento()" title="Restablecer todos los filtros a ver todo el padrón">
+      ✕ Limpiar
+    </button>
+  </div>
+</section>
+
+<!-- ================= BARRA DE MENÚ DE MÓDULOS (TABS) ================= -->
+<div class="app-module-nav no-print" id="module-nav">
+  <button type="button" class="nav-module-btn btn-nav-panel" onclick="togglePanelLateralTareas()" style="background:#082f49;color:#fff;border:1px solid #38bdf8;" title="Abrir u ocultar el panel lateral con las 10 tareas de la Visita 1">
+    🗺️ <span>Tareas Visita 1 (Panel)</span>
+    <span class="module-badge" id="badge-v1-status">10 Tareas</span>
+  </button>
+  <button class="nav-module-btn active" data-mod="mod-sedes" onclick="switchModule('mod-sedes')" title="Ver directorio completo de sedes agrupadas por CUIT y Razón Social">
+    🏢 <span>Sedes por CUIT</span>
+    <span class="module-badge" id="badge-sedes-count" style="background:#0284c7;color:#fff;">Directorio</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-check" onclick="switchModule('mod-check')" title="Relevar los 5 apartados del checklist inicial">
+    📋 <span>1. Relevamiento Checklist</span>
+    <span class="module-badge" id="badge-desvios">Págs 1-5</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-plan" onclick="switchModule('mod-plan')" title="Gestionar Plan de Acción, Programación por sector y Gantt">
+    📊 <span>2. Plan de Acción y Programación</span>
+    <span class="module-badge" id="badge-pt-status">Págs 6-10</span>
+  </button>
+  <button class="nav-module-btn" data-mod="mod-soporte" onclick="switchModule('mod-soporte')" title="Planilla horizontal de extintores y cálculo de carga de fuego">
+    🛠️ <span>3. Soporte: Extintores y Fuego</span>
+    <span class="module-badge" style="background:#0284c7;color:#fff;">A4 Horizontal</span>
+  </button>
+</div>
+
+<!-- Modal Confirmación de Modificación de Relevamiento en Sheets -->
+<div class="modal-overlay" id="modal-confirmar-modificacion-sheets">
+  <div class="modal-box" style="max-width:520px;border-top:4px solid #f59e0b;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;color:#9a3412;display:flex;align-items:center;gap:8px;font-size:13px;">
+        ⚠️ Relevamiento ya completado en Google Sheets
+      </h3>
+      <button type="button" onclick="closeConfirmarModificacionModal()" style="border:none;background:transparent;font-size:14px;cursor:pointer;color:#64748b;" title="Cerrar">✖</button>
+    </div>
+
+    <div id="modal-confirmar-desc" style="font-size:11px;color:#334155;line-height:1.5;margin-bottom:12px;">
+      <!-- Texto explicativo dinámico -->
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:10.5px;color:#92400e;margin-bottom:16px;line-height:1.4;">
+      ℹ️ <strong>Recordatorio importante:</strong> Los cambios modificarán los datos guardados en la planilla que ya pudieron haberse utilizado para emitir algún informe previo al cliente.<br><br>
+      Si se trata de una nueva visita al establecimiento, te recomendamos <strong>dar de alta un nuevo relevamiento</strong> diferenciado por fecha para no pisar el registro histórico.
+    </div>
+
+    <div class="modal-actions" style="display:flex;flex-direction:column;gap:8px;">
+      <button type="button" style="background:#0284c7;color:#fff;font-weight:bold;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="confirmarSobreescrituraSheets()">
+        ✏️ Modificar registro existente en Sheets
+      </button>
+      <button type="button" style="background:#16a34a;color:#fff;font-weight:bold;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="derivarANuevoRelevamientoDesdeSheets()">
+        ✨ Dar de alta un nuevo relevamiento (otra fecha)
+      </button>
+      <button type="button" style="background:#e2e8f0;color:#475569;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;text-align:center;font-size:11px;" onclick="closeConfirmarModificacionModal()">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Google Sheets -->
+<div class="modal-overlay" id="sheets-modal">
+  <div class="modal-box">
+    <h3>☁️ Conexión con Google Sheets — Informes IAPSER</h3>
+    <p>Ingresá la <strong>URL de la Aplicación Web de Google Apps Script</strong> (termina en /exec) para sincronizar directamente con tu planilla.</p>
+    <input type="text" id="sheets-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="modal-actions">
+      <button style="background:#e2e8f0;color:#333;" onclick="closeSheetsModal()">Cancelar</button>
+      <button style="background:#0f9d58;color:#fff;font-weight:bold;" onclick="guardarUrlSheetsYEnviar()">Guardar y Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nuevo Checklist / Establecimiento -->
+<div class="modal-overlay" id="nuevo-est-modal">
+  <div class="modal-box" style="max-width:540px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0b3d63;padding-bottom:6px;margin-bottom:10px;">
+      <h3 style="margin:0;color:#0b3d63;display:flex;align-items:center;gap:6px;font-size:12.5px;">
+        📋 Iniciar Nuevo Checklist de Relevamiento
+      </h3>
+      <button type="button" onclick="closeNuevoEstModal()" style="border:none;background:transparent;font-size:14px;cursor:pointer;color:#64748b;" title="Cerrar">✖</button>
+    </div>
+
+    <!-- Pestañas del Modal -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid #cbd5e1;padding-bottom:6px;">
+      <button type="button" id="tab-btn-sel-existente" class="btn-view-mode active" onclick="setModalTab('existente')" style="font-size:10px;padding:5px 12px;border-radius:4px;">
+        🏢 1. Elegir Sede del Listado Oficial
+      </button>
+      <button type="button" id="tab-btn-crear-nuevo" class="btn-view-mode" onclick="setModalTab('nuevo')" style="font-size:10px;padding:5px 12px;border-radius:4px;">
+        ➕ 2. Crear Sede No Listada
+      </button>
+    </div>
+
+    <!-- PANEL 1: ELEGIR SEDE EXISTENTE -->
+    <div id="modal-panel-existente" style="display:block;">
+      <p style="font-size:10.5px;color:#334155;margin-bottom:8px;">
+        Seleccioná un establecimiento para iniciar una nueva visita de auditoría con <strong>preguntas en blanco</strong>:
+      </p>
+
+      <div style="margin-bottom:10px;">
+        <label style="font-weight:bold;color:#0b3d63;display:block;margin-bottom:4px;font-size:10.5px;">Establecimiento / Dependencia a relevar:</label>
+        <select id="modal_sel_existente" onchange="actualizarInfoSedeModal(this.value)" style="width:100%;padding:6px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:10.5px;background:#fff;">
+          <!-- Se llena dinámicamente con las sedes disponibles -->
+        </select>
+      </div>
+
+      <!-- Ficha resumen de la sede elegida -->
+      <div id="modal_sede_preview" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;font-size:10px;color:#0369a1;margin-bottom:10px;line-height:1.4;">
+        <!-- Se actualiza con domicilio, nro y localidad -->
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label style="font-weight:bold;color:#0b3d63;display:block;margin-bottom:4px;font-size:10.5px;">🗓️ Fecha de Relevamiento de la Visita:</label>
+        <input type="date" id="modal_nuevo_fecha" style="width:100%;padding:6px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:11px;background:#fff;">
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:7px 10px;font-size:9.5px;color:#166534;margin-bottom:12px;line-height:1.4;">
+        ✨ <strong>Checklist limpio en blanco:</strong> Se iniciará una nueva visita conservando la dirección oficial y los datos del organismo. Todas las respuestas Sí/No/NC quedarán en blanco y se diferenciará en el listado por la <strong>fecha seleccionada</strong>.
+      </div>
+
+      <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" style="background:#e2e8f0;color:#334155;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:10px;" onclick="closeNuevoEstModal()">Cancelar</button>
+        <button type="button" style="background:#16a34a;color:#fff;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:10.5px;" onclick="confirmarNuevoChecklistSedeExistente()">✨ Iniciar Checklist en Blanco</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2: CREAR SEDE TOTALMENTE NUEVA -->
+    <div id="modal-panel-nuevo" style="display:none;">
+      <p style="font-size:10.5px;color:#475569;margin-bottom:10px;">
+        Completá los datos básicos del nuevo establecimiento. Se creará una ficha limpia lista para relevar in situ.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:10px;">
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Organismo / Razón Social *:</label>
+          <input type="text" id="modal_nuevo_org" value="JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Nombre de la Sede / Dependencia *:</label>
+          <input type="text" id="modal_nuevo_nom" placeholder="Ej: Comisaría 5ta / Destacamento Colonia / División Montada..." style="width:100%;padding:5px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:11px;">
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">N° Establecimiento:</label>
+            <input type="text" id="modal_nuevo_nro" placeholder="Ej: 185" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+          </div>
+          <div style="flex:2;">
+            <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Localidad:</label>
+            <input type="text" id="modal_nuevo_loc" value="Paraná" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Domicilio / Dirección:</label>
+          <input type="text" id="modal_nuevo_dom" placeholder="Calle, número y referencias" style="width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:4px;box-sizing:border-box;font-size:10.5px;">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;color:#1e293b;display:block;margin-bottom:2px;">Escala / Tamaño del Establecimiento:</label>
+          <select id="modal_nuevo_tamano" style="width:100%;padding:5px;border:1.5px solid #0284c7;border-radius:4px;box-sizing:border-box;font-weight:bold;color:#0b3d63;font-size:10.5px;background:#fff;">
+            <option value="1">1. Muy Pequeño / Destacamento (&lt; 5 pers, &lt; 100 m²)</option>
+            <option value="2">2. Pequeño / Puesto Vial (5-15 pers, 100-300 m²)</option>
+            <option value="3" selected>3. Mediano / Comisaría Estándar (15-50 pers, 300-800 m²)</option>
+            <option value="4">4. Grande / Jefatura Departamental (50-150 pers, 800-2000 m²)</option>
+            <option value="5">5. Muy Grande / Complejo / Instituto (&gt; 150 pers, &gt; 2000 m²)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" style="background:#e2e8f0;color:#334155;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:10px;" onclick="closeNuevoEstModal()">Cancelar</button>
+        <button type="button" style="background:#0284c7;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:10.5px;" onclick="confirmarCrearNuevoEstablecimiento()">✅ Crear y Relevar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISTA DIRECTORIO DE SEDES POR CUIT Y RAZÓN SOCIAL ================= -->
+<div id="module-sedes" class="module-view-screen no-print" data-module="mod-sedes" style="display:block;">
+  <div class="directorio-container">
+    <div class="directorio-header-box">
+      <div class="directorio-title-row">
+        <div>
+          <h2 class="directorio-title">🏢 Directorio de Sedes por Organismo</h2>
+          <p class="directorio-subtitle">Elegí el CUIT / Organismo para listar todas sus sedes en formato tabla. Usá el <strong>ojo 👁️</strong> para consultar relevamientos completados o el <strong>disquete 💾</strong> para iniciar una nueva visita técnica.</p>
+        </div>
+        <div class="directorio-stats-chip" id="directorio-stats-badge">
+          0 sedes encontradas
+        </div>
+      </div>
+
+      <div class="directorio-controls-grid">
+        <div class="directorio-control-col col-cuit">
+          <label for="directorio-sel-cuit" class="directorio-label">1. CUIT / Razón Social:</label>
+          <select id="directorio-sel-cuit" class="directorio-select" onchange="onDirectorioCuitChange(this.value)">
+            <!-- Se puebla dinámicamente con todos los organismos -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-prov">
+          <label for="directorio-sel-provincia" class="directorio-label">2. Provincia:</label>
+          <select id="directorio-sel-provincia" class="directorio-select" onchange="onDirectorioProvinciaChange(this.value)">
+            <!-- Se puebla dinámicamente con las provincias -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-loc">
+          <label for="directorio-sel-localidad" class="directorio-label">3. Localidad:</label>
+          <select id="directorio-sel-localidad" class="directorio-select" onchange="onDirectorioLocalidadChange(this.value)">
+            <!-- Se puebla dinámicamente con las localidades -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-estado">
+          <label for="directorio-filtro-estado" class="directorio-label">4. Estado del Checklist:</label>
+          <select id="directorio-filtro-estado" class="directorio-select" onchange="onDirectorioEstadoChange(this.value)">
+            <option value="">📋 Todos los establecimientos</option>
+            <option value="con_check">✅ Con checklist realizado</option>
+            <option value="sin_check">⏳ Pendientes (sin checklist)</option>
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-search">
+          <label for="directorio-filtro-texto" class="directorio-label">5. Buscar por N°, nombre, calle o localidad:</label>
+          <input type="text" id="directorio-filtro-texto" class="directorio-input" placeholder="🔍 Comisaría, hospital, escuela, calle, N°..." oninput="onDirectorioTextoChange(this.value)">
+        </div>
+
+        <div class="directorio-control-col col-btn">
+          <label class="directorio-label">&nbsp;</label>
+          <button type="button" class="btn-directorio-limpiar" onclick="limpiarFiltrosDirectorio()" title="Limpiar todos los filtros y ver todo el catálogo">
+            🔄 Limpiar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor tipo Tabla de Sedes -->
+    <div class="directorio-table-wrap">
+      <table class="directorio-table">
+        <thead>
+          <tr>
+            <th style="width:75px;text-align:center;">N° Estab.</th>
+            <th>Nombre del Establecimiento / Dependencia</th>
+            <th style="width:140px;">Localidad</th>
+            <th>Dirección</th>
+            <th style="width:190px;text-align:center;">Relevamientos</th>
+            <th style="width:140px;text-align:center;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="directorio-tbody-sedes">
+          <!-- Se puebla dinámicamente desde JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="panel-lateral-overlay" class="panel-lateral-overlay no-print" onclick="togglePanelLateralTareas(false)"></div>
+<aside id="panel-lateral-tareas" class="panel-lateral no-print" aria-label="Guía de Tareas por Visita">
+  <div class="panel-lateral-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px;">🗺️</span>
+      <div>
+        <h3 style="margin:0;font-size:12px;color:#fff;font-weight:bold;">Tareas por Visita — Línea de Base</h3>
+        <span style="font-size:9px;color:#bae6fd;">Guía interactiva in situ para el preventor</span>
+      </div>
+    </div>
+    <button type="button" class="btn-close-panel" onclick="togglePanelLateralTareas(false)" title="Cerrar panel lateral">✖</button>
+  </div>
+
+  <div class="panel-lateral-body">
+    <!-- Selector de Tamaño / Escala -->
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;">
+      <label style="font-size:9.5px;font-weight:bold;color:#0369a1;display:block;margin-bottom:3px;">
+        🏢 Tamaño del Establecimiento:
+      </label>
+      <select id="f_tamano_estab" onchange="actualizarTareasSegunTamano(); triggerAutoSave();" style="width:100%;font-weight:bold;color:#0b3d63;border:1.5px solid #0284c7;border-radius:4px;padding:4px 6px;font-size:10px;background:#fff;">
+        <option value="1">1. Muy Pequeño / Destacamento (&lt; 5 pers, &lt; 100 m²)</option>
+        <option value="2">2. Pequeño / Puesto Vial (5-15 pers, 100-300 m²)</option>
+        <option value="3" selected>3. Mediano / Comisaría Estándar (15-50 pers, 300-800 m²)</option>
+        <option value="4">4. Grande / Jefatura Departamental (50-150 pers, 800-2000 m²)</option>
+        <option value="5">5. Muy Grande / Complejo / Instituto (&gt; 150 pers, &gt; 2000 m²)</option>
+      </select>
+    </div>
+
+    <!-- 10 BOTONES INTERACTIVOS DE VISITA 1 -->
+    <div style="background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:10.5px;font-weight:bold;color:#0b3d63;">📋 10 TAREAS DE VISITA 1</span>
+        <span style="font-size:8.5px;color:#64748b;">(Línea de Base)</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:9.5px;">
+        
+        <!-- 1. Descripción del Predio -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('predio')" title="Hacé clic para ir a la descripción del predio">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🏢 1. Descripción del Predio</span>
+            <span class="v1-badge-scope" style="background:#dcfce7;color:#15803d;">Base Inicial</span>
+          </div>
+          <div class="v1-task-desc">
+            Nombre sede, superficies cubierta/total, plantas, dotación y estado edilicio general.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 2. RGRL -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rgrl')" title="Hacé clic para ir a RGRL">
+          <div class="v1-task-header">
+            <span class="v1-task-title">⚖️ 2. RGRL (Res. 463/09)</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0369a1;">Obligatorio</span>
+          </div>
+          <div class="v1-task-desc">
+            Estado de confección in situ y verificación de sustancias cancerígenas.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 3. RAR -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rar')" title="Hacé clic para ir a RAR">
+          <div class="v1-task-header">
+            <span class="v1-task-title">📋 3. RAR (Res. 37/10)</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0369a1;">Nómina</span>
+          </div>
+          <div class="v1-task-desc">
+            Nómina de expuestos a riesgos laborales y agentes cancerígenos declarados.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 4. SVCC -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('svcc')" title="Hacé clic para ir a SVCC">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🔬 4. SVCC (Res. 81/19)</span>
+            <span class="v1-badge-scope" style="background:#fef3c7;color:#b45309;">Consistencia</span>
+          </div>
+          <div class="v1-task-desc">
+            Consistencia estricta RGRL vs. RAR. Corresponde si se declaran cancerígenos.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 5. Ergonomía -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('ergo')" title="Hacé clic para ir a Ergonomía">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🧑‍💼 5. Ergonomía (Res. 886/15)</span>
+            <span class="v1-badge-scope" style="background:#ffedd5;color:#c2410c;">Puestos in situ</span>
+          </div>
+          <div class="v1-task-desc">
+            Identificación de puestos operativos/administrativos con exigencia física.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 6. Carga de Fuego -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('fuego')" id="box-task-cf" title="Hacé clic para ir a Carga de Fuego">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🔥 6. Carga de Fuego</span>
+            <span id="badge-task-cf" class="v1-badge-scope" style="background:#dcfce7;color:#15803d;">Visita 1</span>
+          </div>
+          <div class="v1-task-desc" id="desc-task-cf">
+            Verificación de cálculo en sedes 1-3; relevar planos/depósitos en sedes 4-5.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 7. Extintores -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('extintores')" title="Hacé clic para ir a Extintores">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🧯 7. Control de Extintores</span>
+            <span class="v1-badge-scope" style="background:#fee2e2;color:#b91c1c;">Planilla &amp; Fotos</span>
+          </div>
+          <div class="v1-task-desc">
+            Inspección de cantidad, vigencia, tarjeta y soporte en el checklist y planilla.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 8. RGI -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('rgi')" title="Hacé clic para ir a Riesgos Graves e Inminentes">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🚨 8. Riesgos Graves e Inminentes</span>
+            <span class="v1-badge-scope" style="background:#fef2f2;color:#ef4444;">Alerta 24h</span>
+          </div>
+          <div class="v1-task-desc">
+            Inspección ocular de riesgos críticos (eléctrico, colapso edilicio).
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 9. Toma de Agua -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('agua')" title="Hacé clic para ir a Toma de Muestra de Agua">
+          <div class="v1-task-header">
+            <span class="v1-task-title">💧 9. Toma de Muestra de Agua</span>
+            <span class="v1-badge-scope" style="background:#e0f2fe;color:#0284c7;">Muestreo</span>
+          </div>
+          <div class="v1-task-desc">
+            Muestreo in situ para análisis físico-químico y bacteriológico Dec. 351/79.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+        <!-- 10. Capacitación en Visita 1 & Plan Anual -->
+        <button type="button" class="btn-v1-task" onclick="irATareaV1('capacitacion')" title="Hacé clic para ir a Capacitación in situ y Plan Anual">
+          <div class="v1-task-header">
+            <span class="v1-task-title">🎓 10. Cap. Visita 1 &amp; Plan Anual</span>
+            <span class="v1-badge-scope" style="background:#f3e8ff;color:#7e22ce;">Formación</span>
+          </div>
+          <div class="v1-task-desc">
+            Inducción in situ + detección de necesidades para estructurar el Plan Anual.
+          </div>
+          <div class="v1-goto-row">
+            <span class="v1-goto-btn">Ir al apartado ➔</span>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- PLANIFICACIÓN POST-VISITA 1 -->
+    <div style="background:#fff;border:1.5px solid #0b3d63;border-radius:8px;padding:8px 10px;">
+      <div style="font-size:10px;font-weight:bold;color:#0b3d63;margin-bottom:3px;">
+        🗺️ ETAPA SIGUIENTE (POST-VISITA 1)
+      </div>
+      <div style="font-size:8.5px;color:#64748b;margin-bottom:6px;">Metas y programación derivada de la Visita 1:</div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:9px;">
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('mediciones')">
+          <strong>💡 1. Mediciones Físicas:</strong> Iluminación, Ruido, PAT.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Cronograma ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('ergo')">
+          <strong>🧑‍🔧 2. Evaluaciones Ergo:</strong> Planilla 2 (Res. 886/15).
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Ergonomía ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('simulacro')">
+          <strong>🏃 3. Simulacro:</strong> Organización anual según dotación.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Plan de Acción ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('gantt')">
+          <strong>📅 4. Cronograma &amp; Gantt:</strong> 12 meses de visitas.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Gantt ➔</span>
+        </button>
+        <button type="button" class="btn-v1-next-task" onclick="irATareaV1('matriz')">
+          <strong>🎯 5. Matriz Plan vs. Realidad:</strong> Auditoría de cumplimiento.
+          <span style="color:#0284c7;font-weight:bold;margin-top:2px;">Abrir Matriz ➔</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Botón Flotante para acceder a las Tareas por Visita en todo momento -->
+<button type="button" class="floating-tareas-btn no-print" onclick="togglePanelLateralTareas()" title="Abrir u ocultar guía de tareas de Visita 1">
+  🗺️ <span>Tareas Visita 1</span>
+</button>
+
+<!-- ================= PÁGINA 1: DATOS Y DESCRIPCIÓN DEL ESTABLECIMIENTO ================= -->
+
+<div class="page active-module-page" id="page-1" data-module="mod-check">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Ir a sección del checklist:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-1')">🏢 Datos Sede</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-2')">🔥 Incendio, Carga Fuego & Sanitarias</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-3')">⚡ Instalaciones, Iluminación & Ruido</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-4')">⚙️ Seguridad, Máquinas & Químicos</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-5')">⚖️ Controles Legales SRT (Pág. 5)</button>
+    <button type="button" class="btn-subnav-pill" style="color:#0284c7;font-weight:bold;" onclick="togglePanelLateralTareas(true)">🗺️ Tareas Visita 1 (Panel)</button>
+  </div>
+
+  <!-- Banner de Bloqueo tras Impacto en Sheets -->
+  <div id="banner-impactado-sheets" class="banner-impactado-sheets no-print" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">🔒</span>
+      <div>
+        <div style="font-weight:bold;font-size:11.5px;color:#1e3a8a;">
+          Relevamiento Inicial Impactado en Google Sheets
+        </div>
+        <div style="font-size:9.5px;color:#2563eb;">
+          El diagnóstico inicial (Páginas 1 a 5) está bloqueado para resguardar la auditoría. Únicamente están habilitadas las <strong>Páginas 6 a 10 (Plan de Acción y Programación)</strong>.
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn-desbloquear-rel" onclick="desbloquearRelevamientoConConfirmacion()">
+      🔓 Desbloquear Relevamiento
+    </button>
+  </div>
+
+  <div class="main-header">
+    <div class="main-header-logo" id="box-logo-main">
+      <img id="img-logo-main" src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Colonia Suiza">
+    </div>
+    <div class="main-header-titles">
+      <h1>Servicio de Higiene y Seguridad en el Trabajo</h1>
+      <div class="doc-subtitle">Relevamiento Inicial y Diagnóstico de Gestión — Visita 1</div>
+    </div>
+  </div>
+
+  <div class="subtitle">Marco Normativo: Ley 19.587 — Decreto Reglamentario 351/79 — Decreto 1338/96</div>
+
+  <h2>1. Datos generales del establecimiento</h2>
+  <table class="form-grid">
+    <tr>
+      <td width="55%"><span class="field-label">Organismo (Razón social):</span><input class="field-line" type="text" id="f_razonsocial" placeholder="Organismo o Ente empleador"></td>
+      <td width="45%"><span class="field-label">Nombre del establecimiento:</span><input class="field-line" type="text" id="f_nombre_establecimiento" placeholder="Completar nombre (sede, escuela, hospital...)" style="font-weight:bold;color:#0b3d63;background:#f0f7ff;"></td>
+    </tr>
+    <tr>
+      <td width="55%"><span class="field-label">Domicilio:</span><input class="field-line" type="text" id="f_direccion" placeholder="Calle y número"></td>
+      <td width="45%">
+        <span class="field-label">N° Estab.:</span><input class="field-line" style="width:75px;display:inline-block;font-weight:bold;" type="text" id="f_nro_estab" placeholder="N°">
+        &nbsp;&nbsp;<span class="field-label">C.P.:</span><input class="field-line" style="width:60px;display:inline-block;" type="text" id="f_cp" placeholder="CP">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="field-label">Localidad:</span><input class="field-line" style="width:130px;display:inline-block;" type="text" id="f_localidad">
+        &nbsp;&nbsp;<span class="field-label">Provincia:</span><input class="field-line" style="width:120px;display:inline-block;" type="text" id="f_provincia" value="Entre Ríos">
+      </td>
+      <td>
+        <span class="field-label">CUIT:</span><input class="field-line" style="width:115px;display:inline-block;" type="text" id="f_cuit" placeholder="XX-XXXXXXXX-X">
+        &nbsp;&nbsp;<span class="field-label">ART:</span><input class="field-line" style="width:105px;display:inline-block;" type="text" id="f_art" value="IAPSER ART">
+      </td>
+    </tr>
+    <tr>
+      <td><span class="field-label">Fecha de relevamiento:</span><input class="field-line" type="text" id="f_fecha" placeholder="dd/mm/aaaa"></td>
+      <td><span class="field-label">Relevado por (Profesional HyS):</span><input class="field-line" type="text" id="f_relevador" placeholder="Nombre, apellido y matrícula del profesional"></td>
+    </tr>
+  </table>
+
+  <h2>2. Descripción y características del establecimiento</h2>
+  <table class="form-grid">
+    <tr>
+      <td colspan="2"><span class="field-label">Actividad principal desarrollada:</span><input class="field-line" type="text" id="f_actividad" placeholder="Detalle de rubro y procesos productivos o comerciales principales"></td>
+    </tr>
+    <tr>
+      <td width="48%">
+        <span class="field-label">Inmueble:</span>
+        <span class="radio-group-inline">
+          <label><input type="radio" name="inmueble_tipo" value="Propio">Propio</label>
+          <label><input type="radio" name="inmueble_tipo" value="Terceros">De terceros</label>
+        </span>
+      </td>
+      <td width="52%"><span class="field-label">Condición / Contrato:</span><input class="field-line" type="text" id="f_inmueble_cond" placeholder="Alquiler, comodato, cesión, etc."></td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="field-label">Dimensiones y superficie:</span>
+        Superficie total predio: <input class="field-line" style="width:65px;display:inline-block;" type="text" id="f_suptotal" placeholder="m²"> &nbsp;|&nbsp;
+        Superficie cubierta: <input class="field-line" style="width:65px;display:inline-block;" type="text" id="f_supcubierta" placeholder="m²"> &nbsp;|&nbsp;
+        Cantidad de plantas/niveles: <input class="field-line" style="width:45px;display:inline-block;" type="text" id="f_plantas" placeholder="1, 2...">
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="field-label">Dotación de personal:</span>
+        Total empleados: <input class="field-line" style="width:42px;display:inline-block;" type="text" id="f_dottotal" placeholder="Total"> &nbsp;|&nbsp;
+        Administrativos: <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dotadm"> &nbsp;|&nbsp;
+        Producción / Operativos: <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dotprod"> &nbsp;|&nbsp;
+        Otros (logística/serv.): <input class="field-line" style="width:38px;display:inline-block;" type="text" id="f_dototros">
+      </td>
+    </tr>
+  </table>
+
+  <h2>3. Detalle de condiciones generales del establecimiento</h2>
+  <textarea class="area-box" id="f_condiciones" rows="4" style="min-height:60px;" placeholder="Detalle del estado general de conservación edilicia, características constructivas (mampostería, tinglado parabólico/dos aguas, losa), entorno inmediato, accesos y vías de circulación interna, ventilación natural, orden y limpieza general observado en el predio..."></textarea>
+
+  <h2>4. Servicios profesionales y organización (Dec. 1338/96)</h2>
+
+  <!-- Servicio HyS -->
+  <div class="citem" data-eje="organizacional" data-que="Regularizar Servicio de Higiene y Seguridad en el Trabajo (Dec. 1338/96)" data-como-default="Designar o gestionar profesional/consultora habilitada"
+       data-causas="No dispone de profesional habilitado designado|Carga horaria asignada insuficiente según Dec. 1338/96|Falta constancia de designación y registro profesional">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Servicio de Higiene y Seguridad en el Trabajo (interno/externo)</strong><span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q1" value="S" onchange="toggleProfBox('prof_hys', true)">Sí</label>
+        <label><input type="radio" name="q1" value="N" onchange="toggleProfBox('prof_hys', false)">No</label>
+        <label><input type="radio" name="q1" value="NC" onchange="toggleProfBox('prof_hys', false)">NC</label>
+      </span>
+    </div>
+    <div class="prof-data-box" id="prof_hys">
+      <table>
+        <tr>
+          <td width="35%"><span class="field-label">Nombre y Apellido:</span><input class="field-line" type="text" id="hys_nom" placeholder="Profesional responsable"></td>
+          <td width="20%"><span class="field-label">Matrícula:</span><input class="field-line" type="text" id="hys_mat"></td>
+          <td width="20%"><span class="field-label">Teléfono:</span><input class="field-line" type="text" id="hys_tel"></td>
+          <td width="15%">
+            <span class="radio-group-inline">
+              <label><input type="radio" name="hys_mod" value="Int">Int.</label>
+              <label><input type="radio" name="hys_mod" value="Ext">Ext.</label>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding-top:3px;">
+            <span class="field-label">Correo electrónico / Email:</span>
+            <input class="field-line" type="email" id="hys_email" placeholder="profesional@empresa.com o contacto@consultora.com" style="width:calc(100% - 155px);display:inline-block;">
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <!-- Servicio Medicina -->
+  <div class="citem" data-eje="organizacional" data-que="Regularizar Servicio de Medicina Laboral (Dec. 1338/96)" data-como-default="Designar o gestionar médico laboral habilitado"
+       data-causas="No cuenta con médico del trabajo designado|Carga horaria médica insuficiente|Sin cobertura médica laboral documentada">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Servicio de Medicina Laboral</strong><span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q2" value="S" onchange="toggleProfBox('prof_med', true)">Sí</label>
+        <label><input type="radio" name="q2" value="N" onchange="toggleProfBox('prof_med', false)">No</label>
+        <label><input type="radio" name="q2" value="NC" onchange="toggleProfBox('prof_med', false)">NC</label>
+      </span>
+    </div>
+    <div class="prof-data-box" id="prof_med">
+      <table>
+        <tr>
+          <td width="45%"><span class="field-label">Nombre y Apellido del Médico:</span><input class="field-line" type="text" id="med_nom" placeholder="Médico laboral"></td>
+          <td width="30%"><span class="field-label">Matrícula:</span><input class="field-line" type="text" id="med_mat"></td>
+          <td width="25%"><span class="field-label">Teléfono:</span><input class="field-line" type="text" id="med_tel"></td>
+        </tr>
+      </table>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <!-- Comité Mixto -->
+  <div class="citem" data-eje="organizacional" data-que="Conformar Comité Mixto / designar delegados de H y S" data-como-default="Convocatoria formal y acta de conformación">
+    <div class="citem-row">
+      <span class="citem-label">Comité Mixto / Delegados de H y S (si corresponde por dotación o actividad)<span class="citem-eje-tag tag-organizacional">Organizacional</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q3" value="S">Sí</label>
+        <label><input type="radio" name="q3" value="N">No</label>
+        <label><input type="radio" name="q3" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS — Caracterización del Establecimiento</span>
+    <span>Página 1 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 2: EDILICIO E INSTALACIONES ================= -->
+<div class="page active-module-page" id="page-2" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>5. Aspectos edilicios y estructurales</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento y verificación edilicia (pisos, techos, escaleras, circulación)" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Pisos, paredes, techos, escaleras y vías de circulación en buen estado<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q4" value="S">Sí</label>
+        <label><input type="radio" name="q4" value="N">No</label>
+        <label><input type="radio" name="q4" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de iluminación por sector (Anexo IV Dec. 351/79)" data-como-default="Gestionar medición con técnico habilitado (luxómetro)">
+    <div class="citem-row">
+      <span class="citem-label">Iluminación adecuada por sector (relevamiento visual)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q5" value="S">Sí</label>
+        <label><input type="radio" name="q5" value="N">No</label>
+        <label><input type="radio" name="q5" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Inspección de ventilación y disposición de depósitos/estibas" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Ventilación adecuada / depósitos y estibas correctamente dispuestos<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q6" value="S">Sí</label>
+        <label><input type="radio" name="q6" value="N">No</label>
+        <label><input type="radio" name="q6" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>6. Instalaciones</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <h3>6.1 Eléctrica</h3>
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar tableros seccionales y certificación de instalación eléctrica (AEA 90364)" data-como-default="Gestionar electricista matriculado (AEA 90364)">
+    <div class="citem-row">
+      <span class="citem-label">Tablero, seccionales y certificación de instalación eléctrica<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q7" value="S">Sí</label>
+        <label><input type="radio" name="q7" value="N">No</label>
+        <label><input type="radio" name="q7" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de puesta a tierra y verificación de disyuntores diferenciales" data-como-default="Gestionar electricista matriculado con instrumental homologado">
+    <div class="citem-row">
+      <span class="citem-label">Puesta a tierra / disyuntores diferenciales medidos<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q8" value="S">Sí</label>
+        <label><input type="radio" name="q8" value="N">No</label>
+        <label><input type="radio" name="q8" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.2 Gas</h3>
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar certificación de instalación de gas" data-como-default="Gestionar gasista matriculado habilitado">
+    <div class="citem-row">
+      <span class="citem-label">Certificado de instalador matriculado / habilitación vigente<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q9" value="S">Sí</label>
+        <label><input type="radio" name="q9" value="N">No</label>
+        <label><input type="radio" name="q9" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.3 Protección contra incendios</h3>
+  <div class="citem" id="citem_matafuegos" data-eje="infraestructura" data-plan="Registro de Extintores y Control" data-que="Adecuar cantidad, tipo y vigencia de matafuegos según carga de fuego (Dec. 351/79 Anexo VII)" data-como-default="Gestionar empresa habilitada de recarga; verificar potencial extintor mínimo (2A/10B) y tipo según clase de fuego"
+       data-causas="No hay matafuegos instalados|Matafuegos vencidos / sin control de recarga|Sin control periódico documentado|Cantidad insuficiente para la superficie/carga de fuego|Tipo inadecuado para la clase de fuego del sector|Sin prueba hidráulica vigente|Sin chapa baliza / señalización">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Matafuegos: sistema completo</strong> — cantidad, tipo, vigencia, montaje y señalización (Dec. 351/79 — Res. SRT 189/08)<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10" value="S">Sí</label>
+        <label><input type="radio" name="q10" value="N">No</label>
+        <label><input type="radio" name="q10" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Verificar cantidad adecuada de matafuegos por sector" data-como-default="1 unidad cada 200 m² mínimo; ajustar según estudio de carga de fuego">
+    <div class="citem-row">
+      <span class="citem-label">Cantidad adecuada a la carga de fuego del sector<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10a" value="S">Sí</label>
+        <label><input type="radio" name="q10a" value="N">No</label>
+        <label><input type="radio" name="q10a" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Verificar tipo de agente extintor según clase de fuego del sector (A / B / C)" data-como-default="Potencial extintor mínimo: 2A (Clase A) / 10B (Clase B)">
+    <div class="citem-row">
+      <span class="citem-label">Tipo de agente extintor adecuado a la clase de fuego del sector<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10b" value="S">Sí</label>
+        <label><input type="radio" name="q10b" value="N">No</label>
+        <label><input type="radio" name="q10b" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar recarga y control periódico de matafuegos" data-como-default="Gestionar empresa habilitada de recarga; exigir certificado y etiqueta vigente">
+    <div class="citem-row">
+      <span class="citem-label">Recarga vigente — certificado de empresa habilitada y etiqueta con fecha<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10c" value="S">Sí</label>
+        <label><input type="radio" name="q10c" value="N">No</label>
+        <label><input type="radio" name="q10c" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Realizar prueba hidráulica y registrarla" data-como-default="Gestionar empresa habilitada; registrar (5 años polvo/agua; norma IRAM)">
+    <div class="citem-row">
+      <span class="citem-label">Prueba hidráulica vigente y documentada<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10d" value="S">Sí</label>
+        <label><input type="radio" name="q10d" value="N">No</label>
+        <label><input type="radio" name="q10d" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Instalar matafuegos en soporte visible con chapa baliza y señalética" data-como-default="Montar en soporte a máx. 1,50 m de altura; chapa baliza roja visible a 10 m">
+    <div class="citem-row">
+      <span class="citem-label">Montaje correcto en soporte (máx. 1,50 m) con chapa baliza y señalética visible<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10e" value="S">Sí</label>
+        <label><input type="radio" name="q10e" value="N">No</label>
+        <label><input type="radio" name="q10e" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-que="Capacitar al personal en uso de matafuegos (técnica PASS)" data-como-default="Ejercicio práctico sobre fuego controlado; registrar asistentes">
+    <div class="citem-row">
+      <span class="citem-label">Personal capacitado en uso de matafuegos — técnica PASS (fuego controlado)<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q10f" value="S">Sí</label>
+        <label><input type="radio" name="q10f" value="N">No</label>
+        <label><input type="radio" name="q10f" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Regularizar red de incendio / hidrantes" data-como-default="Gestionar mantenimiento de red contra incendios">
+    <div class="citem-row">
+      <span class="citem-label">Red de incendio / hidrantes<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q11" value="S">Sí</label>
+        <label><input type="radio" name="q11" value="N">No</label>
+        <label><input type="radio" name="q11" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Instalar/actualizar detectores y señalética de emergencia" data-como-default="Gestionar instalación con proveedor especializado">
+    <div class="citem-row">
+      <span class="citem-label">Detectores de humo/calor y señalética de emergencia<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q12" value="S">Sí</label>
+        <label><input type="radio" name="q12" value="N">No</label>
+        <label><input type="radio" name="q12" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" id="citem_fuego" data-eje="mediciones" data-form="medicion" data-plan="Adecuación Documental + Plan de Mediciones" data-que="Gestionar cálculo de carga de fuego por sector (Dec. 351/79 Anexo VII)" data-como-default="Realizar estudio de carga de fuego por sector para determinar potencial extintor mínimo requerido"
+       data-causas="Nunca se realizó estudio de carga de fuego|Estudio de carga de fuego desactualizado / con modificaciones edilicias|Sin memoria de cálculo documental">
+    <div class="citem-row">
+      <span class="citem-label"><strong>Cálculo de carga de fuego por sector</strong> (Dec. 351/79 Anexo VII)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q13" value="S">Sí</label>
+        <label><input type="radio" name="q13" value="N">No</label>
+        <label><input type="radio" name="q13" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>6.4 Sanitarias</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de condiciones sanitarias (baños, vestuarios, comedor)" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Baños, vestuarios y comedor según dotación<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q14" value="S">Sí</label>
+        <label><input type="radio" name="q14" value="N">No</label>
+        <label><input type="radio" name="q14" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>6.5 Agua de consumo humano</h3>
+  <div class="citem" id="citem_agua" data-eje="mediciones" data-form="medicion" data-plan="Adecuación Documental + Plan de Mediciones" data-que="Realizar análisis físico-químico y bacteriológico del agua (Ley 19.587)" data-como-default="Gestionar laboratorio habilitado"
+       data-causas="Nunca se realizó|Vencido|Se hizo pero no hay registro escrito">
+    <div class="citem-row">
+      <span class="citem-label">Análisis físico-químico y bacteriológico vigente (Ley 19.587)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q15" value="S">Sí</label>
+        <label><input type="radio" name="q15" value="N">No</label>
+        <label><input type="radio" name="q15" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 2 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 3: AGENTES DE RIESGO ================= -->
+<div class="page active-module-page" id="page-3" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>7. Agentes de riesgo presentes</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <h3>7.1 Físicos</h3>
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Gestionar medición de ruido (Res. SRT 85/12)" data-como-default="Gestionar técnico habilitado (sonómetro)">
+    <div class="citem-row">
+      <span class="citem-label">Medición de ruido realizada (Res. SRT 85/12)<span class="citem-eje-tag tag-mediciones">Mediciones</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q16" value="S">Sí</label>
+        <label><input type="radio" name="q16" value="N">No</label>
+        <label><input type="radio" name="q16" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Evaluar necesidad de medición de vibraciones" data-como-default="Gestionar técnico habilitado si la actividad lo requiere">
+    <div class="citem-row">
+      <span class="citem-label">Vibraciones (si aplica a la actividad) — medidas<span class="citem-eje-tag tag-mediciones">Mediciones (condicional)</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q17" value="S">Sí</label>
+        <label><input type="radio" name="q17" value="N">No</label>
+        <label><input type="radio" name="q17" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="mediciones" data-form="medicion" data-que="Evaluar necesidad de medición de material particulado" data-como-default="Gestionar técnico habilitado si la actividad lo requiere">
+    <div class="citem-row">
+      <span class="citem-label">Material particulado (si aplica a la actividad) — medido<span class="citem-eje-tag tag-mediciones">Mediciones (condicional)</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q18" value="S">Sí</label>
+        <label><input type="radio" name="q18" value="N">No</label>
+        <label><input type="radio" name="q18" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.2 Químicos</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Inspección de almacenamiento de sustancias químicas y disponibilidad de MSDS" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Hojas de seguridad (MSDS) disponibles y almacenamiento correcto<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q19" value="S">Sí</label>
+        <label><input type="radio" name="q19" value="N">No</label>
+        <label><input type="radio" name="q19" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.3 Biológicos</h3>
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de exposición a agentes biológicos en puestos operativos" data-como-default="Programar visita técnica de seguimiento">
+    <div class="citem-row">
+      <span class="citem-label">Exposición a agentes biológicos evaluada (si aplica)<span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q20" value="S">Sí</label>
+        <label><input type="radio" name="q20" value="N">No</label>
+        <label><input type="radio" name="q20" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>7.4 Ergonómicos (Res. SRT 886/15)</h3>
+  <div class="citem" id="citem_ergo" data-eje="ergonomia" data-form="ergonomia" data-que="Realizar evaluación de puestos de trabajo con riesgo ergonómico (Res. SRT 886/15)" data-como-default="Aplicar metodología SRT (Res. 886/15); gestionar evaluación profesional">
+    <div class="citem-row">
+      <span class="citem-label">Evaluación de puestos de trabajo con riesgo ergonómico realizada (Res. SRT 886/15)<span class="citem-eje-tag tag-ergonomia">Ergonomía</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q21" value="S">Sí</label>
+        <label><input type="radio" name="q21" value="N">No</label>
+        <label><input type="radio" name="q21" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 3 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 4: MÁQUINAS, EPP Y EMERGENCIAS ================= -->
+<div class="page active-module-page" id="page-4" data-module="mod-check">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>8. Máquinas, equipos y herramientas</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-form="visita" data-que="Regularizar resguardos y mantenimiento preventivo de máquinas críticas" data-como-default="Programar mantenimiento con proveedor/técnico especializado">
+    <div class="citem-row">
+      <span class="citem-label">Resguardos y mantenimiento preventivo en máquinas críticas<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q23" value="S">Sí</label>
+        <label><input type="radio" name="q23" value="N">No</label>
+        <label><input type="radio" name="q23" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>9. Elementos de Protección Personal (EPP)</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="condiciones" data-form="visita" data-que="Relevamiento de uso efectivo y entrega de EPP según Res. SRT 299/11" data-como-default="Confeccionar estudio de EPP por puesto; implementar registro de entrega firmado">
+    <div class="citem-row">
+      <span class="citem-label">EPP definidos por puesto, entregados y con registro firmado <span class="norma-badge">Res. SRT 299/11</span><span class="citem-eje-tag tag-condiciones">Condiciones*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q24" value="S">Sí</label>
+        <label><input type="radio" name="q24" value="N">No</label>
+        <label><input type="radio" name="q24" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>10. Emergencias</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Elaborar/actualizar Plan de Evacuación y roles ante la emergencia" data-como-default="Elaboración interna o con consultora">
+    <div class="citem-row">
+      <span class="citem-label">Plan de evacuación existente y difundido<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q25" value="S">Sí</label>
+        <label><input type="radio" name="q25" value="N">No</label>
+        <label><input type="radio" name="q25" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Programar y realizar simulacro de evacuación" data-como-default="Coordinar fecha con brigada y personal">
+    <div class="citem-row">
+      <span class="citem-label">Simulacros de evacuación realizados<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q26" value="S">Sí</label>
+        <label><input type="radio" name="q26" value="N">No</label>
+        <label><input type="radio" name="q26" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-que="Conformar y capacitar brigada de emergencia" data-como-default="Designar integrantes y coordinar capacitación">
+    <div class="citem-row">
+      <span class="citem-label">Brigada de emergencia conformada y capacitada<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q27" value="S">Sí</label>
+        <label><input type="radio" name="q27" value="N">No</label>
+        <label><input type="radio" name="q27" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="infraestructura" data-form="visita" data-que="Inspección y reposición de botiquines de primeros auxilios" data-como-default="Reposición y ubicación adecuada">
+    <div class="citem-row">
+      <span class="citem-label">Botiquín de primeros auxilios: ubicación y contenido correctos<span class="citem-eje-tag tag-infraestructura">Infraestructura</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q28" value="S">Sí</label>
+        <label><input type="radio" name="q28" value="N">No</label>
+        <label><input type="radio" name="q28" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 4 de 10</span>
+  </div>
+</div>
+
+<!-- ================= MÓDULO: PLANILLA DE CONTROL DE EXTINTORES ================= -->
+
+<div class="page active-module-page" id="page-5" data-module="mod-check">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Secciones:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-1')">🏢 Sede (Pág. 1)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-2')">🔥 Incendio & Fuego (Pág. 2)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-3')">⚡ Instalaciones (Pág. 3)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-4')">⚙️ Seguridad & EPP (Pág. 4)</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-5')">⚖️ Controles Legales SRT (Pág. 5)</button>
+    <button type="button" class="btn-subnav-pill" style="color:#0284c7;" onclick="switchModule('mod-v1')">🗺️ Guía Visita 1</button>
+  </div>
+
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>11. Documentación legal y Control Visita 1</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <!-- PANEL PRINCIPAL VISITA 1: RGRL, RAR, SVCC, RGI Y CAPACITACIÓN IN SITU -->
+  <div class="panel-control-v1 no-print">
+    <div class="panel-control-title">
+      <span>⚖️ Módulo Visita 1 — Estado Legal y Riesgos Críticos</span>
+      <span style="font-size:9.5px;color:#0284c7;font-weight:normal;">Alimenta la Matriz de Control de Google Sheets</span>
+    </div>
+    <div class="v1-grid">
+      <div class="v1-box">
+        <label>1. RGRL (Res. 463/09):</label>
+        <select id="ctrl_rgrl" onchange="evaluarSVCCEnVivo(); triggerAutoSave();">
+          <option value="No realizado">No realizado</option>
+          <option value="Realizado - Pendiente carga">Realizado - Pendiente carga</option>
+          <option value="Con RGRL (Cargado)">Con RGRL (Cargado estándar)</option>
+          <option value="Con RGRL con Cancerígenos">Con RGRL con Cancerígenos ⚠️</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>2. RAR (Res. 37/10 Nómina):</label>
+        <select id="ctrl_rar" onchange="evaluarSVCCEnVivo(); triggerAutoSave();">
+          <option value="Sin nómina">Sin nómina</option>
+          <option value="Nómina pendiente carga">Nómina pendiente carga</option>
+          <option value="Sin expuestos">Sin expuestos</option>
+          <option value="Con expuestos">Con expuestos</option>
+          <option value="Con expuestos con Cancerígenos">Con expuestos con Cancerígenos ⚠️</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>3. SVCC (Res. 81/19):</label>
+        <select id="ctrl_svcc" onchange="triggerAutoSave();">
+          <option value="N/A">N/A (No aplica)</option>
+          <option value="Pendiente carga">Pendiente carga</option>
+          <option value="Cargada">Cargada</option>
+        </select>
+      </div>
+
+      <div class="v1-box">
+        <label>4. Riesgo Grave e Inminente (RGI):</label>
+        <select id="ctrl_rgi" onchange="toggleRgiBox(this.value); triggerAutoSave();">
+          <option value="No">No (Sin riesgo inminente)</option>
+          <option value="Sí">Sí (RGI Detectado) 🔴</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Alertas en vivo de SVCC -->
+    <div id="svcc-live-alert" style="margin-top:6px;"></div>
+
+    <!-- Detalle de RGI si se activa -->
+    <div id="rgi-live-box" class="box-rgi" style="display:none;">
+      <label style="color:#b91c1c;font-weight:bold;display:block;margin-bottom:3px;">🚨 Condición de Riesgo Grave e Inminente observada:</label>
+      <input type="text" id="ctrl_rgi_desc" class="form-control" placeholder="Detalle circunstanciado y sector (Aviso urgente a ART dentro de las 24 hs)..." oninput="triggerAutoSave()">
+    </div>
+
+    <!-- Capacitación en ocasión de visita -->
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <label style="font-size:9.5px;font-weight:bold;color:#334155;display:block;margin-bottom:2px;">🎓 Cap. en Ocasión de Visita (Fecha):</label>
+        <input type="date" id="ctrl_cap_fecha" style="width:100%;font-size:10px;padding:3.5px 6px;border:1px solid #cbd5e1;border-radius:3px;" onchange="triggerAutoSave()">
+      </div>
+      <div style="flex:2;min-width:260px;">
+        <label style="font-size:9.5px;font-weight:bold;color:#334155;display:block;margin-bottom:2px;">Temario impartido in situ:</label>
+        <input type="text" id="ctrl_cap_temario" placeholder="Ej: Uso de extintores, evacuación y orden y limpieza" style="width:100%;font-size:10px;padding:3.5px 6px;border:1px solid #cbd5e1;border-radius:3px;" oninput="triggerAutoSave()">
+      </div>
+    </div>
+  </div>
+
+  <h3>11.1 RGRL (Res. SRT 463/09)</h3>
+  <div class="citem" data-eje="documental" data-que="Confeccionar/actualizar y presentar el RGRL ante la ART (Res. SRT 463/09)" data-como-default="Elaboración interna o con consultora, presentación formal a ART"
+       data-causas="No confeccionado|Confeccionado pero desactualizado|Confeccionado, sin constancia de presentación ante ART">
+    <div class="citem-row">
+      <span class="citem-label">RGRL confeccionado y presentado ante ART<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q29" value="S">Sí</label>
+        <label><input type="radio" name="q29" value="N">No</label>
+        <label><input type="radio" name="q29" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>11.2 RAR (Res. SRT 37/10)</h3>
+  <div class="citem" data-eje="documental" data-que="Confeccionar/actualizar el RAR (Res. SRT 37/10)" data-como-default="Elaboración interna o con consultora"
+       data-causas="No confeccionado|Desactualizado respecto a agentes reales|Sin vínculo con vigilancia de la salud">
+    <div class="citem-row">
+      <span class="citem-label">RAR confeccionado y remitido a ART<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q30" value="S">Sí</label>
+        <label><input type="radio" name="q30" value="N">No</label>
+        <label><input type="radio" name="q30" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <h3>11.3 SVCC (Res. SRT 81/19)</h3>
+  <div class="citem" data-eje="documental" data-que="Realizar carga de información en el sistema SVCC (Res. SRT 81/19)" data-como-default="Gestión con responsable de H y S / ART">
+    <div class="citem-row">
+      <span class="citem-label">Carga de información en el sistema SVCC realizada<span class="citem-eje-tag tag-documental">Documental</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q31" value="S">Sí</label>
+        <label><input type="radio" name="q31" value="N">No</label>
+        <label><input type="radio" name="q31" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h3>11.4 Exámenes médicos y siniestralidad</h3>
+  <div class="citem" data-eje="organizacional" data-que="Regularizar exámenes preocupacionales y periódicos" data-como-default="Coordinar con servicio de medicina laboral">
+    <div class="citem-row">
+      <span class="citem-label">Exámenes preocupacionales y periódicos al día<span class="citem-eje-tag tag-organizacional">Organizacional*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q32" value="S">Sí</label>
+        <label><input type="radio" name="q32" value="N">No</label>
+        <label><input type="radio" name="q32" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="organizacional" data-que="Solicitar estadísticas de siniestralidad y registro de accidentes/enfermedades" data-como-default="Solicitar a la ART / relevar registros internos">
+    <div class="citem-row">
+      <span class="citem-label">Registro de accidentes, enfermedades profesionales y estadísticas de siniestralidad<span class="citem-eje-tag tag-organizacional">Organizacional*</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q33" value="S">Sí</label>
+        <label><input type="radio" name="q33" value="N">No</label>
+        <label><input type="radio" name="q33" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 5 de 10</span>
+  </div>
+</div>
+
+<!-- ================= MÓDULO 3: PLAN DE ACCIÓN Y PROGRAMACIÓN ================= -->
+
+<div class="page page-landscape" id="page-ext" data-module="mod-soporte">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Planilla de Control e Inspección Periódica de Extintores</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <h1 style="font-size:12px;color:#0b3d63;margin:0;">Planilla de Control y Verificación Técnica de Extintores (A4 Horizontal)</h1>
+    <div style="display:flex;gap:6px;" class="no-print">
+      <button type="button" class="btn-est-cmd" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="agregarFilaExtintor()">➕ Agregar Extintor</button>
+      <button type="button" class="btn-est-cmd" style="background:#22c55e;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="marcarTodosExtintoresSi()" title="Marcar todos los checks como Sí">✅ Todos SÍ</button>
+      <button type="button" class="btn-est-cmd" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;" onclick="imprimirPlanillaExtintores()" title="Imprimir únicamente esta planilla técnica en hoja horizontal">🖨️ Imprimir Planilla</button>
+      <a href="control_extintores_movil.html" target="_blank" style="background:#475569;color:#fff;font-weight:bold;font-size:9px;padding:3px 9px;border-radius:3px;text-decoration:none;">📱 App Móvil</a>
+    </div>
+  </div>
+
+  <!-- Caja Superior 2x2 idéntica a la imagen -->
+  <table class="ext-header-box" style="width:100%;border:2px solid #000;border-collapse:collapse;margin-bottom:8px;">
+    <tr>
+      <td style="border:1px solid #000;padding:4px 8px;width:14%;font-weight:bold;background:#f1f5f9;">Empresa:</td>
+      <td style="border:1px solid #000;padding:3px 6px;width:36%;"><input class="field-line" type="text" id="ext_empresa" placeholder="Organismo o Razón Social" style="width:100%;font-weight:bold;"></td>
+      <td style="border:1px solid #000;padding:4px 8px;width:14%;font-weight:bold;background:#f1f5f9;">Área:</td>
+      <td style="border:1px solid #000;padding:3px 6px;width:36%;"><input class="field-line" type="text" id="ext_area" list="dl-sectores" placeholder="Sector inspeccionado o edificio" style="width:100%;"></td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:#f1f5f9;">Controlado Por:</td>
+      <td style="border:1px solid #000;padding:3px 6px;"><input class="field-line" type="text" id="ext_controlador" placeholder="Nombre y Matrícula del profesional" style="width:100%;"></td>
+      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:#f1f5f9;">Fecha De Inspección:</td>
+      <td style="border:1px solid #000;padding:3px 6px;"><input class="field-line" type="text" id="ext_fecha" placeholder="dd/mm/aaaa" style="width:100%;"></td>
+    </tr>
+  </table>
+
+  <!-- Barra de Gestión y Registro de Sectores del Establecimiento (no-print) -->
+  <div class="ext-sectores-box no-print" style="background:#f8fafc;border:1.5px solid #0284c7;border-radius:6px;padding:6px 10px;margin-bottom:6px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:4px;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span style="font-size:10px;font-weight:bold;color:#0b3d63;">🏢 Sectores / Áreas Registradas del Establecimiento:</span>
+        <span id="sectores-count-badge" style="font-size:8.5px;background:#0284c7;color:#fff;border-radius:10px;padding:1px 6px;font-weight:bold;">0</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="text" id="inp-nuevo-sector" placeholder="Ej: Planta Baja - Guardia / Cocina / Depósito..." style="font-size:9.5px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;width:240px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarSectorDesdeInput();}">
+        <button type="button" class="btn-est-cmd" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9px;padding:3px 8px;" onclick="agregarSectorDesdeInput()">➕ Agregar Sector</button>
+        <button type="button" class="btn-est-cmd" style="background:#f1f5f9;color:#0369a1;border:1px solid #bae6fd;font-size:9px;padding:3px 7px;" onclick="autoDetectarSectoresDesdeExtintores()" title="Detectar e importar automáticamente los sectores escritos en la planilla de extintores">⚡ Auto-detectar</button>
+      </div>
+    </div>
+    <!-- Contenedor dinámico de chips de sectores -->
+    <div id="sectores-chips-container" style="display:flex;flex-wrap:wrap;gap:4px;min-height:22px;align-items:center;">
+      <!-- Se llena con los chips -->
+    </div>
+  </div>
+
+  <!-- Barra de aviso de fotos (no-print) -->
+  <div style="background:#eaf4fc;border:1px solid #0284c7;border-radius:4px;padding:4px 8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;" class="no-print">
+    <span style="font-size:9px;color:#0b3d63;">
+      📷 <strong>Relevamiento Fotográfico:</strong> Podés adjuntar <strong>Foto Marbete</strong> y <strong>Foto Acceso/Cartel</strong> por extintor o completar los puntos manualmente.
+    </span>
+    <span style="font-size:8.5px;color:#64748b;">Los sectores registrados se comparten automáticamente con Carga de Fuego y Mediciones.</span>
+  </div>
+
+  <!-- TABLA EXACTA DE LA IMAGEN ADJUNTA (media_1789847492687.png) -->
+  <div style="overflow-x:auto;flex:1;">
+    <table class="sched-table ext-table-exact" id="tabla-extintores-inspeccion" style="font-size:8px;width:100%;border-collapse:collapse;border:2px solid #000;">
+      <thead>
+        <tr style="background:#0b3d63;color:#fff;">
+          <th rowspan="3" style="width:13%;border:1px solid #000;padding:4px 3px;text-align:center;">Ubicación</th>
+          <th rowspan="3" style="width:8%;border:1px solid #000;padding:4px 3px;text-align:center;">Nº de Serie</th>
+          <th rowspan="3" style="width:8%;border:1px solid #000;padding:4px 3px;text-align:center;">Agente extintor</th>
+          <th rowspan="3" style="width:7%;border:1px solid #000;padding:4px 3px;text-align:center;">Capacidad<br>(kg)-(lbs)</th>
+          <th rowspan="3" style="width:9%;border:1px solid #000;padding:4px 3px;text-align:center;">Vencimiento<br>revisión de carga</th>
+          <th colspan="14" style="border:1px solid #000;padding:4px;text-align:center;font-size:9px;background:#092e4a;">Verifique los siguientes puntos de extintor</th>
+          <th rowspan="3" class="no-print" style="width:7%;border:1px solid #000;padding:4px 2px;text-align:center;">Fotos / Acción</th>
+        </tr>
+        <tr style="background:#155e96;color:#fff;font-size:7px;text-align:center;">
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Extintor<br>presurizado</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Extintor en<br>buenas condiciones</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">El extintor<br>está en su lugar</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Precinto en<br>buen estado</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Soporte<br>firme</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Carteles<br>claros y visibles</th>
+          <th colspan="2" style="border:1px solid #000;padding:3px 2px;">Acceso libre<br>al extintor</th>
+        </tr>
+        <tr style="background:#f1f5f9;color:#0b3d63;font-size:7px;text-align:center;font-weight:bold;">
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+          <th style="border:1px solid #000;padding:2px;width:3%;">Si</th><th style="border:1px solid #000;padding:2px;width:3%;">No</th>
+        </tr>
+      </thead>
+      <tbody id="ext-table-tbody">
+        <!-- Generado dinámicamente con filas interactivas e imprimibles -->
+      </tbody>
+    </table>
+  </div>
+  <!-- Panel de Soporte: Carga de Fuego por Sector vinculado a los sectores registrados -->
+    <div class="fuego-sectores-panel no-print" id="fuego-sectores-panel" style="margin-top:10px;background:#fff7ed;border:1.5px solid #ea580c;border-radius:6px;padding:8px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <div>
+          <strong style="font-size:10.5px;color:#9a3412;">🔥 Módulo de Soporte: Evaluación de Carga de Fuego por Sector</strong>
+          <span style="font-size:8.5px;color:#c2410c;display:block;">Utiliza directamente los sectores registrados arriba para calcular la carga ponderada y extintores mínimos (Dec. 351/79 Anexo VII).</span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button type="button" class="btn-est-cmd" style="background:#ea580c;color:#fff;font-size:8.5px;padding:3px 8px;" onclick="sincronizarSectoresConCargaFuego()" title="Cargar automáticamente los sectores registrados en la planilla de extintores">🔄 Sincronizar con Sectores</button>
+          <button type="button" class="btn-est-cmd" style="background:#0b3d63;color:#fff;font-size:8.5px;padding:3px 8px;" onclick="agregarFilaCargaFuego()">➕ Agregar Sector</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="sched-table" id="tabla-carga-fuego" style="font-size:8px;width:100%;border-collapse:collapse;background:#fff;">
+          <thead>
+            <tr style="background:#ea580c;color:#fff;">
+              <th style="width:26%;">Sector / Área</th>
+              <th style="width:12%;">Sup. (m²)</th>
+              <th style="width:24%;">Material Predominante</th>
+              <th style="width:14%;">Carga Est. (kg/m²)</th>
+              <th style="width:14%;">Extintores Requeridos</th>
+              <th class="no-print" style="width:10%;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-carga-fuego">
+            <!-- Generado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <div class="footer-page" style="margin-top:auto;">
+    <span>IAPSER ART — Planilla de Control e Inspección Periódica de Extintores</span>
+    <span>Relevamiento in situ (A4 Horizontal)</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 5: DOCUMENTACIÓN LEGAL Y VISITA 1 ================= -->
+
+<div class="page" id="page-pt" data-module="mod-plan">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Ir a sección del plan:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-pt')">🎯 Matriz Teórico vs Realidad</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-6')">🧑‍💼 Capacitación & Ergo 886</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-7')">📋 Medidas Correctivas</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-8')">🔬 Mediciones Físicas & Visitas</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-10')">📅 Cronograma Anual Gantt</button>
+  </div>
+
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Tablero de Control de Gestión — Plan Teórico vs. Realidad</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Matriz de Seguimiento: Plan Teórico vs. Realidad In Situ</h1>
+  <div class="subtitle">Contraste entre las tareas asignadas para este establecimiento y lo efectivamente ejecutado (15 puntos de control)</div>
+
+  <!-- Contenedor Resumen y Filtro Rápido -->
+  <div style="background:#eaf4fc;border:1.5px solid #0284c7;border-radius:4px;padding:6px 12px;margin:5px 0 8px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;" class="no-print">
+    <div>
+      <strong style="color:#0b3d63;font-size:10.5px;">🎯 Estado de Ajuste de la Realidad al Plan:</strong>
+      <span style="color:#444;font-size:9px;display:block;">El plan teórico define las metas específicas para este establecimiento. La realidad refleja lo constatado y cargado.</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button type="button" class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 10px;border:none;border-radius:3px;cursor:pointer;" onclick="actualizarMatrizPlanVsRealidad()">🔄 Actualizar Tablero</button>
+      <a href="control_extintores_movil.html" target="_blank" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 10px;border-radius:3px;text-decoration:none;">🧯 Abrir App Extintores</a>
+    </div>
+  </div>
+
+  <table class="pt-table" id="tabla-plan-vs-realidad">
+    <thead>
+      <tr>
+        <th style="width:5%;">N°</th>
+        <th style="width:25%;">Variable / Control</th>
+        <th style="width:28%;">Plan Teórico (Asignado / Meta)</th>
+        <th style="width:28%;">Realidad In Situ (Constatado / Cargado)</th>
+        <th style="width:14%;">Estado</th>
+      </tr>
+    </thead>
+    <tbody id="pt-tbody">
+      <!-- Se llena dinámicamente -->
+    </tbody>
+  </table>
+
+  <div style="margin-top:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:4px;padding:8px 12px;font-size:9.5px;color:#475569;">
+    <strong>ℹ️ Reglas de Validación Automática:</strong>
+    <ul style="margin:4px 0 0 16px;padding:0;line-height:1.4;">
+      <li><strong>SVCC:</strong> Exige coincidencia estricta entre RGRL y RAR. Si RGRL tilda cancerígenos, el RAR debe incluir expuestos a cancerígenos. Si hay discrepancia, se califica como <em>INCONSISTENCIA</em>.</li>
+      <li><strong>Visita 1:</strong> Debe cubrir obligatoriamente RGRL, RAR, verificación RGI, relevamiento de puestos ergonómicos y Capacitación in situ.</li>
+      <li><strong>Mediciones Técnicas:</strong> Se computan las cantidades efectivas ejecutadas frente a la meta asignada.</li>
+    </ul>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Matriz de Control de Gestión HyS</span>
+    <span>Seguimiento de Plan Teórico vs. Realidad</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 6: CAPACITACIÓN Y OBSERVACIONES ================= -->
+<div class="page" id="page-6" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>12. Capacitación</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-plan="Plan de Capacitación" data-que="Elaborar Plan Anual de Capacitación en base a tareas y riesgos relevados" data-como-default="Armar cronograma anual por tema/puesto"
+       data-causas="No existe plan|Existe pero desactualizado|Existe pero sin registro de dictado">
+    <div class="citem-row">
+      <span class="citem-label">Plan Anual de Capacitación vigente<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q34" value="S">Sí</label>
+        <label><input type="radio" name="q34" value="N">No</label>
+        <label><input type="radio" name="q34" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-que="Implementar inducción formal para nuevo personal" data-como-default="Diseñar módulo de inducción básico">
+    <div class="citem-row">
+      <span class="citem-label">Inducción a nuevo personal implementada y documentada<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q35" value="S">Sí</label>
+        <label><input type="radio" name="q35" value="N">No</label>
+        <label><input type="radio" name="q35" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h2>13. Observaciones generales del relevamiento</h2>
+  <textarea class="area-box" id="f_observaciones" rows="6" style="min-height:90px;" placeholder="Hallazgos relevantes, prioridades de intervención técnica detectadas, información o documentación faltante a solicitar a la empresa, referentes designados por sector..."></textarea>
+
+  <div class="signature-block">
+    <div class="signature-box"><div class="signature-line">Firma y aclaración — Profesional HyS Relevador</div></div>
+    <div class="signature-box"><div class="signature-line">Firma y aclaración — Referente / Responsable del Establecimiento</div></div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 6 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 7: PLAN DE ACCIÓN CONSOLIDADO ================= -->
+<div class="page" id="page-7" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h2>Plan de Acción y Recomendaciones por Perfil de Riesgo — Parte 1</h2>
+  <div class="subtitle">Desvíos detectados en Gestión Documental, Mediciones Ocupacionales, Ergonomía e Infraestructura</div>
+
+  <div class="plan-group documental">
+    <h3>Perfil Documental y Legal</h3>
+    <div id="plan-documental"></div>
+  </div>
+
+  <div class="plan-group mediciones">
+    <h3>Perfil de Mediciones e Higiene Ocupacional</h3>
+    <div id="plan-mediciones"></div>
+  </div>
+
+  <div class="plan-group ergonomia">
+    <h3>Perfil Ergonómico (Res. SRT 886/15)</h3>
+    <div id="plan-ergonomia"></div>
+  </div>
+
+  <div class="plan-group infraestructura">
+    <h3>Perfil de Infraestructura, Instalaciones y Protección contra Incendios</h3>
+    <div id="plan-infraestructura"></div>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Informe de Asesoramiento Técnico en HyS</span>
+    <span>Página 7 de 10 — Plan de Acción (Parte 1)</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 8: PLAN DE ACCIÓN (PARTE 2) ================= -->
+<div class="page" id="page-8" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h2>Plan de Acción y Recomendaciones por Perfil de Riesgo — Parte 2</h2>
+  <div class="subtitle">Desvíos detectados en Capacitación, Organización Preventiva y Condiciones Físicas de Trabajo</div>
+
+  <div class="plan-group formacion">
+    <h3>Perfil Formativo y Capacitación</h3>
+    <div id="plan-formacion"></div>
+  </div>
+
+  <div class="plan-group organizacional">
+    <h3>Perfil Organizacional y Servicios Médicos / HyS</h3>
+    <div id="plan-organizacional"></div>
+  </div>
+
+  <div class="plan-group condiciones">
+    <h3>Perfil de Condiciones Físicas y Medio Ambiente</h3>
+    <div id="plan-condiciones"></div>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Informe de Asesoramiento Técnico en HyS</span>
+    <span>Página 8 de 10 — Plan de Acción (Parte 2)</span>
+  </div>
+</div>
+<div class="page" id="page-9" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Programación de Acciones por Sector y Puesto</h1>
+  <div class="subtitle">Asigná Sector, Puesto y Mes/Año programado a cada acción requerida. Podés duplicar filas para múltiples sectores o agregar adicionales.</div>
+
+  <!-- Barra de control y sincronización de Programación -->
+  <div style="background:#eaf4fc;border:1.5px solid #0b3d63;border-radius:4px;padding:6px 12px;margin:5px 0 8px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;" class="no-print">
+    <div>
+      <strong style="color:#0b3d63;font-size:10px;">⚡ Generador de Programación y Cronograma:</strong>
+      <span style="color:#444;font-size:8.8px;display:block;">Haz clic para trasladar los desvíos marcados con "NO" a estas tablas y al cronograma anual. Si cambiaste ítems a "SÍ" o "NC", se removerán conservando tus ediciones manuales.</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button type="button" class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:5px 12px;border:none;border-radius:3px;cursor:pointer;" onclick="syncSchedFromChecklist(true)">⚡ Generar / Sincronizar</button>
+      <button type="button" style="background:#fff;color:#b91c1c;border:1px solid #b91c1c;font-size:8.8px;padding:4px 8px;border-radius:3px;cursor:pointer;" onclick="limpiarProgramacion()">🗑️ Vaciar Tablas</button>
+    </div>
+  </div>
+
+  <!-- 1. Mediciones -->
+  <div class="sched-section s-mediciones">
+    <h3>📐 Mediciones pendientes</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:36%">Medición</th>
+          <th style="width:25%">Sector / Área</th>
+          <th style="width:21%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:7%" class="no-print">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="sched-mediciones">
+        <tr><td colspan="5" class="sched-empty">Sin mediciones pendientes. Podés agregar con el botón inferior.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addMedRowManual()">+ Agregar otra medición</button>
+  </div>
+
+  <!-- 2. Ergonomía -->
+  <div class="sched-section s-ergonomia">
+    <h3>🧑‍💼 Evaluaciones ergonómicas (Res. SRT 886/15)</h3>
+    <div style="font-size:8.2px;color:#b3660f;font-style:italic;margin-bottom:2px;">
+      Identificación y evaluación de puestos con riesgo ergonómico según metodología Res. SRT 886/15
+    </div>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:30%">Sector / Área</th>
+          <th style="width:35%">Puesto/s de trabajo a evaluar</th>
+          <th style="width:20%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:4%" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="sched-ergonomia">
+        <tr><td colspan="5" class="sched-empty">Sin evaluaciones pendientes.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addErgRow('', '', '')">+ Agregar puesto / sector ergonómico</button>
+  </div>
+
+  <!-- 3. Visitas de campo -->
+  <div class="sched-section s-visitas">
+    <h3>🏭 Visitas de campo / Relevamiento en sede</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:36%">Acción a realizar en visita</th>
+          <th style="width:25%">Sector / Área</th>
+          <th style="width:21%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:7%" class="no-print">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="sched-visitas">
+        <tr><td colspan="5" class="sched-empty">Sin visitas pendientes. Podés agregar con el botón inferior.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addVisRowManual()">+ Agregar visita / recorrido en sede</button>
+  </div>
+
+  <!-- 4. Capacitaciones -->
+  <div class="sched-section s-capac">
+    <h3>📋 Plan de Capacitación</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:3%">#</th>
+          <th style="width:33%">Tema / Contenido</th>
+          <th style="width:20%">Destinatarios / Área</th>
+          <th style="width:16%">Modalidad</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:13%">Responsable</th>
+          <th style="width:4%" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="sched-capac"></tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addCapacRowManual()">+ Agregar tema de capacitación</button>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 9 de 10 — Programación Operativa</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 10: CRONOGRAMA ANUAL GANTT ================= -->
+<div class="page" id="page-10" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Cronograma Anual de Actividades (Plan de Trabajo)</h1>
+  <div class="subtitle">Suma consolidada de la programación. Hacé clic en cualquier celda para marcar o desmarcar meses (X).</div>
+
+  <div class="gantt-wrap">
+    <table class="gantt-table" id="gantt-table">
+      <thead id="gantt-thead"></thead>
+      <tbody id="gantt-tbody"></tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:5px;display:flex;gap:8px;align-items:center;" class="no-print">
+    <button class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 11px;border:none;border-radius:3px;cursor:pointer;" onclick="syncSchedFromChecklist(true)">⚡ Sincronizar desde Checklist</button>
+    <button class="btn-refresh" style="font-size:9.5px;padding:4px 10px;" onclick="buildGanttFromPage8(true)">🔄 Actualizar Cronograma desde Tablas</button>
+    <button style="background:#4a5568;color:#fff;font-size:9.5px;padding:3.5px 9px;border:none;border-radius:3px;cursor:pointer;" onclick="ganttAddManualRow('plan')">+ Agregar tarea al Plan</button>
+    <button style="background:#4a5568;color:#fff;font-size:9.5px;padding:3.5px 9px;border:none;border-radius:3px;cursor:pointer;" onclick="ganttAddManualRow('visitas')">+ Agregar fila a Recorridos</button>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 10 de 10 — Cronograma Anual</span>
+  </div>
+</div>
+
+<datalist id="dl-sectores">
+  <!-- Opciones generadas dinámicamente desde los sectores guardados -->
+</datalist>
+
+<script src="datos_precargados.js?v=2.7"></script>
+<script src="app.js?v=2.7"></script>
+</body>
+</html>

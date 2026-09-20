@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matriz Provincial de Riesgo y Medidas Urgentes HyS - Policía de Entre Ríos</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  :root {
+    --primary: #0b3d63;
+    --primary-light: #e6f0f8;
+    --danger: #c53030;
+    --danger-light: #fff5f5;
+    --warning: #dd6b20;
+    --warning-light: #fffaf0;
+    --accent: #0f9d58;
+    --accent-light: #f0fff4;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 8px;
+    color: var(--text-main);
+    background: #e2e8f0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* BARRA SUPERIOR (PANTALLA) */
+  .toolbar-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #0f172a;
+    color: #fff;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .toolbar-title {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar-actions { display: flex; gap: 10px; }
+  .btn-tool {
+    background: var(--primary);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn-tool:hover { background: #0d4a78; transform: translateY(-1px); }
+  .btn-tool.btn-print { background: #0f9d58; }
+  .btn-tool.btn-print:hover { background: #0c8046; }
+  .btn-tool.btn-back { background: #475569; }
+
+  .report-container {
+    max-width: 210mm;
+    margin: 15px auto 40px auto;
+    padding: 0;
+  }
+
+  /* ESTRUCTURA A4 ESTRICTA */
+  .page {
+    background: #fff;
+    width: 210mm;
+    height: 297mm;
+    max-height: 297mm;
+    min-height: 297mm;
+    padding: 6mm 11mm 5mm 11mm;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    position: relative;
+    box-sizing: border-box;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-logo { height: 34px; object-fit: contain; }
+  .header-text h1 {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .header-text p {
+    font-size: 7.8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 1px 0 0 0;
+  }
+  .header-right { text-align: right; font-size: 7.5px; color: var(--text-muted); }
+  
+  .badge-tag {
+    background: var(--primary);
+    color: #fff;
+    padding: 1.5px 6px;
+    border-radius: 3px;
+    font-size: 7.5px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 2px;
+  }
+
+  .page-footer {
+    border-top: 1px solid #cbd5e1;
+    padding-top: 3px;
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.2px;
+    color: var(--text-muted);
+  }
+
+  /* KPIS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 6px 0;
+  }
+  .kpi-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 2px;
+    text-align: center;
+  }
+  .kpi-card.danger { border-top: 2.5px solid var(--danger); background: #fff5f5; }
+  .kpi-card.warning { border-top: 2.5px solid var(--warning); background: #fffaf0; }
+  .kpi-card.success { border-top: 2.5px solid var(--accent); background: #f0fff4; }
+  .kpi-card.primary { border-top: 2.5px solid var(--primary); background: #f0f7ff; }
+
+  .kpi-num {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .kpi-card.danger .kpi-num { color: var(--danger); }
+  .kpi-card.warning .kpi-num { color: var(--warning); }
+  .kpi-card.success .kpi-num { color: var(--accent); }
+  .kpi-card.primary .kpi-num { color: var(--primary); }
+  .kpi-label {
+    font-size: 6.8px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  /* CRITERIO METODOLÓGICO Y REFERENCIAS NORMATIVAS */
+  .methodology-container {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 8px;
+    margin: 8px 0; /* Doble espacio respecto a bloques adyacentes */
+  }
+  .method-box {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 7.2px;
+    color: var(--text-main);
+    line-height: 1.3;
+  }
+  .method-box.methodology {
+    border-left: 3px solid var(--primary);
+  }
+  .method-box.references {
+    border-left: 3px solid #475569;
+    background: #fdfdfd;
+  }
+  .method-title {
+    font-size: 8px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .method-title.ref-title {
+    color: #334155;
+  }
+  .method-list {
+    margin: 0;
+    padding-left: 11px;
+  }
+  .method-list li {
+    margin-bottom: 1.5px;
+  }
+  .method-list strong {
+    color: #0f172a;
+  }
+
+  /* ALERT BOX */
+  .alert-box {
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 7.2px;
+    line-height: 1.3;
+    margin: 8px 0; /* Doble espacio */
+  }
+  .alert-box.danger {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-left: 3px solid var(--danger);
+    color: #742a2a;
+  }
+
+  /* TABLA GENERAL (PÁGINA 1) */
+  table.exec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 6.8px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  table.exec-table th {
+    background: #1e293b;
+    color: #fff;
+    padding: 2.5px 4px;
+    font-size: 7px;
+    border: 1px solid #0f172a;
+    text-align: left;
+    font-weight: 700;
+  }
+  table.exec-table td {
+    padding: 2px 4px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+    line-height: 1.15;
+  }
+  table.exec-table tbody tr:nth-child(even) { background: #f8fafc; }
+
+  /* BADGES */
+  .badge-risk {
+    display: inline-block;
+    padding: 1px 4.5px;
+    border-radius: 2.5px;
+    font-size: 6.8px;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge-critico { background: #742a2a; color: #fff; border: 1px solid #9b2c2c; }
+  .badge-alto { background: #fed7d7; color: #9b2c2c; border: 1px solid #feb2b2; }
+  .badge-medio { background: #feebc8; color: #9c4221; border: 1px solid #fbd38d; }
+  .badge-bajo { background: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
+
+  /* TARJETAS POR ESTABLECIMIENTO (PÁGINAS 2 A 5) */
+  .est-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    margin-bottom: 2.5px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .est-card.border-critico { border-left: 3.5px solid #9b2c2c; }
+  .est-card.border-alto { border-left: 3.5px solid #c53030; }
+  .est-card.border-medio { border-left: 3.5px solid #dd6b20; }
+  .est-card.border-bajo { border-left: 3.5px solid #0f9d58; }
+
+  .est-card-header {
+    background: #f1f5f9;
+    padding: 1.8px 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .est-card-title {
+    font-size: 7.5px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .est-card-meta {
+    font-size: 6.8px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  table.risk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7px;
+  }
+  table.risk-table th {
+    background: #f8fafc;
+    color: #475569;
+    padding: 1.2px 4px;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: 6.4px;
+    text-align: left;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  table.risk-table td {
+    padding: 1.2px 4px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+    line-height: 1.15;
+    font-size: 6.6px;
+  }
+  table.risk-table tr:last-child td { border-bottom: none; }
+
+  .risk-danger-tag {
+    color: #991b1b;
+    font-weight: 700;
+    display: block;
+  }
+
+  /* MEDIA PRINT OFICIAL */
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 210mm !important;
+      height: auto !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .toolbar-nav, .no-print {
+      display: none !important;
+    }
+    .report-container {
+      margin: 0 !important;
+      padding: 0 !important;
+      max-width: none !important;
+      width: 210mm !important;
+    }
+    .page {
+      box-shadow: none !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 6mm 11mm 5mm 11mm !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      max-height: 297mm !important;
+      min-height: 297mm !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+    }
+    .page:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar-nav">
+  <div class="toolbar-title">
+    <span>🏛️ GESTIÓN TÉCNICA DE HIGIENE Y SEGURIDAD</span>
+    <span>|</span>
+    <span>Matriz Provincial de Riesgo y Medidas Urgentes (15 Establecimientos)</span>
+  </div>
+  <div class="toolbar-actions">
+    <button class="btn-tool btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <a href="resumen_reunion_jefatura.html" class="btn-tool" style="background:#0284c7;">📝 Minuta Jefatura</a>
+    <a href="checklist_interactivo_v1.html" class="btn-tool btn-back">🔙 Visor Individual</a>
+  </div>
+</div>
+<div class="report-container">
+<!-- ==================== PÁGINA 1: PORTADA & MATRIZ DE TRIAGE PROVINCIAL ==================== -->
+  <div class="page">
+    <div>
+      <div class="page-header">
+        <div class="header-left">
+          <div class="header-icon" style="width:32px; height:32px; background:var(--primary); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:17px; margin-right:4px;">🛡️</div>
+          <div class="header-text">
+            <h1>Matriz Provincial de Riesgo y Medidas Prioritarias</h1>
+            <p>JEFATURA DE POLICÍA DE ENTRE RÍOS — PROGRAMA DE HIGIENE Y SEGURIDAD LABORAL</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="badge-tag">TRIAGE EJECUTIVO</span><br>
+          <span style="font-weight:700;">Septiembre 2026</span>
+        </div>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #0b3d63 0%, #1a365d 100%); color:#fff; padding:6px 10px; border-radius:4px; margin-bottom:6px;">
+        <div style="font-size:11.5px; font-weight:800;">EVALUACIÓN DE CRITICIDAD Y GUÍA OPERATIVA DE MEDIDAS PRIORITARIAS</div>
+        <div style="font-size:7.5px; opacity:0.92; margin-top:1px;">Consolidación estratégica de los 15 establecimientos inspeccionados. Matriz de criticidad técnico-legal y cronograma de adecuaciones prioritarias para la mitigación efectiva de contingencias ante SRT / ART.</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-num">15</div>
+          <div class="kpi-label">Dependencias</div>
+        </div>
+        <div class="kpi-card danger">
+          <div class="kpi-num">5</div>
+          <div class="kpi-label">Prioridad Alta</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-num">6</div>
+          <div class="kpi-label">Prioridad Media</div>
+        </div>
+        <div class="kpi-card success">
+          <div class="kpi-num">4</div>
+          <div class="kpi-label">Gestión Preventiva</div>
+        </div>
+        <div class="kpi-card primary">
+          <div class="kpi-num">100%</div>
+          <div class="kpi-label">Cobertura Relevada</div>
+        </div>
+      </div>
+
+      
+
+      <!-- DOBLE ESPACIO ENTRE KPI Y CRITERIO METODOLÓGICO -->
+      <div class="methodology-container">
+        <!-- CRITERIO METODOLÓGICO -->
+        <div class="method-box methodology">
+          <div class="method-title">
+            <span>📐 Criterio Metodológico de la Matriz de Riesgo</span>
+          </div>
+          <p style="margin:0 0 4px 0; font-size:7.4px; color:#4a5568;">
+            La clasificación de criticidad responde a una evaluación técnica cualitativa basada en la correlación entre la <strong>Probabilidad de Ocurrencia</strong> del siniestro (condición física instalada, periodicidad de exposición) y la <strong>Severidad Potencial</strong> del daño sobre la salud y la integridad física del personal:
+          </p>
+          <ul class="method-list">
+            <li><strong style="color:#9b2c2c;">🔴 Prioridad Alta:</strong> Desvíos con potencial de siniestro grave inmediato o daño irreversible (fauna venenosa sin EPP, contacto eléctrico directo en tableros sin disyuntor, caídas a distinto nivel sin barandas, atrapamiento en fosas mecánicas).</li>
+            <li><strong style="color:#9c4221;">🟡 Prioridad Media:</strong> Condiciones con potencial de siniestro moderado o propagación (acopio de lubricantes sin contención secundaria, deficiente ventilación de vapores, recipientes de gas GLP en recintos interiores).</li>
+            <li><strong style="color:#22543d;">🟢 Gestión Preventiva:</strong> Adecuaciones operativas, de ordenamiento, mantenimiento preventivo y regularización documental ante organismos de contralor y aseguradora (protocolos oficiales SRT, tapas ciegas, rotulación).</li>
+          </ul>
+        </div>
+
+        <!-- REFERENCIAS NORMATIVAS Y MARCO LEGAL -->
+        <div class="method-box references">
+          <div class="method-title ref-title">
+            <span>⚖️ Marco Normativo y Referencias Técnicas</span>
+          </div>
+          <ul class="method-list">
+            <li><strong>Ley Nac. 19.587 / Dec. 351/79:</strong> Higiene y Seguridad en el Trabajo (Cap. 14 Instalaciones Eléctricas, Cap. 18 Incendio, Cap. 19 EPP).</li>
+            <li><strong>Res. SRT 900/15:</strong> Protocolo oficial de medición de Puesta a Tierra y verificación de corte de diferenciales.</li>
+            <li><strong>Res. SRT 84/12 y 886/15:</strong> Protocolos obligatorios de iluminación laboral y ergonomía integrada.</li>
+            <li><strong>Normas IRAM 3517-1/2:</strong> Dotación, distribución mural y mantenimiento de extintores de incendio.</li>
+            <li><strong>Reglamentación AEA 90364:</strong> Protección contra contactos directos e indirectos en tableros.</li>
+            <li><strong>Res. SRT 463/09 / 529/09:</strong> Relevamiento General de Riesgos Laborales (RGRL) y registro de agentes de riesgo (RAR).</li>
+          </ul>
+        </div>
+      </div>
+
+<div class="alert-box danger">
+        <strong>⚠️ 5 PUNTOS DE INTERVENCIÓN DE PRIORIDAD ALTA:</strong><br>
+        1. <strong>La Picada (N° 51)</strong>: Presencia acreditada de fauna venenosa (yararás) sin elementos de protección personal específicos para recorridas.<br>
+        2. <strong>Dpto. Antecedentes / Laprida 460 (N° 7)</strong>: Extintor base agua contiguo a instalaciones y tableros eléctricos principales en subsuelo.<br>
+        3. <strong>Comisaría 5ta y Alcaldía (N° 58)</strong>: Tableros eléctricos desprovistos de interruptores diferenciales (disyuntores) y extintor con carga vencida.<br>
+        4. <strong>Comisaría 6ta y Taller (N° 59)</strong>: Abertura en entrepiso de tapicería hacia el taller mecánico sin baranda perimetral de contención contra caídas.<br>
+        5. <strong>Sustracción Automotores (N° 118)</strong>: Fosa de inspección mecánica abierta sin cubiertas protectoras resistentes ni delimitación perimetral.
+      </div>
+
+      
+<div style="font-size:8.8px; font-weight:800; color:var(--primary); margin: 8px 0 3px 0;">📋 SEMÁFORO DE CRITICIDAD Y MEDIDAS PRIORITARIAS POR ESTABLECIMIENTO</div>
+      <table class="exec-table">
+        <thead>
+          <tr>
+            <th style="width:6%; text-align:center;">N°</th>
+            <th style="width:26%;">Dependencia Policial</th>
+            <th style="width:16%;">Localidad</th>
+            <th style="width:14%; text-align:center;">Nivel de Prioridad</th>
+            <th style="width:38%;">Condición Principal a Regularizar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center; font-weight:700;">51</td>
+            <td><strong>Depósito Judicial</strong></td>
+            <td>La Picada (RN 12)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-alto">PRIORIDAD ALTA</span></td>
+            <td>Riesgo de ofidismo en predio abierto sin EPP específico</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">7</td>
+            <td><strong>Dpto. Antecedentes y Museo</strong></td>
+            <td>Paraná (Laprida 460)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-alto">PRIORIDAD ALTA</span></td>
+            <td>Extintor de agua en tablero eléctrico; escalera sin pasamanos</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">58</td>
+            <td><strong>Comisaría 5ta y Alcaldía</strong></td>
+            <td>Paraná (Ameghino 384)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-alto">PRIORIDAD ALTA</span></td>
+            <td>Tableros sin disyuntor; extintor vencido; garrafa en celdas</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">59</td>
+            <td><strong>Comisaría 6ta y Taller Central</strong></td>
+            <td>Paraná (Ejército 1681)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-alto">PRIORIDAD ALTA</span></td>
+            <td>Abertura sin baranda en entrepiso; tambores sin batea</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">118</td>
+            <td><strong>Sustracción de Automotores</strong></td>
+            <td>Paraná (Av. Zanni 1)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-alto">PRIORIDAD ALTA</span></td>
+            <td>Fosa mecánica abierta sin tapas protectoras; lubricantes en piso</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">22</td>
+            <td><strong>Jefatura Departamental Tala</strong></td>
+            <td>Rosario del Tala</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Acceso a entrepiso por escalera móvil; químicos sin cubeto</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">23</td>
+            <td><strong>Jefatura Departamental C. del Uruguay</strong></td>
+            <td>C. del Uruguay</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Escaleras a Archivo sin barandas; tablero exterior sin estanqueidad</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">40</td>
+            <td><strong>Dirección Drogas Peligrosas</strong></td>
+            <td>Paraná (Villaguay 245)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Tablero eléctrico abierto en escalera; garrafa interior GLP</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">48</td>
+            <td><strong>Consultorios Policiales</strong></td>
+            <td>Paraná (Rondeau 2210)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Vapores de metacrilato (MMA) en prótesis sin extracción</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">107</td>
+            <td><strong>Mantenimiento y Laboratorio</strong></td>
+            <td>Paraná (Belgrano 330)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Cilindros de GLP en cocina interior; falta registro EPP antenas</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">56</td>
+            <td><strong>Comisaría 3ra, Bomberos, Montada</strong></td>
+            <td>Paraná (Carbó 841)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-medio">PRIORIDAD MEDIA</span></td>
+            <td>Boxes sin extintores; escalera de madera inestable</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">3</td>
+            <td><strong>D.G. Institutos Policiales</strong></td>
+            <td>Paraná (Fraternidad 1415)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-bajo">PREVENTIVO</span></td>
+            <td>Tableros sin contratapa; tapa precaria en cámara exterior</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">43</td>
+            <td><strong>D.G. Prevención y Seguridad Vial</strong></td>
+            <td>Oro Verde (Los Sauces)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-bajo">PREVENTIVO</span></td>
+            <td>Acumulación de agua en acopio; tableros sin rotulación</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">116</td>
+            <td><strong>Registro Provincial de Armas (REPAR)</strong></td>
+            <td>Paraná (Cervantes 1104)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-bajo">PREVENTIVO</span></td>
+            <td>Agua potable apta; falta protocolo oficial PAT SRT 900/15</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; font-weight:700;">121</td>
+            <td><strong>Centro de Capacitación</strong></td>
+            <td>Paraná (25 de Junio 72)</td>
+            <td style="text-align:center;"><span class="badge-risk badge-bajo">PREVENTIVO</span></td>
+            <td>Módulos sin tapa ciega en tablero; humedad en muro sanitario</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-footer">
+      <span>POLICÍA DE ENTRE RÍOS — Programa de Higiene y Seguridad en el Trabajo</span>
+      <span>Página 1 de 3 — Matriz de Triage Provincial</span>
+    </div>
+  </div>
+  <!-- ==================== PÁGINA 2: MATRIZ DE RIESGO POR ESTABLECIMIENTO (8 DEPENDENCIAS) ==================== -->
+  <div class="page">
+    <div>
+      <div class="page-header">
+        <div class="header-left">
+          <div class="header-icon" style="width:32px; height:32px; background:var(--primary); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:17px; margin-right:4px;">🛡️</div>
+          <div class="header-text">
+            <h1>Matriz de Riesgo por Establecimiento — Prioridad Alta y Media (Parte 1)</h1>
+            <p>JEFATURA DE POLICÍA DE ENTRE RÍOS — ESTABLECIMIENTOS N° 51, 7, 58, 59, 118, 22, 23 Y 40</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="badge-tag" style="background:#c53030;">8 DEPENDENCIAS</span><br>
+          <span style="font-weight:700;">Intervención Técnica</span>
+        </div>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #0b3d63 0%, #1a365d 100%); color:#fff; padding:4px 8px; border-radius:3px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:8.2px; font-weight:800;">EVALUACIÓN Y MEDIDAS PRIORITARIAS: GRUPO DE ATENCIÓN INMEDIATA Y SEGUIMIENTO OPERATIVO</span>
+        <span style="font-size:7px; opacity:0.9;">8 Dependencias Relevadas</span>
+      </div>
+
+      <div class="est-card border-critico">
+        <div class="est-card-header">
+          <span class="est-card-title">🚨 [N° 051] Depósito Judicial — La Picada</span>
+          <span class="est-card-meta">RN 12 Km. 461,5 | La Picada</span>
+          <span class="badge-risk badge-alto">PRIORIDAD ALTA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Presencia de ofidios (yararás)</span>Avistamientos continuos en predio abierto sin EPP específico.</td>
+              <td>Accidente ofídico letal o con secuelas graves por inoculación de veneno.</td>
+              <td><strong>Provisión y dotación de polainas antiofídicas de seguridad</strong>, borceguíes de caña alta y botiquín de campo con suero específico y protocolo de derivación.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Garrafa de GLP en depósito</span>Cilindro de 10 kg dentro de galpón cerrado sin ventilación reglamentaria.</td>
+              <td>Fuga con acumulación de gas, asfixia o deflagración destructiva.</td>
+              <td><strong>Reubicar garrafa al exterior</strong> en nicho metálico ventilado con cañería rígida reglamentaria y llave de corte rápido.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-alto">
+        <div class="est-card-header">
+          <span class="est-card-title">⚠️ [N° 007] Dpto. Antecedentes, RRHH y Museo de la Policía</span>
+          <span class="est-card-meta">Laprida 460 (Paraná) | Edificio Central</span>
+          <span class="badge-risk badge-alto">PRIORIDAD ALTA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Extintor de AGUA en subsuelo eléctrico</span>Extintor de agua a presión contiguo a cableado e instalaciones eléctricas.</td>
+              <td>Electrocución mortal si el personal descarga agua sobre tablero energizado.</td>
+              <td><strong>Retiro prioritario del extintor de agua</strong> y reemplazo por matafuegos de Polvo Químico Seco ABC de 5 kg con chapa baliza y soporte mural a 1,50 m.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Escalera a subsuelo sin pasamanos</span>Alzada irregular > 0,18 m y sin baranda de sujeción continua.</td>
+              <td>Caída de altura con traumatismos graves en personal y traslados de bultos.</td>
+              <td><strong>Instalación de pasamanos metálico tubular continuo</strong> a 0,90 m en ambos laterales y aplicación de bandas abrasivas antideslizantes.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-alto">
+        <div class="est-card-header">
+          <span class="est-card-title">⚠️ [N° 058] Comisaría Quinta y Alcaldía</span>
+          <span class="est-card-meta">Ameghino 384 (Paraná) | Comisaría y Alcaidía</span>
+          <span class="badge-risk badge-alto">PRIORIDAD ALTA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Tableros eléctricos SIN disyuntor</span>Tableros de Comisaría y Alcaldía sin interruptor diferencial de corte (30 mA).</td>
+              <td>Riesgo de contacto eléctrico directo/indirecto sobre el personal y personas alojadas, o foco ígneo en tablero.</td>
+              <td><strong>Instalación prioritaria de interruptores diferenciales de corte automático (disyuntores de 30 mA)</strong> y contratapas aislantes de protección.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Matafuegos vencido y garrafa interior</span>Extintor de Comisaría con tarjeta vencida; garrafa de GLP adentro de cocina de celdas.</td>
+              <td>Inoperatividad ante fuego y riesgo de explosión con víctimas múltiples.</td>
+              <td><strong>Recarga y prueba hidráulica del extintor</strong>; traslado de garrafa a caseta exterior de mampostería fuera del pabellón de celdas.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-alto">
+        <div class="est-card-header">
+          <span class="est-card-title">⚠️ [N° 059] Comisaría Sexta y Taller Mecánico</span>
+          <span class="est-card-meta">Avenida Ejército 1681 (Paraná) | Taller Central</span>
+          <span class="badge-risk badge-alto">PRIORIDAD ALTA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Abertura sin baranda en tapicería</span>Hueco al vacío desde entrepiso directamente hacia el piso del taller mecánico.</td>
+              <td>Caída de altura a distinto nivel con riesgo de traumatismo severo e incapacidad permanente.</td>
+              <td><strong>Montaje prioritario de baranda perimetral rígida</strong> de 1,00 m con travesaño intermedio y zócalo de contención de 15 cm.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Tambores de lubricante sin batea</span>Tambores de 200 L de aceite sobre piso de taller sin retención secundaria.</td>
+              <td>Derrame con resbalones graves, inflamabilidad y contaminación de sumideros.</td>
+              <td><strong>Colocación de cubetos plásticos de retención (bateas antiderrames)</strong> para tambores de lubricante y provisión de kit absorbente de emergencia.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-alto">
+        <div class="est-card-header">
+          <span class="est-card-title">⚠️ [N° 118] División Sustracción de Automotores</span>
+          <span class="est-card-meta">Av. Zanni 1 (Paraná) | Taller de Peritaje</span>
+          <span class="badge-risk badge-alto">PRIORIDAD ALTA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Fosa de inspección mecánica abierta</span>Fosa de 1,60 m de profundidad sin tapas resistentes ni barandas móviles.</td>
+              <td>Caída de mecánicos, peritos o visitantes al interior de la fosa.</td>
+              <td><strong>Fabricación de tapas modulares de chapa semilla de melón o madera dura</strong> para cubrir la fosa cuando no esté en uso + rodapiés perimetral de advertencia.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Escalera a planta alta resbaladiza</span>Peldaños con desgaste superficial y sin perfiles antideslizantes.</td>
+              <td>Caídas y traumatismos en personal administrativo y de guardia.</td>
+              <td><strong>Instalación de cintas o perfiles metálicos antideslizantes</strong> en nariz de escalón y verificación de anclaje de pasamanos.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 022] Jefatura Departamental Rosario del Tala</span>
+          <span class="est-card-meta">Roque Sáenz Peña 274 (Tala) | Jefatura Departamental</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Acceso a entrepiso por escalera precaria</span>Escalera portátil no amurada y entrepiso de acopio sin barandas laterales.</td>
+              <td>Volcamiento de escalera y caída de altura desde entrepiso.</td>
+              <td><strong>Reemplazo por escalera fija tipo marinera con guarda-hombre</strong> o clausura del entrepiso + montaje de baranda perimetral de contención.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Insumos químicos de limpieza en piso</span>Productos de limpieza y desinfección acopiados sobre el piso sin bandeja.</td>
+              <td>Derrame corrosivo, inhalación de vapores y deterioro del suelo.</td>
+              <td><strong>Provisión de armario metálico ventilado con cubeto colector</strong> para custodia ordenada de sustancias de limpieza y hojas de seguridad (FDS).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 023] Jefatura Departamental Concepción del Uruguay</span>
+          <span class="est-card-meta">San Martín 713 (C. del Uruguay) | Jefatura Departamental</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Escaleras a Archivos sin baranda lateral</span>Escaleras de acceso a Archivo y Expedientes con lateral abierto al vacío.</td>
+              <td>Despeñamiento lateral de personal al transportar biblioratos pesados.</td>
+              <td><strong>Instalación de baranda metálica de 1 metro de altura con pasamanos</strong> en el lateral desprotegido en ambas escaleras.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Tablero exterior desprotegido</span>Tablero eléctrico en patio exterior con riesgo de filtración de lluvia.</td>
+              <td>Cortocircuito masivo, principio de incendio y corte de energía general.</td>
+              <td><strong>Adecuación a gabinete estanco IP65 para intemperie</strong> con burlete hermético, contratapa y jabalina de puesta a tierra.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 040] Dirección General de Drogas Peligrosas</span>
+          <span class="est-card-meta">Villaguay 245 (Paraná) | División Investigaciones</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Tablero eléctrico con cableado expuesto</span>Gabinete en descanso de escalera principal con tapas retiradas y conductores sueltos.</td>
+              <td>Contacto eléctrico directo accidental por roce en zona de tránsito continuo.</td>
+              <td><strong>Reorganización y peinado de conductores, cierre hermético con contratapa</strong> y colocación de cerradura/traba con señalización de peligro eléctrico.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Garrafa de GLP en cocina interior</span>Cilindro de 10 kg en ambiente con ventilación natural escasa.</td>
+              <td>Peligro de deflagración por concentración de gas en recinto cerrado.</td>
+              <td><strong>Retiro de garrafa hacia patio exterior</strong> en caseta metálica con ventilación superior e inferior reglamentaria.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>POLICÍA DE ENTRE RÍOS — Programa de Higiene y Seguridad en el Trabajo</span>
+      <span>Página 2 de 3 — Fichas Técnicas por Establecimiento (8 Dependencias)</span>
+    </div>
+  </div>
+
+  <!-- ==================== PÁGINA 3: MATRIZ DE RIESGO POR ESTABLECIMIENTO (7 DEPENDENCIAS) Y PLAN ==================== -->
+  <div class="page">
+    <div>
+      <div class="page-header">
+        <div class="header-left">
+          <div class="header-icon" style="width:32px; height:32px; background:var(--primary); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:17px; margin-right:4px;">🛡️</div>
+          <div class="header-text">
+            <h1>Matriz de Riesgo por Establecimiento — Prioridad Media y Preventiva (Parte 2)</h1>
+            <p>JEFATURA DE POLICÍA DE ENTRE RÍOS — ESTABLECIMIENTOS N° 48, 107, 56, 3, 43, 116 Y 121</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="badge-tag" style="background:#0f9d58;">7 DEPENDENCIAS + PLAN</span><br>
+          <span style="font-weight:700;">Adecuación General</span>
+        </div>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color:#fff; padding:4px 8px; border-radius:3px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:8.2px; font-weight:800;">EVALUACIÓN Y MEDIDAS: GRUPO DE SEGUIMIENTO AMBIENTAL, GESTIÓN PREVENTIVA Y PLAN MAESTRO</span>
+        <span style="font-size:7px; opacity:0.9;">7 Dependencias Relevadas</span>
+      </div>
+
+      <div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 048] Consultorios Policiales</span>
+          <span class="est-card-meta">Rondeau 2210 (Paraná) | Dirección de Sanidad</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Vapores de metacrilato (MMA) en taller</span>Elaboración de prótesis dentales sin sistema de extracción localizada forzada.</td>
+              <td>Exposición crónica a vapores orgánicos, cefaleas, irritación bronquial y asma ocupacional.</td>
+              <td><strong>Instalación de campana de extracción localizada puntual en banco de prótesis</strong> con filtro de carbón activado o descarga segura a cuatro vientos.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Cilindro de GLP en cocina 2° piso</span>Garrafa de 10 kg en planta alta alimentando anafe.</td>
+              <td>Riesgo de fuga en altura y propagación rápida de monóxido de carbono.</td>
+              <td><strong>Reemplazo del anafe por anafe eléctrico de inducción/vitrocerámico</strong> o tendido de cañería externa desde planta baja.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 107] Sección Técnica de Mantenimiento y Laboratorio</span>
+          <span class="est-card-meta">Belgrano 330 (Paraná) | Dirección de Toxicología</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Falta registro de EPP anticaídas</span>Personal realiza tareas en torres de comunicación sin constancia de entrega de arnés.</td>
+              <td>Infracción legal ante SRT y riesgo de falla por uso de EPP vencido o no certificado.</td>
+              <td><strong>Implementación de Planilla Oficial de Entrega de EPP (Res. SRT 299/11)</strong> con verificación y certificación IRAM de arneses de cuerpo completo y cabos de vida.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Acceso bloqueado a extintores</span>Depósito con acopio desordenado de repuestos que tapa los matafuegos.</td>
+              <td>Demora crítica en sofocación de principios de incendio en laboratorio.</td>
+              <td><strong>Despeje total de un radio de 1 metro frente a extintores</strong> y demarcación de franja amarilla/negra reglamentaria sobre piso.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-medio">
+        <div class="est-card-header">
+          <span class="est-card-title">🟡 [N° 056] Comisaría 3ra — Div. Montada, Canes y Bomberos</span>
+          <span class="est-card-meta">Alejandro Carbó 841 (Paraná) | Predio Operativo y Montada</span>
+          <span class="badge-risk badge-medio">PRIORIDAD MEDIA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Boxes sin extintores y escalera precaria</span>Boxes de caballeriza y fardos de alfalfa sin matafuegos; escalera de madera inestable.</td>
+              <td>Carga de fuego alta (paja y forraje seco) con riesgo de propagación incontrolable.</td>
+              <td><strong>Dotación e instalación mural de extintores ABC reglamentarios</strong> en galpones de Montada y reemplazo de escalera precaria por escalera normalizada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-bajo">
+        <div class="est-card-header">
+          <span class="est-card-title">🟢 [N° 003] Dirección General de Institutos Policiales</span>
+          <span class="est-card-meta">Fraternidad 1415 (Paraná) | Escuela Superior de Oficiales</span>
+          <span class="badge-risk badge-bajo">GESTIÓN PREVENTIVA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Tableros seccionales sin contratapa</span>Módulos de llaves termomagnéticas sin placa cubrebornes aislante.</td>
+              <td>Contacto fortuito del personal y alumnos con partes bajo tensión eléctrica.</td>
+              <td><strong>Colocación de contratapas ciegas de policarbonato</strong> con rotulación identificatoria de circuitos y llaves termomagnéticas.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Tapa precaria en cámara exterior</span>Cámara subterránea en patio de formación con tapa de madera deteriorada.</td>
+              <td>Rotura por tránsito peatonal y caída a distinto nivel en cámara pluvial.</td>
+              <td><strong>Reemplazo por marco y tapa rígida de hormigón armado o fundición</strong> a ras del piso.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-bajo">
+        <div class="est-card-header">
+          <span class="est-card-title">🟢 [N° 043] D.G. de Prevención y Seguridad Vial</span>
+          <span class="est-card-meta">Los Sauces 435 (Oro Verde) | Base Operativa</span>
+          <span class="badge-risk badge-bajo">GESTIÓN PREVENTIVA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Acumulación de agua en piso</span>Sector de acopio transitorio de residuos con empozamiento permanente.</td>
+              <td>Resbalones, caídas al mismo nivel y proliferación de vectores de infección.</td>
+              <td><strong>Reparación de pendiente de drenaje hacia rejilla pluvial</strong> y aplicación de piso antideslizante en zona húmeda.</td>
+            </tr>
+            <tr>
+              <td><span class="risk-danger-tag">Tableros sin rotulación de circuitos</span>Falta diagrama unifilar y etiquetas de carga en llaves de corte.</td>
+              <td>Falta de maniobrabilidad segura en cortes de emergencia ante siniestro.</td>
+              <td><strong>Señalización y rotulado de cada llave termomagnética</strong> con leyenda del sector abastecido.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-bajo">
+        <div class="est-card-header">
+          <span class="est-card-title">🟢 [N° 116] Registro Provincial de Armas (REPAR)</span>
+          <span class="est-card-meta">Cervantes 1104 (Paraná) | Sede Administrativa</span>
+          <span class="badge-risk badge-bajo">GESTIÓN PREVENTIVA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Pendiente protocolo de PAT</span>Agua potable APROBADA bacteriológicamente; falta protocolo oficial de puesta a tierra.</td>
+              <td>Incumplimiento formal obligatorio ante inspecciones de la SRT.</td>
+              <td><strong>Medición de resistencia de puesta a tierra y continuidad (Res. SRT 900/15)</strong> con telurímetro calibrado y certificación por profesional con incumbencia.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><div class="est-card border-bajo">
+        <div class="est-card-header">
+          <span class="est-card-title">🟢 [N° 121] Centro de Capacitación</span>
+          <span class="est-card-meta">25 de Junio 72 (Paraná) | Centro de Capacitación</span>
+          <span class="badge-risk badge-bajo">GESTIÓN PREVENTIVA</span>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Peligro / Desvío Detectado</th>
+              <th style="width:28%;">Riesgo Potencial Asociado</th>
+              <th style="width:42%;">Medida Correctiva Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-danger-tag">Módulo sin tapa y moho en baño</span>Hueco en frente de tablero eléctrico; humedad y moho visible en sanitario.</td>
+              <td>Electrocución por inserción accidental de dedos; proliferación de esporas fúngicas.</td>
+              <td><strong>Colocación de tapa ciega DIN en tablero</strong>; raspado, impermeabilización y pintura antihongos en sanitario.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MATRIZ OPERATIVA POR PRIORIDAD -->
+      <div style="margin-top:4px;">
+        <div style="font-size:8.2px; font-weight:800; color:var(--primary); margin-bottom:2px;">🎯 MATRIZ DE ESCALAMIENTO Y PLAN DE ACCIÓN POR PRIORIDAD</div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;">
+          <div style="background:#fff5f5; border:1px solid #feb2b2; padding:4px 6px; border-radius:3px;">
+            <div style="color:#991b1b; font-weight:800; font-size:7.5px; margin-bottom:2px;">🚨 NIVEL 1: PRIORIDAD ALTA</div>
+            <p style="font-size:6.8px; color:#742a2a; line-height:1.2; margin:0;">
+              <strong>Objetivo: Desvíos con severidad crítica.</strong><br>
+              • Polainas antiofídicas y botiquín (La Picada).<br>
+              • Reemplazo matafuegos agua (Antecedentes).<br>
+              • Interruptores diferenciales y tapas (Com. 5ta).<br>
+              • Baranda en hueco de tapicería (Com. 6ta).<br>
+              • Tapas resistentes en fosa (Sustracción Automotores).
+            </p>
+          </div>
+          <div style="background:#fffaf0; border:1px solid #fbd38d; padding:4px 6px; border-radius:3px;">
+            <div style="color:#92400e; font-weight:800; font-size:7.5px; margin-bottom:2px;">⚠️ NIVEL 2: PRIORIDAD MEDIA</div>
+            <p style="font-size:6.8px; color:#78350f; line-height:1.2; margin:0;">
+              <strong>Objetivo: Adecuaciones edilicias y químicas.</strong><br>
+              • Barandas en escaleras (Tala, C. del Uruguay).<br>
+              • Extracción forzada vapores MMA (Consultorios).<br>
+              • Reubicación garrafas GLP exterior (Drogas, Com. 5ta).<br>
+              • Bateas antiderrames lubricantes (Com. 6ta).<br>
+              • Extintores en boxes de Montada (Com. 3ra).
+            </p>
+          </div>
+          <div style="background:#f0fff4; border:1px solid #86efac; padding:4px 6px; border-radius:3px;">
+            <div style="color:#166534; font-weight:800; font-size:7.5px; margin-bottom:2px;">📅 NIVEL 3: GESTIÓN PREVENTIVA</div>
+            <p style="font-size:6.8px; color:#14532d; line-height:1.2; margin:0;">
+              <strong>Objetivo: Protocolos técnicos oficiales SRT.</strong><br>
+              • Puesta a Tierra y diferenciales Res. SRT 900/15.<br>
+              • Estudios de Carga de Fuego (Dec. 351/79).<br>
+              • Mediciones de Luxometría Res. SRT 84/12.<br>
+              • Confección y remisión de RGRL y RAR ante ART.<br>
+              • Registro formal de capacitaciones anuales.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>POLICÍA DE ENTRE RÍOS — Programa de Higiene y Seguridad en el Trabajo</span>
+      <span>Página 3 de 3 — Fichas Técnicas (7 Dependencias) y Plan de Acción por Prioridad</span>
+    </div>
+  </div>
+
+</div>
+</body></html>

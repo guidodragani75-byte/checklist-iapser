@@ -1,0 +1,522 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T15:30:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Dirección General de Prevención y Seguridad Vial",
+    "domicilio": "Los Sauces 435",
+    "direccion": "Los Sauces 435",
+    "cp": "3100",
+    "localidad": "Oro Verde",
+    "provincia": "Entre Ríos",
+    "nroEstab": "43",
+    "rowIndex": 170,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Téc. Estefania N. Meiler (Mat. T0151 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Planificación, gestión y coordinación provincial de seguridad vial, auditorio y capacitación.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede operativa institucional propia",
+    "supTotal": "4800",
+    "supCubierta": "2200",
+    "plantas": "1",
+    "dotTotal": "60",
+    "dotAdm": "30",
+    "dotProd": "25",
+    "dotOtros": "5",
+    "condicionesGenerales": "Sede central de Prevención y Seguridad Vial en Oro Verde. Dispone de auditorio para cursos, oficinas administrativas y áreas de apoyo. Instalaciones en muy buen estado general. Cuenta con Desfibrilador Externo Automático (DEA), botiquines completos, plano de evacuación y cálculo de carga de fuego. Desvíos detectados: acumulación de agua en piso de depósito transitorio de residuos y tableros sin señalización de riesgo eléctrico."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Téc. Estefania N. Meiler",
+    "hysMatricula": "Mat. T0151 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.policiaer@entrerios.gov.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo designado"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "N",
+      "causas": [
+        "Acumulación de agua en piso en sector de acopio transitorio de residuos (riesgo resbalones y caídas)"
+      ]
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": [
+        "Falta medición objetiva con luxómetro"
+      ]
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": [
+        "Tableros eléctricos sin señalización de 'Riesgo Eléctrico' y falta rotular circuitos (Fotos 9 y 10)"
+      ]
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": [
+        "Sin protocolo de medición de PAT Res. 900/15"
+      ]
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": [
+        "Sin certificado de aptitud eléctrica"
+      ]
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Muestra de agua tomada para análisis bromatológico pendiente"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": [
+        "Sin estudio de ruido según Res. SRT 85/12"
+      ]
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": [
+        "Pendiente Programa de Ergonomía Integrado"
+      ]
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": [
+        "Simulacro pendiente de ejecución"
+      ]
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": [
+        "Brigada no conformada"
+      ]
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": [
+        "Sin exámenes periódicos"
+      ]
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_3": {
+      "causa": "Acumulación de agua sobre el piso en sector de almacenamiento transitorio de residuos (riesgo de resbalones y caídas)",
+      "que": "Acondicionar drenaje y mantener sector de residuos permanentemente limpio y seco",
+      "como": "Reparar rejilla o pendiente de desagüe, implementar pautas de secado y colocar cartel de piso mojado en limpiezas."
+    },
+    "item_6": {
+      "causa": "Tableros eléctricos carecen de señalización de 'Riesgo Eléctrico' y falta identificar circuitos (Fotos 9 y 10)",
+      "que": "Colocar cartelería normalizada de Riesgo Eléctrico e identificar circuitos",
+      "como": "Fijar etiquetas de advertencia IRAM en puertas de gabinetes y rotular cada llave termomagnética con su circuito."
+    },
+    "item_7": {
+      "causa": "Falta medición de PAT y continuidad de masas",
+      "que": "Medición de resistencia de Puesta a Tierra bajo Res. SRT 900/15",
+      "como": "Medir jabalina y tableros con telurímetro calibrado por profesional matriculado."
+    },
+    "item_20": {
+      "causa": "Muestra de agua tomada pendiente de resultados analíticos",
+      "que": "Obtener protocolo de análisis bromatológico de agua de consumo",
+      "como": "Verificar calidad físico-química y bacteriológica bajo Ley 19.587 Cap. 8."
+    },
+    "item_26": {
+      "causa": "Puestos informáticos y de oficina sin estudio ergonómico",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Evaluar condiciones posturales y disposición de mobiliario conforme a normativa SRT."
+    },
+    "item_30": {
+      "causa": "Simulacro pendiente de realización para poner en práctica el plan existente",
+      "que": "Programar y realizar simulacro de evacuación anual",
+      "como": "Ejecutar ejercicio práctico con personal de oficinas y asistentes de cursos en auditorio."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego (Revisión)",
+        "sector": "Auditorio y oficinas",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Red interna de consumo",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Oficinas y auditorio",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Oficinas y áreas comunes",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tablero general y seccionales",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Oficinas administrativas y gestión",
+        "puesto": "Personal administrativo",
+        "obs": "Res. SRT 886/15 - Pantallas",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Colocación de cartelería de Riesgo Eléctrico y rótulos en tableros",
+        "sector": "Tableros eléctricos",
+        "obs": "Fotos 9 y 10 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Adecuación de drenaje en sector de almacenamiento de residuos",
+        "sector": "Sector de residuos",
+        "obs": "Pisos secos y limpios",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Relevamiento de extintores y pruebas hidráulicas",
+        "sector": "Todo el edificio",
+        "obs": "Control semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Inspección periódica del Desfibrilador (DEA) y botiquines",
+        "sector": "Puntos de primeros auxilios",
+        "obs": "Fotos 15 y 16 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Recorrido por establecimiento identificando nuevos desvíos",
+        "sector": "Todo el predio",
+        "obs": "Inspección semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el predio",
+        "obs": "Seguimiento semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Recorrido de control y verificación de fin de año",
+        "sector": "Todo el predio",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido evaluando corrección final",
+        "sector": "Todo el predio",
+        "obs": "Cierre anual",
+        "month": "2026-12"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico y prevención en oficinas",
+        "dest": "Personal administrativo y de servicio",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Uso de extintores)",
+        "dest": "Todo el personal",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios (No RCP) y uso del Desfibrilador (DEA)",
+        "dest": "Personal policial general",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS / Salud"
+      },
+      {
+        "tema": "Orden y Limpieza en dependencias",
+        "dest": "Personal general",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para Dirección General de Prevención y Seguridad Vial (Los Sauces 435, Oro Verde). Excelentes condiciones edilicias generales. Dispone de Desfibrilador (DEA), botiquines completos, plano de evacuación y carga de fuego. Acciones: señalización en tableros eléctricos, piso seco en depósito de residuos y cronograma anual."
+}

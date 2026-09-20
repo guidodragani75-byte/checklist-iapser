@@ -1,0 +1,79 @@
+<!-- ================= VISTA DIRECTORIO DE SEDES POR CUIT Y RAZÓN SOCIAL ================= -->
+<div id="module-sedes" class="module-view-screen no-print" data-module="mod-sedes" style="display:block;">
+  <div class="directorio-container">
+    <div class="directorio-header-box">
+      <div class="directorio-title-row">
+        <div>
+          <h2 class="directorio-title">🏢 Directorio de Sedes por Organismo</h2>
+          <p class="directorio-subtitle">Elegí el CUIT / Organismo para listar todas sus sedes en formato tabla. Usá el <strong>ojo 👁️</strong> para consultar relevamientos completados o el <strong>disquete 💾</strong> para iniciar una nueva visita técnica.</p>
+        </div>
+        <div class="directorio-stats-chip" id="directorio-stats-badge">
+          0 sedes encontradas
+        </div>
+      </div>
+
+      <div class="directorio-controls-grid">
+        <div class="directorio-control-col col-cuit">
+          <label for="directorio-sel-cuit" class="directorio-label">1. CUIT / Razón Social:</label>
+          <select id="directorio-sel-cuit" class="directorio-select" onchange="onDirectorioCuitChange(this.value)">
+            <!-- Se puebla dinámicamente con todos los organismos -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-prov">
+          <label for="directorio-sel-provincia" class="directorio-label">2. Provincia:</label>
+          <select id="directorio-sel-provincia" class="directorio-select" onchange="onDirectorioProvinciaChange(this.value)">
+            <!-- Se puebla dinámicamente con las provincias -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-loc">
+          <label for="directorio-sel-localidad" class="directorio-label">3. Localidad:</label>
+          <select id="directorio-sel-localidad" class="directorio-select" onchange="onDirectorioLocalidadChange(this.value)">
+            <!-- Se puebla dinámicamente con las localidades -->
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-estado">
+          <label for="directorio-filtro-estado" class="directorio-label">4. Estado del Checklist:</label>
+          <select id="directorio-filtro-estado" class="directorio-select" onchange="onDirectorioEstadoChange(this.value)">
+            <option value="">📋 Todos los establecimientos</option>
+            <option value="con_check">✅ Con checklist realizado</option>
+            <option value="sin_check">⏳ Pendientes (sin checklist)</option>
+          </select>
+        </div>
+
+        <div class="directorio-control-col col-search">
+          <label for="directorio-filtro-texto" class="directorio-label">5. Buscar por N°, nombre, calle o localidad:</label>
+          <input type="text" id="directorio-filtro-texto" class="directorio-input" placeholder="🔍 Comisaría, hospital, escuela, calle, N°..." oninput="onDirectorioTextoChange(this.value)">
+        </div>
+
+        <div class="directorio-control-col col-btn">
+          <label class="directorio-label">&nbsp;</label>
+          <button type="button" class="btn-directorio-limpiar" onclick="limpiarFiltrosDirectorio()" title="Limpiar todos los filtros y ver todo el catálogo">
+            🔄 Limpiar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor tipo Tabla de Sedes -->
+    <div class="directorio-table-wrap">
+      <table class="directorio-table">
+        <thead>
+          <tr>
+            <th style="width:75px;text-align:center;">N° Estab.</th>
+            <th>Nombre del Establecimiento / Dependencia</th>
+            <th style="width:140px;">Localidad</th>
+            <th>Dirección</th>
+            <th style="width:190px;text-align:center;">Relevamientos</th>
+            <th style="width:140px;text-align:center;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="directorio-tbody-sedes">
+          <!-- Se puebla dinámicamente desde JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,623 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T11:30:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Dirección General de Institutos Policiales",
+    "domicilio": "Fraternidad 1415",
+    "direccion": "Fraternidad 1415",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "3",
+    "rowIndex": 146,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Lic. Milva Trossero Luzzi (Mat. L0310 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la administración pública. Formación académica, instrucción y entrenamiento policial.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede institucional propia de la Policía de Entre Ríos",
+    "supTotal": "12500",
+    "supCubierta": "4800",
+    "plantas": "2",
+    "dotTotal": "180",
+    "dotAdm": "35",
+    "dotProd": "125",
+    "dotOtros": "20",
+    "condicionesGenerales": "Predio de instrucción y administración policial que cuenta con aulas de capacitación, dependencias administrativas, dormitorios para cadetes, comedor, cocina central, panadería, lavandería, sala de tiro virtual/polígono, talleres de mantenimiento, sala de radio, polideportivo y sanitarios con duchas. Estructura de mampostería tradicional y tinglados de servicios. Se identifican desvíos edilicios en desniveles de circulación, cubierta precaria en cámara exterior de tiro virtual y desgaste de cintas antideslizantes en escaleras."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Lic. Milva Trossero Luzzi",
+    "hysMatricula": "Mat. L0310 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.institutos@policiadeentrerios.gob.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo designado",
+        "Carga horaria médica insuficiente"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "N",
+      "causas": [
+        "Cantidad insuficiente para la superficie/carga de fuego",
+        "Sin chapa baliza / señalización"
+      ]
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Nunca se realizó"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No confeccionado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No confeccionado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": []
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_1": {
+      "causa": "Falta de profesional médico laboral asignado y de cronograma de vigilancia médica",
+      "que": "Gestionar designación de médico laboral y exámenes periódicos de salud",
+      "como": "Articular con Personal/Sanidad Policial asignación de horas médicas conforme a dotación y confección de nómina expuesta a riesgos."
+    },
+    "item_3": {
+      "causa": "Desniveles en pasillos de circulación y dormitorios; tapa precaria en cámara séptica/pluvial de tiro virtual; antideslizantes desgastados",
+      "que": "Adecuación edilicia de pisos, tapas de cámaras y bandas antideslizantes en escaleras",
+      "como": "Colocar tapa reforzada de hormigón/hierro en cámara exterior de sala de tiro (Fotos 2-5); reparar desniveles y colocar cintas antideslizantes de alto tránsito en escaleras."
+    },
+    "item_4": {
+      "causa": "Inexistencia de protocolo oficial de iluminación en puestos laborales",
+      "que": "Realizar estudio y medición de niveles de iluminación según Res. SRT 84/12",
+      "como": "Efectuar mediciones con luxómetro calibrado en aulas, oficinas, polígono, talleres y sectores comunes con profesional matriculado."
+    },
+    "item_5": {
+      "causa": "Garrafas y cilindros de GLP almacenados sin resguardo ni ventilación reglamentaria junto a mantenimiento",
+      "que": "Reubicar y asegurar cilindros de gas en espacio exterior ventilado",
+      "como": "Habilitar jaula metálica techada con ventilación cruzada en patio exterior, sujeción con cadenas individuales y carteles de advertencia."
+    },
+    "item_6": {
+      "causa": "Tableros eléctricos sin tapa interna / contratapa de protección y cables expuestos (Fotos 7, 8 y 9)",
+      "que": "Regularizar tableros generales y seccionales con contratapas y señalética",
+      "como": "Instalar contratapas aislantes de policarbonato/chapa que impidan contactos directos; peinar cableado y colocar etiquetas de 'Riesgo Eléctrico'."
+    },
+    "item_7": {
+      "causa": "Ausencia de medición y protocolo oficial de puesta a tierra y continuidad de masas",
+      "que": "Medición reglamentaria de Puesta a Tierra y continuidad bajo Res. SRT 900/15",
+      "como": "Medir jabalinas y continuidad en tableros y masas metálicas con telurímetro con certificado de calibración vigente y firma de matriculado."
+    },
+    "item_8": {
+      "causa": "Falta de certificado de aptitud eléctrica de las instalaciones del predio",
+      "que": "Obtener Certificado de Aptitud de Instalación Eléctrica por profesional matriculado",
+      "como": "Inspección técnica general y gestión del certificado de habilitación eléctrica ante colegio profesional (COPMMOTER/CIEER)."
+    },
+    "item_9": {
+      "causa": "Extintores apoyados en el piso en auditorio y sin chapa baliza reglamentaria (Foto 6)",
+      "que": "Adecuación del sistema completo de extintores y señalización reglamentaria",
+      "como": "Proveer soportes murales y montar chapas baliza IRAM reflectantes; distribuir extintores según cálculo de carga de fuego."
+    },
+    "item_10": {
+      "causa": "Dotación de extintores no contrastada técnicamente con la carga de fuego",
+      "que": "Verificar y adecuar la dotación de extintores al cálculo de carga de fuego",
+      "como": "Ajustar la cantidad y capacidad extintora (unidades mínimas 2A/10B) de acuerdo al resultado del estudio de carga de fuego Dec. 351/79."
+    },
+    "item_14": {
+      "causa": "Extintores apoyados en piso en salón de actos/auditorio y fuera de altura reglamentaria",
+      "que": "Instalación de extintores en soportes a altura reglamentaria (máx. 1,50 m)",
+      "como": "Amurar soportes reforzados a una altura entre 1,20 m y 1,50 m al asa de acarreo del extintor en todos los sectores."
+    },
+    "item_17": {
+      "causa": "Falta de cartelería de vías de escape, salidas de emergencia y luces de emergencia",
+      "que": "Instalar señalética reglamentaria de medios de escape y señalización de salidas",
+      "como": "Instalar carteles fotoluminiscentes IRAM de salida y flechas de dirección en pasillos, aulas, dormitorios y salón de actos."
+    },
+    "item_18": {
+      "causa": "Inexistencia de estudio de carga de fuego por sector",
+      "que": "Elaborar Estudio de Carga de Fuego conforme Dec. 351/79 Anexo VII",
+      "como": "Relevamiento de materiales combustibles en aulas, depósitos, biblioteca, talleres y dormitorios para determinar potencial extintor requerido."
+    },
+    "item_19": {
+      "causa": "Pisos resbaladizos en duchas de cadetes sin elementos de seguridad",
+      "que": "Acondicionar duchas con tapetes o rejillas antideslizantes",
+      "como": "Instalar pisos vinílicos enrejados antideslizantes en sector de duchas para prevenir resbalones y caídas al mismo nivel."
+    },
+    "item_20": {
+      "causa": "Agua de consumo sin protocolos analíticos actualizados de laboratorio bromatológico",
+      "que": "Realizar análisis bacteriológico y físico-químico del agua de consumo (red y dispensers)",
+      "como": "Toma de muestras en cocina, comedor y bebederos y remisión a laboratorio bromatológico habilitado conforme Ley 19.587 Cap. 8."
+    },
+    "item_21": {
+      "causa": "Ausencia de estudio de niveles sonoros en sectores con maquinarias y polígono",
+      "que": "Efectuar medición de Ruido Laboral según protocolo Res. SRT 85/12",
+      "como": "Medición con decibelímetro integrador clase 2 en taller de mantenimiento, polígono de tiro y lavadero para evaluar NSCE y dotación de EPP auditivo."
+    },
+    "item_26": {
+      "causa": "Puestos operativos, cocina, taller y administrativos sin evaluación ergonómica",
+      "que": "Implementar Programa de Ergonomía Integrado según Res. SRT 886/15",
+      "como": "Completar Planillas 1 y 2 de identificación de factores de riesgo ergonómico (posturas forzadas, levantamiento manual de cargas y PVD)."
+    },
+    "item_27": {
+      "causa": "Maquinarias de lavandería sin parada de emergencia / falta de registro de mantenimiento",
+      "que": "Instalar parada de emergencia en lavadero y formalizar registro preventivo de maquinarias",
+      "como": "Instalar botón de corte de emergencia tipo golpe de puño en lavadora/secadora e implementar libro de mantenimiento de máquinas y herramientas."
+    },
+    "item_28": {
+      "causa": "Inexistencia de constancia formal de entrega de EPP según normativa SRT",
+      "que": "Implementar planillas oficiales de entrega de EPP bajo Res. SRT 299/11",
+      "como": "Confeccionar registros individuales con firma de recepción, especificando certificación IRAM/sello de seguridad para operarios de taller, cocina y maestranza."
+    },
+    "item_29": {
+      "causa": "Plan de evacuación no formalizado ni difundido a cadetes y docentes",
+      "que": "Confeccionar y difundir Plan de Autoprotección y Evacuación del establecimiento",
+      "como": "Elaborar planos de evacuación ('Usted está aquí'), definir roles y consignas operativas ante contingencias de incendio o sismo."
+    },
+    "item_30": {
+      "causa": "Nunca se realizó simulacro de evacuación en las instalaciones",
+      "que": "Programar y ejecutar simulacro general de evacuación con personal y cadetes",
+      "como": "Realizar ejercicio práctico de evacuación con toma de tiempos, evaluación de puntos de encuentro y elaboración del informe técnico posterior."
+    },
+    "item_31": {
+      "causa": "Brigada de emergencia no constituida oficialmente",
+      "que": "Conformar y capacitar Brigada de Emergencia institucional",
+      "como": "Designar brigadistas por sector y turno, dictando capacitación teórico-práctica en extinción de incendios, primeros auxilios y evacuación."
+    },
+    "item_33": {
+      "causa": "Relevamiento General de Riesgos Laborales pendiente de presentación ante la ART",
+      "que": "Confeccionar y presentar RGRL actualizado ante IAPSER ART",
+      "como": "Volcar los datos de este relevamiento en el formulario oficial de la SRT y remitir constancia de recepción de la aseguradora."
+    },
+    "item_34": {
+      "causa": "Relevamiento de Agentes de Riesgo no confeccionado",
+      "que": "Confeccionar y remitir el RAR ante IAPSER ART",
+      "como": "Declarar nómina de trabajadores expuestos a ruido y ergonomía conforme a los estudios técnicos a realizarse."
+    },
+    "item_36": {
+      "causa": "Falta de coordinación de exámenes periódicos de salud laboral",
+      "que": "Coordinar la realización de exámenes periódicos de salud",
+      "como": "Articular con Sanidad Policial y ART la programación de exámenes según agentes de riesgo declarados."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Aulas, talleres, depósitos y dormitorios",
+        "obs": "Dec. 351/79 Cap. 18",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Suministro de red interna y bidones",
+        "obs": "Dec. 351/79 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Aulas, oficinas, polígono y talleres",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-09"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Taller mantenimiento, polígono de tiro, lavadero",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-09"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tableros eléctricos y masas metálicas",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Oficinas administrativas y aulas",
+        "puesto": "Personal administrativo e instructores policiales",
+        "obs": "Res. SRT 886/15 - Posturas y pantallas",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Taller de mantenimiento / Lavadero / Cocina",
+        "puesto": "Operarios de mantenimiento, panadería y cocina",
+        "obs": "Res. SRT 886/15 - Carga manual y bipedestación",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Adecuación de extintores (chapa baliza y altura máx. 1,50 m)",
+        "sector": "Auditorio, pasillos y áreas comunes",
+        "obs": "Foto 6 informe D.J Consultora",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Regularización de tableros eléctricos (contratapas y cartelería)",
+        "sector": "Tableros interiores generales y seccionales",
+        "obs": "Fotos 7, 8 y 9 informe D.J",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Retiro y sujeción de garrafas GLP en espacio exterior ventilado",
+        "sector": "Área de mantenimiento / patio exterior",
+        "obs": "Fijación con cadenas y señalización",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Reemplazo de cobertura provisoria de cámara por tapa resistente",
+        "sector": "Exterior de sala de tiro virtual",
+        "obs": "Fotos 2, 3, 4 y 5 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Instalación de parada de emergencia en lavadero y tapetes en duchas",
+        "sector": "Lavadero y vestuarios de cadetes",
+        "obs": "Recomendaciones 2 y 16 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Implementación de registro formal de entrega de EPP (Res. 299/11)",
+        "sector": "Personal de mantenimiento y maestranza",
+        "obs": "Trazabilidad documental",
+        "month": "2026-09"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Confección de Plan de Evacuación y asignación de roles",
+        "sector": "Edificio central, aulas y dormitorios",
+        "obs": "Preparatorio de simulacro",
+        "month": "2026-09"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido periódico evaluando corrección de desvíos observados",
+        "sector": "Todos los sectores del establecimiento",
+        "obs": "Seguimiento técnico semestral",
+        "month": "2026-11"
+      },
+      {
+        "origId": "vis_9",
+        "label": "Realización de Simulacro de Evacuación con personal y cadetes",
+        "sector": "Predio general e ingresos Fraternidad 1415",
+        "obs": "Anexo I Cronograma",
+        "month": "2027-03"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico y prevención de contactos indirectos",
+        "dest": "Personal operativo y de mantenimiento",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Manejo de extintores)",
+        "dest": "Cadetes, docentes y personal general",
+        "modal": "Teórico-práctica",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios y respuesta ante emergencias médicas",
+        "dest": "Personal policial e instructores",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS / Médico"
+      },
+      {
+        "tema": "Orden y Limpieza en puestos de trabajo (Metodología 5S)",
+        "dest": "Talleres, panadería, cocina y logística",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Ergonomía, posturas de trabajo y manipulación manual de cargas",
+        "dest": "Personal administrativo y de servicio",
+        "modal": "Presencial",
+        "month": "2026-09",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Plan de Evacuación y actuación específica para Brigada",
+        "dest": "Brigada de emergencia designada",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial y plan de adecuación para la Dirección General de Institutos Policiales (Fraternidad 1415, Paraná). Se establecieron 16 desvíos con sus correspondientes acciones correctivas y un cronograma operativo anual de mediciones, visitas técnicas, capacitaciones y simulacro de evacuación, conforme Ley 19.587, Dec. 351/79 y Resoluciones SRT."
+}

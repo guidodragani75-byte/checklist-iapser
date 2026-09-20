@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Control de Extintores — Móvil Offline | IAPSER</title>
+  <style>
+    :root {
+      --primary: #0b3d63;
+      --primary-light: #155e96;
+      --accent: #0284c7;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 70px; }
+
+    /* Header */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-title h1 { font-size: 15px; font-weight: 700; }
+    .header-title p { font-size: 11px; color: #93c5fd; }
+    .header-badge {
+      background: rgba(255,255,255,0.15);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Stats Summary */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .stat-val { font-size: 16px; font-weight: 700; }
+    .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
+    .stat-total .stat-val { color: var(--primary); }
+    .stat-ok .stat-val { color: var(--success); }
+    .stat-warn .stat-val { color: var(--warning); }
+    .stat-bad .stat-val { color: var(--danger); }
+
+    /* Form Fields */
+    .form-group { margin-bottom: 10px; }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(2,132,199,0.2);
+    }
+    .row-2 { display: flex; gap: 8px; }
+    .row-2 .form-group { flex: 1; }
+
+    /* Checkbox items */
+    .checks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .check-item input[type="checkbox"] { width: 14px; height: 14px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:active { background: #072a44; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 4px 8px; font-size: 10px; width: auto; }
+
+    /* Extinguisher Items List */
+    .ext-list { display: flex; flex-direction: column; gap: 8px; }
+    .ext-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
+    .ext-card.status-ok { border-left-color: var(--success); }
+    .ext-card.status-warn { border-left-color: var(--warning); }
+    .ext-card.status-bad { border-left-color: var(--danger); }
+    .ext-hdr { display: flex; justify-content: space-between; align-items: center; }
+    .ext-num { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .ext-type-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .ext-detail { font-size: 11px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 10px; }
+    .ext-dates { font-size: 11px; margin-top: 3px; display: flex; gap: 12px; }
+    .ext-date-tag { display: inline-flex; align-items: center; gap: 3px; }
+    .ext-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px; }
+
+    /* Toast / Notification */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Bottom App Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-around;
+      gap: 8px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 90;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>🧯 Control de Extintores</h1>
+    <p>Relevamiento Móvil Offline — IAPSER</p>
+  </div>
+  <div class="header-badge" id="storage-status">💾 Local Activo</div>
+</header>
+
+<div class="container">
+
+  <!-- Establecimiento Activo -->
+  <div class="card">
+    <div class="card-title">
+      <span>🏢 Establecimiento</span>
+      <span style="font-size:10px;color:var(--text-muted);font-weight:normal;" id="meta-fecha"></span>
+    </div>
+    <div class="form-group">
+      <input type="text" id="est-nombre" class="form-control" placeholder="Nombre o número de sede (ej: Comisaría 5ta, Taller)">
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>Ubicación / Localidad</label>
+        <input type="text" id="est-localidad" class="form-control" placeholder="Localidad o Depto">
+      </div>
+      <div class="form-group">
+        <label>Preventor / Auditor</label>
+        <input type="text" id="est-auditor" class="form-control" placeholder="Tu nombre">
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen de Parque de Extintores -->
+  <div class="stats-grid">
+    <div class="stat-box stat-total">
+      <div class="stat-val" id="stat-total">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-box stat-ok">
+      <div class="stat-val" id="stat-ok">0</div>
+      <div class="stat-label">Vigentes</div>
+    </div>
+    <div class="stat-box stat-warn">
+      <div class="stat-val" id="stat-warn">0</div>
+      <div class="stat-label">A Vencer</div>
+    </div>
+    <div class="stat-box stat-bad">
+      <div class="stat-val" id="stat-bad">0</div>
+      <div class="stat-label">Vencidos</div>
+    </div>
+  </div>
+
+  <!-- Formulario de Alta / Edición de Extintor -->
+  <div class="card" id="form-card">
+    <div class="card-title">
+      <span id="form-title">➕ Agregar Extintor</span>
+      <button class="btn btn-sm btn-outline" id="btn-cancel-edit" style="display:none;" onclick="cancelarEdicion()">Cancelar</button>
+    </div>
+
+    <input type="hidden" id="ext-id">
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>N° / Código *</label>
+        <input type="text" id="ext-num" class="form-control" placeholder="Ej: 01, EXT-05">
+      </div>
+      <div class="form-group">
+        <label>Sector / Ubicación *</label>
+        <input type="text" id="ext-sector" class="form-control" placeholder="Ej: Guardia, Cocina, Taller">
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Agente Extintor *</label>
+        <select id="ext-tipo" class="form-control">
+          <option value="ABC - Polvo químico">Polvo químico seco (ABC)</option>
+          <option value="CO2 - Dióxido de Carbono">Dióxido de Carbono (CO2)</option>
+          <option value="Agua bajo presión (A)">Agua bajo presión (A)</option>
+          <option value="AFFF - Espuma">Espuma mecánica (AFFF)</option>
+          <option value="Haloclean / HCFC">Haloclean / Gases limpios</option>
+          <option value="Acetato de Potasio (K)">Acetato de Potasio (Clase K)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Capacidad *</label>
+        <select id="ext-cap" class="form-control">
+          <option value="5 kg">5 kg</option>
+          <option value="10 kg">10 kg</option>
+          <option value="2.5 kg">2.5 kg</option>
+          <option value="1 kg">1 kg</option>
+          <option value="50 kg (Rodante)">50 kg (Rodante)</option>
+          <option value="10 litros">10 litros</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Vencimiento Carga Anual *</label>
+        <input type="date" id="ext-vto-carga" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Vencimiento PH (5 años)</label>
+        <input type="date" id="ext-vto-ph" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Verificaciones de Seguridad In Situ:</label>
+      <div class="checks-grid">
+        <label class="check-item"><input type="checkbox" id="chk-manometro" checked> Manómetro en Verde</label>
+        <label class="check-item"><input type="checkbox" id="chk-precinto" checked> Precinto y Pasador OK</label>
+        <label class="check-item"><input type="checkbox" id="chk-manguera" checked> Manguera y Tobera OK</label>
+        <label class="check-item"><input type="checkbox" id="chk-soporte" checked> Soporte (1.20 - 1.50m)</label>
+        <label class="check-item"><input type="checkbox" id="chk-senal" checked> Señalización Chapa IRAM</label>
+        <label class="check-item"><input type="checkbox" id="chk-despejado" checked> Acceso Libre y Despejado</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Observaciones del Extintor</label>
+      <input type="text" id="ext-obs" class="form-control" placeholder="Ej: Falta chapa baliza, soporte flojo...">
+    </div>
+
+    <button type="button" class="btn btn-primary" onclick="guardarExtintor()">💾 Guardar Extintor</button>
+  </div>
+
+  <!-- Listado de Extintores Relevados -->
+  <div class="card">
+    <div class="card-title">
+      <span>📋 Extintores Relevados en este Predio</span>
+      <span class="header-badge" id="list-counter">0 unidades</span>
+    </div>
+    <div class="ext-list" id="ext-container">
+      <div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">
+        No hay extintores registrados aún.<br>Completá el formulario superior para agregar el primero.
+      </div>
+    </div>
+  </div>
+
+  <!-- Herramientas de Exportación y Respaldo -->
+  <div class="card">
+    <div class="card-title">📤 Sincronización y Exportar</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+      Los datos quedan almacenados en la memoria de tu teléfono. Podés descargar el archivo o sincronizar con Google Sheets cuando tengas señal.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-success" onclick="sincronizarConSheets()">☁️ Sincronizar a Google Sheets</button>
+      <button class="btn btn-outline" onclick="exportarCSV()">📥 Descargar Planilla (CSV / Excel)</button>
+      <button class="btn btn-outline" onclick="exportarJSON()">💾 Descargar Respaldo (JSON)</button>
+      <button class="btn btn-outline" style="color:var(--danger);" onclick="vaciarPredioActual()">🗑️ Limpiar datos de este predio</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Navigation Bar -->
+<div class="bottom-bar">
+  <button class="btn btn-outline btn-sm" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆️ Arriba</button>
+  <button class="btn btn-primary btn-sm" onclick="nuevoExtintorFocus()">➕ Nuevo Extintor</button>
+  <button class="btn btn-outline btn-sm" onclick="window.location.href='checklist_interactivo_v1.html'">📋 Volver a Checklist</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // Estructura de datos en LocalStorage
+  const STORAGE_KEY = 'iapser_control_extintores_v1';
+  let appState = {
+    establecimiento: '',
+    localidad: '',
+    auditor: '',
+    fecha: new Date().toISOString().split('T')[0],
+    extintores: []
+  };
+
+  // Inicialización
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('meta-fecha').textContent = 'Fecha: ' + new Date().toLocaleDateString('es-AR');
+    cargarDesdeStorage();
+    actualizarVista();
+
+    // Listeners para guardar meta-datos de establecimiento
+    ['est-nombre', 'est-localidad', 'est-auditor'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        appState.establecimiento = document.getElementById('est-nombre').value;
+        appState.localidad = document.getElementById('est-localidad').value;
+        appState.auditor = document.getElementById('est-auditor').value;
+        guardarEnStorage();
+      });
+    });
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function guardarEnStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  }
+
+  function cargarDesdeStorage() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      try {
+        appState = JSON.parse(data);
+        document.getElementById('est-nombre').value = appState.establecimiento || '';
+        document.getElementById('est-localidad').value = appState.localidad || '';
+        document.getElementById('est-auditor').value = appState.auditor || '';
+      } catch(e) {
+        console.error('Error cargando storage', e);
+      }
+    }
+  }
+
+  function calcularEstado(vtoCarga, vtoPH, checks) {
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+
+    let status = 'ok'; // ok, warn, bad
+    let razones = [];
+
+    if (vtoCarga) {
+      const fCarga = new Date(vtoCarga);
+      const diffDias = Math.round((fCarga - hoy) / (1000 * 60 * 60 * 24));
+      if (diffDias < 0) {
+        status = 'bad';
+        razones.push('Carga vencida hace ' + Math.abs(diffDias) + ' días');
+      } else if (diffDias <= 30) {
+        if (status !== 'bad') status = 'warn';
+        razones.push('Carga vence en ' + diffDias + ' días');
+      }
+    }
+
+    if (vtoPH) {
+      const fPH = new Date(vtoPH);
+      if (fPH < hoy) {
+        status = 'bad';
+        razones.push('PH vencida');
+      }
+    }
+
+    const fallas = [];
+    if (!checks.manometro) fallas.push('Manómetro fuera de rango');
+    if (!checks.precinto) fallas.push('Sin precinto/traba');
+    if (!checks.manguera) fallas.push('Manguera defectuosa');
+    if (!checks.soporte) fallas.push('Soporte antirreglamentario');
+    if (!checks.senal) fallas.push('Sin chapa baliza');
+    if (!checks.despejado) fallas.push('Acceso obstruido');
+
+    if (fallas.length > 0) {
+      if (status !== 'bad') status = 'warn';
+      razones.push(...fallas);
+    }
+
+    return { status, razones };
+  }
+
+  function guardarExtintor() {
+    const num = document.getElementById('ext-num').value.trim();
+    const sector = document.getElementById('ext-sector').value.trim();
+    const tipo = document.getElementById('ext-tipo').value;
+    const cap = document.getElementById('ext-cap').value;
+    const vtoCarga = document.getElementById('ext-vto-carga').value;
+    const vtoPH = document.getElementById('ext-vto-ph').value;
+    const obs = document.getElementById('ext-obs').value.trim();
+    const editId = document.getElementById('ext-id').value;
+
+    if (!num) {
+      alert('Ingresá el número o código del extintor');
+      document.getElementById('ext-num').focus();
+      return;
+    }
+    if (!sector) {
+      alert('Ingresá el sector o ubicación');
+      document.getElementById('ext-sector').focus();
+      return;
+    }
+
+    const checks = {
+      manometro: document.getElementById('chk-manometro').checked,
+      precinto: document.getElementById('chk-precinto').checked,
+      manguera: document.getElementById('chk-manguera').checked,
+      soporte: document.getElementById('chk-soporte').checked,
+      senal: document.getElementById('chk-senal').checked,
+      despejado: document.getElementById('chk-despejado').checked
+    };
+
+    const evaluacion = calcularEstado(vtoCarga, vtoPH, checks);
+
+    const extObj = {
+      id: editId || 'ext_' + Date.now(),
+      num: num,
+      sector: sector,
+      tipo: tipo,
+      cap: cap,
+      vtoCarga: vtoCarga,
+      vtoPH: vtoPH,
+      checks: checks,
+      obs: obs,
+      status: evaluacion.status,
+      razones: evaluacion.razones,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (editId) {
+      const idx = appState.extintores.findIndex(e => e.id === editId);
+      if (idx !== -1) appState.extintores[idx] = extObj;
+      cancelarEdicion();
+      showToast('✅ Extintor actualizado');
+    } else {
+      appState.extintores.push(extObj);
+      showToast('✅ Extintor agregado');
+      limpiarFormulario();
+    }
+
+    guardarEnStorage();
+    actualizarVista();
+  }
+
+  function limpiarFormulario() {
+    document.getElementById('ext-id').value = '';
+    document.getElementById('ext-num').value = '';
+    document.getElementById('ext-sector').value = '';
+    document.getElementById('ext-obs').value = '';
+    document.getElementById('ext-vto-carga').value = '';
+    document.getElementById('ext-vto-ph').value = '';
+    ['chk-manometro', 'chk-precinto', 'chk-manguera', 'chk-soporte', 'chk-senal', 'chk-despejado'].forEach(id => {
+      document.getElementById(id).checked = true;
+    });
+    document.getElementById('ext-num').focus();
+  }
+
+  function editarExtintor(id) {
+    const ext = appState.extintores.find(e => e.id === id);
+    if (!ext) return;
+
+    document.getElementById('ext-id').value = ext.id;
+    document.getElementById('ext-num').value = ext.num;
+    document.getElementById('ext-sector').value = ext.sector;
+    document.getElementById('ext-tipo').value = ext.tipo;
+    document.getElementById('ext-cap').value = ext.cap;
+    document.getElementById('ext-vto-carga').value = ext.vtoCarga || '';
+    document.getElementById('ext-vto-ph').value = ext.vtoPH || '';
+    document.getElementById('ext-obs').value = ext.obs || '';
+
+    if (ext.checks) {
+      document.getElementById('chk-manometro').checked = ext.checks.manometro !== false;
+      document.getElementById('chk-precinto').checked = ext.checks.precinto !== false;
+      document.getElementById('chk-manguera').checked = ext.checks.manguera !== false;
+      document.getElementById('chk-soporte').checked = ext.checks.soporte !== false;
+      document.getElementById('chk-senal').checked = ext.checks.senal !== false;
+      document.getElementById('chk-despejado').checked = ext.checks.despejado !== false;
+    }
+
+    document.getElementById('form-title').textContent = '✏️ Editando Extintor N° ' + ext.num;
+    document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+    document.getElementById('form-card').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelarEdicion() {
+    limpiarFormulario();
+    document.getElementById('form-title').textContent = '➕ Agregar Extintor';
+    document.getElementById('btn-cancel-edit').style.display = 'none';
+  }
+
+  function eliminarExtintor(id) {
+    if (!confirm('¿Eliminar este extintor del relevamiento?')) return;
+    appState.extintores = appState.extintores.filter(e => e.id !== id);
+    guardarEnStorage();
+    actualizarVista();
+    showToast('🗑️ Extintor eliminado');
+  }
+
+  function nuevoExtintorFocus() {
+    cancelarEdicion();
+    document.getElementById('form-card').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('ext-num').focus();
+  }
+
+  function vaciarPredioActual() {
+    if (!confirm('¿Seguro que deseás borrar todos los extintores de este establecimiento?')) return;
+    appState.extintores = [];
+    guardarEnStorage();
+    actualizarVista();
+    showToast('Limpieza completada');
+  }
+
+  function actualizarVista() {
+    const listEl = document.getElementById('ext-container');
+    const total = appState.extintores.length;
+    document.getElementById('list-counter').textContent = total + ' unidades';
+
+    let ok = 0, warn = 0, bad = 0;
+    appState.extintores.forEach(e => {
+      if (e.status === 'bad') bad++;
+      else if (e.status === 'warn') warn++;
+      else ok++;
+    });
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-ok').textContent = ok;
+    document.getElementById('stat-warn').textContent = warn;
+    document.getElementById('stat-bad').textContent = bad;
+
+    if (total === 0) {
+      listEl.innerHTML = `
+        <div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">
+          No hay extintores registrados aún.<br>Completá el formulario superior para agregar el primero.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = '';
+    appState.extintores.forEach(ext => {
+      const card = document.createElement('div');
+      card.className = `ext-card status-${ext.status}`;
+      
+      const vtoCargaStr = ext.vtoCarga ? ext.vtoCarga.split('-').reverse().join('/') : 'Sin fecha';
+      const vtoPHStr = ext.vtoPH ? ext.vtoPH.split('-').reverse().join('/') : 'N/D';
+
+      let razonesHtml = '';
+      if (ext.razones && ext.razones.length > 0) {
+        razonesHtml = `<div style="font-size:10px;color:var(--danger);font-weight:600;margin-top:2px;">⚠️ ${ext.razones.join(' • ')}</div>`;
+      }
+
+      card.innerHTML = `
+        <div class="ext-hdr">
+          <span class="ext-num">Matafuego N° ${ext.num} — ${ext.sector}</span>
+          <span class="ext-type-badge">${ext.tipo.split(' - ')[0]} (${ext.cap})</span>
+        </div>
+        <div class="ext-detail">
+          <span>📍 <strong>Sector:</strong> ${ext.sector}</span>
+          ${ext.obs ? `<span>📝 <em>${ext.obs}</em></span>` : ''}
+        </div>
+        <div class="ext-dates">
+          <span class="ext-date-tag">📅 <strong>Vto Carga:</strong> ${vtoCargaStr}</span>
+          <span class="ext-date-tag">🧪 <strong>PH:</strong> ${vtoPHStr}</span>
+        </div>
+        ${razonesHtml}
+        <div class="ext-actions">
+          <button class="btn btn-sm btn-outline" onclick="editarExtintor('${ext.id}')">✏️ Editar</button>
+          <button class="btn btn-sm btn-outline" style="color:var(--danger);" onclick="eliminarExtintor('${ext.id}')">🗑️ Borrar</button>
+        </div>
+      `;
+      listEl.appendChild(card);
+    });
+  }
+
+  function exportarCSV() {
+    if (appState.extintores.length === 0) {
+      alert('No hay extintores cargados para exportar');
+      return;
+    }
+    const headers = ["Numero", "Sector", "Tipo", "Capacidad", "Vto_Carga", "Vto_PH", "Estado", "Observaciones", "Desvios"];
+    const rows = appState.extintores.map(e => [
+      `"${e.num}"`,
+      `"${e.sector}"`,
+      `"${e.tipo}"`,
+      `"${e.cap}"`,
+      `"${e.vtoCarga || ''}"`,
+      `"${e.vtoPH || ''}"`,
+      `"${e.status.toUpperCase()}"`,
+      `"${(e.obs || '').replace(/"/g, '""')}"`,
+      `"${(e.razones || []).join('; ')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    const filename = `Extintores_${(appState.establecimiento || 'Predio').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 Archivo CSV descargado');
+  }
+
+  function exportarJSON() {
+    if (appState.extintores.length === 0) {
+      alert('No hay extintores cargados para respaldar');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Backup_Extintores_${(appState.establecimiento || 'Predio').replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('💾 Respaldo JSON descargado');
+  }
+
+  function sincronizarConSheets() {
+    const sheetsUrl = localStorage.getItem('iapser_sheets_url');
+    if (!sheetsUrl) {
+      const url = prompt('Ingresá la URL del Webhook de Google Apps Script:');
+      if (url) {
+        localStorage.setItem('iapser_sheets_url', url);
+        ejecutarSync(url);
+      }
+    } else {
+      ejecutarSync(sheetsUrl);
+    }
+  }
+
+  function ejecutarSync(url) {
+    showToast('☁️ Sincronizando con Google Sheets...');
+    const payload = {
+      tipoOperacion: 'control_extintores',
+      establecimiento: appState.establecimiento,
+      localidad: appState.localidad,
+      auditor: appState.auditor,
+      total: appState.extintores.length,
+      extintores: appState.extintores,
+      timestamp: new Date().toISOString()
+    };
+
+    fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(() => {
+      showToast('✅ Enviado correctamente a Google Sheets');
+    }).catch(err => {
+      showToast('❌ Error al sincronizar: ' + err.message);
+    });
+  }
+</script>
+
+</body>
+</html>

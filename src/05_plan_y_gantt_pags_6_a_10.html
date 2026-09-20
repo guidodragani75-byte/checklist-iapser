@@ -1,0 +1,352 @@
+<div class="page" id="page-pt" data-module="mod-plan">
+  <div class="subnav-pills no-print">
+    <span style="font-size:9.5px;font-weight:bold;color:#0b3d63;white-space:nowrap;">Ir a sección del plan:</span>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-pt')">🎯 Matriz Teórico vs Realidad</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-6')">🧑‍💼 Capacitación & Ergo 886</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-7')">📋 Medidas Correctivas</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-8')">🔬 Mediciones Físicas & Visitas</button>
+    <button type="button" class="btn-subnav-pill" onclick="resaltarElemento('page-10')">📅 Cronograma Anual Gantt</button>
+  </div>
+
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Tablero de Control de Gestión — Plan Teórico vs. Realidad</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Matriz de Seguimiento: Plan Teórico vs. Realidad In Situ</h1>
+  <div class="subtitle">Contraste entre las tareas asignadas para este establecimiento y lo efectivamente ejecutado (15 puntos de control)</div>
+
+  <!-- Contenedor Resumen y Filtro Rápido -->
+  <div style="background:#eaf4fc;border:1.5px solid #0284c7;border-radius:4px;padding:6px 12px;margin:5px 0 8px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;" class="no-print">
+    <div>
+      <strong style="color:#0b3d63;font-size:10.5px;">🎯 Estado de Ajuste de la Realidad al Plan:</strong>
+      <span style="color:#444;font-size:9px;display:block;">El plan teórico define las metas específicas para este establecimiento. La realidad refleja lo constatado y cargado.</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button type="button" class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 10px;border:none;border-radius:3px;cursor:pointer;" onclick="actualizarMatrizPlanVsRealidad()">🔄 Actualizar Tablero</button>
+      <a href="control_extintores_movil.html" target="_blank" style="background:#0284c7;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 10px;border-radius:3px;text-decoration:none;">🧯 Abrir App Extintores</a>
+    </div>
+  </div>
+
+  <table class="pt-table" id="tabla-plan-vs-realidad">
+    <thead>
+      <tr>
+        <th style="width:5%;">N°</th>
+        <th style="width:25%;">Variable / Control</th>
+        <th style="width:28%;">Plan Teórico (Asignado / Meta)</th>
+        <th style="width:28%;">Realidad In Situ (Constatado / Cargado)</th>
+        <th style="width:14%;">Estado</th>
+      </tr>
+    </thead>
+    <tbody id="pt-tbody">
+      <!-- Se llena dinámicamente -->
+    </tbody>
+  </table>
+
+  <div style="margin-top:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:4px;padding:8px 12px;font-size:9.5px;color:#475569;">
+    <strong>ℹ️ Reglas de Validación Automática:</strong>
+    <ul style="margin:4px 0 0 16px;padding:0;line-height:1.4;">
+      <li><strong>SVCC:</strong> Exige coincidencia estricta entre RGRL y RAR. Si RGRL tilda cancerígenos, el RAR debe incluir expuestos a cancerígenos. Si hay discrepancia, se califica como <em>INCONSISTENCIA</em>.</li>
+      <li><strong>Visita 1:</strong> Debe cubrir obligatoriamente RGRL, RAR, verificación RGI, relevamiento de puestos ergonómicos y Capacitación in situ.</li>
+      <li><strong>Mediciones Técnicas:</strong> Se computan las cantidades efectivas ejecutadas frente a la meta asignada.</li>
+    </ul>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Matriz de Control de Gestión HyS</span>
+    <span>Seguimiento de Plan Teórico vs. Realidad</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 6: CAPACITACIÓN Y OBSERVACIONES ================= -->
+<div class="page" id="page-6" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <div class="section-hdr-row">
+    <h2>12. Capacitación</h2>
+    <div class="section-quick-btns no-print">
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'S')">Sí</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'N')">No</button>
+      <button class="btn-sec-mark" onclick="marcarSeccion(this, 'NC')">NC</button>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-plan="Plan de Capacitación" data-que="Elaborar Plan Anual de Capacitación en base a tareas y riesgos relevados" data-como-default="Armar cronograma anual por tema/puesto"
+       data-causas="No existe plan|Existe pero desactualizado|Existe pero sin registro de dictado">
+    <div class="citem-row">
+      <span class="citem-label">Plan Anual de Capacitación vigente<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q34" value="S">Sí</label>
+        <label><input type="radio" name="q34" value="N">No</label>
+        <label><input type="radio" name="q34" value="NC">NC</label>
+      </span>
+    </div>
+    <div class="citem-causa">
+      <span class="citem-causa-label">Causa/s detectada/s:</span>
+      <div class="causa-checks"></div>
+    </div>
+  </div>
+
+  <div class="citem" data-eje="formacion" data-que="Implementar inducción formal para nuevo personal" data-como-default="Diseñar módulo de inducción básico">
+    <div class="citem-row">
+      <span class="citem-label">Inducción a nuevo personal implementada y documentada<span class="citem-eje-tag tag-formacion">Formación</span></span>
+      <span class="citem-radios">
+        <label><input type="radio" name="q35" value="S">Sí</label>
+        <label><input type="radio" name="q35" value="N">No</label>
+        <label><input type="radio" name="q35" value="NC">NC</label>
+      </span>
+    </div>
+  </div>
+
+  <h2>13. Observaciones generales del relevamiento</h2>
+  <textarea class="area-box" id="f_observaciones" rows="6" style="min-height:90px;" placeholder="Hallazgos relevantes, prioridades de intervención técnica detectadas, información o documentación faltante a solicitar a la empresa, referentes designados por sector..."></textarea>
+
+  <div class="signature-block">
+    <div class="signature-box"><div class="signature-line">Firma y aclaración — Profesional HyS Relevador</div></div>
+    <div class="signature-box"><div class="signature-line">Firma y aclaración — Referente / Responsable del Establecimiento</div></div>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 6 de 10</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 7: PLAN DE ACCIÓN CONSOLIDADO ================= -->
+<div class="page" id="page-7" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h2>Plan de Acción y Recomendaciones por Perfil de Riesgo — Parte 1</h2>
+  <div class="subtitle">Desvíos detectados en Gestión Documental, Mediciones Ocupacionales, Ergonomía e Infraestructura</div>
+
+  <div class="plan-group documental">
+    <h3>Perfil Documental y Legal</h3>
+    <div id="plan-documental"></div>
+  </div>
+
+  <div class="plan-group mediciones">
+    <h3>Perfil de Mediciones e Higiene Ocupacional</h3>
+    <div id="plan-mediciones"></div>
+  </div>
+
+  <div class="plan-group ergonomia">
+    <h3>Perfil Ergonómico (Res. SRT 886/15)</h3>
+    <div id="plan-ergonomia"></div>
+  </div>
+
+  <div class="plan-group infraestructura">
+    <h3>Perfil de Infraestructura, Instalaciones y Protección contra Incendios</h3>
+    <div id="plan-infraestructura"></div>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Informe de Asesoramiento Técnico en HyS</span>
+    <span>Página 7 de 10 — Plan de Acción (Parte 1)</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 8: PLAN DE ACCIÓN (PARTE 2) ================= -->
+<div class="page" id="page-8" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h2>Plan de Acción y Recomendaciones por Perfil de Riesgo — Parte 2</h2>
+  <div class="subtitle">Desvíos detectados en Capacitación, Organización Preventiva y Condiciones Físicas de Trabajo</div>
+
+  <div class="plan-group formacion">
+    <h3>Perfil Formativo y Capacitación</h3>
+    <div id="plan-formacion"></div>
+  </div>
+
+  <div class="plan-group organizacional">
+    <h3>Perfil Organizacional y Servicios Médicos / HyS</h3>
+    <div id="plan-organizacional"></div>
+  </div>
+
+  <div class="plan-group condiciones">
+    <h3>Perfil de Condiciones Físicas y Medio Ambiente</h3>
+    <div id="plan-condiciones"></div>
+  </div>
+
+  <div class="footer-page">
+    <span>IAPSER — Informe de Asesoramiento Técnico en HyS</span>
+    <span>Página 8 de 10 — Plan de Acción (Parte 2)</span>
+  </div>
+</div>
+<div class="page" id="page-9" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Programación de Acciones por Sector y Puesto</h1>
+  <div class="subtitle">Asigná Sector, Puesto y Mes/Año programado a cada acción requerida. Podés duplicar filas para múltiples sectores o agregar adicionales.</div>
+
+  <!-- Barra de control y sincronización de Programación -->
+  <div style="background:#eaf4fc;border:1.5px solid #0b3d63;border-radius:4px;padding:6px 12px;margin:5px 0 8px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;" class="no-print">
+    <div>
+      <strong style="color:#0b3d63;font-size:10px;">⚡ Generador de Programación y Cronograma:</strong>
+      <span style="color:#444;font-size:8.8px;display:block;">Haz clic para trasladar los desvíos marcados con "NO" a estas tablas y al cronograma anual. Si cambiaste ítems a "SÍ" o "NC", se removerán conservando tus ediciones manuales.</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button type="button" class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:5px 12px;border:none;border-radius:3px;cursor:pointer;" onclick="syncSchedFromChecklist(true)">⚡ Generar / Sincronizar</button>
+      <button type="button" style="background:#fff;color:#b91c1c;border:1px solid #b91c1c;font-size:8.8px;padding:4px 8px;border-radius:3px;cursor:pointer;" onclick="limpiarProgramacion()">🗑️ Vaciar Tablas</button>
+    </div>
+  </div>
+
+  <!-- 1. Mediciones -->
+  <div class="sched-section s-mediciones">
+    <h3>📐 Mediciones pendientes</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:36%">Medición</th>
+          <th style="width:25%">Sector / Área</th>
+          <th style="width:21%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:7%" class="no-print">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="sched-mediciones">
+        <tr><td colspan="5" class="sched-empty">Sin mediciones pendientes. Podés agregar con el botón inferior.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addMedRowManual()">+ Agregar otra medición</button>
+  </div>
+
+  <!-- 2. Ergonomía -->
+  <div class="sched-section s-ergonomia">
+    <h3>🧑‍💼 Evaluaciones ergonómicas (Res. SRT 886/15)</h3>
+    <div style="font-size:8.2px;color:#b3660f;font-style:italic;margin-bottom:2px;">
+      Identificación y evaluación de puestos con riesgo ergonómico según metodología Res. SRT 886/15
+    </div>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:30%">Sector / Área</th>
+          <th style="width:35%">Puesto/s de trabajo a evaluar</th>
+          <th style="width:20%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:4%" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="sched-ergonomia">
+        <tr><td colspan="5" class="sched-empty">Sin evaluaciones pendientes.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addErgRow('', '', '')">+ Agregar puesto / sector ergonómico</button>
+  </div>
+
+  <!-- 3. Visitas de campo -->
+  <div class="sched-section s-visitas">
+    <h3>🏭 Visitas de campo / Relevamiento en sede</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:36%">Acción a realizar en visita</th>
+          <th style="width:25%">Sector / Área</th>
+          <th style="width:21%">Observación</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:7%" class="no-print">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="sched-visitas">
+        <tr><td colspan="5" class="sched-empty">Sin visitas pendientes. Podés agregar con el botón inferior.</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addVisRowManual()">+ Agregar visita / recorrido en sede</button>
+  </div>
+
+  <!-- 4. Capacitaciones -->
+  <div class="sched-section s-capac">
+    <h3>📋 Plan de Capacitación</h3>
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th style="width:3%">#</th>
+          <th style="width:33%">Tema / Contenido</th>
+          <th style="width:20%">Destinatarios / Área</th>
+          <th style="width:16%">Modalidad</th>
+          <th style="width:11%">Mes/Año</th>
+          <th style="width:13%">Responsable</th>
+          <th style="width:4%" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="sched-capac"></tbody>
+    </table>
+    <button class="btn-add-row no-print" onclick="addCapacRowManual()">+ Agregar tema de capacitación</button>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 9 de 10 — Programación Operativa</span>
+  </div>
+</div>
+
+<!-- ================= PÁGINA 10: CRONOGRAMA ANUAL GANTT ================= -->
+<div class="page" id="page-10" data-module="mod-plan">
+  <div class="page-mini-header">
+    <div class="page-mini-logo-box">
+      <img src="logo_header.png" onerror="this.src='logo_contraste_oscuro.png'" alt="Logo">
+    </div>
+    <div class="page-mini-title">
+      <strong>Checklist de Relevamiento Inicial — HyS</strong>
+      <span class="mh-rs-label"></span>
+    </div>
+  </div>
+
+  <h1 style="font-size:13.5px;color:#0b3d63;margin:0 0 2px 0;">Cronograma Anual de Actividades (Plan de Trabajo)</h1>
+  <div class="subtitle">Suma consolidada de la programación. Hacé clic en cualquier celda para marcar o desmarcar meses (X).</div>
+
+  <div class="gantt-wrap">
+    <table class="gantt-table" id="gantt-table">
+      <thead id="gantt-thead"></thead>
+      <tbody id="gantt-tbody"></tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:5px;display:flex;gap:8px;align-items:center;" class="no-print">
+    <button class="btn-refresh" style="background:#0b3d63;color:#fff;font-weight:bold;font-size:9.5px;padding:4px 11px;border:none;border-radius:3px;cursor:pointer;" onclick="syncSchedFromChecklist(true)">⚡ Sincronizar desde Checklist</button>
+    <button class="btn-refresh" style="font-size:9.5px;padding:4px 10px;" onclick="buildGanttFromPage8(true)">🔄 Actualizar Cronograma desde Tablas</button>
+    <button style="background:#4a5568;color:#fff;font-size:9.5px;padding:3.5px 9px;border:none;border-radius:3px;cursor:pointer;" onclick="ganttAddManualRow('plan')">+ Agregar tarea al Plan</button>
+    <button style="background:#4a5568;color:#fff;font-size:9.5px;padding:3.5px 9px;border:none;border-radius:3px;cursor:pointer;" onclick="ganttAddManualRow('visitas')">+ Agregar fila a Recorridos</button>
+  </div>
+
+  <div class="footer-page">
+    <span>Relevamiento Inicial HyS</span>
+    <span>Página 10 de 10 — Cronograma Anual</span>
+  </div>
+</div>

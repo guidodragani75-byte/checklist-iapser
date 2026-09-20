@@ -1,0 +1,542 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T14:15:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Sección Técnica de Mantenimiento y Laboratorio",
+    "domicilio": "Belgrano 330",
+    "direccion": "Belgrano 330",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "107",
+    "rowIndex": 232,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Téc. Estefania N. Meiler (Mat. T0151 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Mantenimiento provincial de antenas, radiocomunicaciones, redes y electrónica policial.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede técnica e institucional propia",
+    "supTotal": "1400",
+    "supCubierta": "950",
+    "plantas": "2",
+    "dotTotal": "30",
+    "dotAdm": "10",
+    "dotProd": "18",
+    "dotOtros": "2",
+    "condicionesGenerales": "Sede de apoyo técnico y telecomunicaciones. Dispone de taller de electrónica/ensamblado en PB y oficinas en PA. Tableros eléctricos en buen estado con disyuntores. Desvíos: garrafas de gas GLP almacenadas en cocina (Fotos 13 y 14), depósito de insumos desordenado y falta de planillas de EPP para trabajos en altura."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Téc. Estefania N. Meiler",
+    "hysMatricula": "Mat. T0151 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.policiaer@entrerios.gov.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": [
+        "Falta medición objetiva con luxómetro"
+      ]
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "N",
+      "causas": [
+        "Garrafas de gas GLP almacenadas en sector cocina (Fotos 13 y 14)",
+        "Depósito con acumulación de insumos que dificulta acceso a extintores"
+      ]
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": [
+        "Falta medición reglamentaria de PAT bajo Res. 900/15"
+      ]
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": [
+        "Sin certificado de aptitud eléctrica"
+      ]
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": [
+        "Dotación no contrastada con carga de fuego"
+      ]
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": [
+        "Inexistencia de cálculo de carga de fuego"
+      ]
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Muestra tomada pendiente de análisis bacteriológico"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": [
+        "Sin estudio de ruido según Res. SRT 85/12"
+      ]
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": [
+        "Pendiente Programa de Ergonomía Integrado"
+      ]
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "N",
+      "causas": [
+        "Falta programa documentado de mantenimiento de herramientas de banco y equipos de izaje menor"
+      ]
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "N",
+      "causas": [
+        "Falta registro firmado de entrega de EPP según Res. SRT 299/11 (especialmente para trabajos en altura por antenas)"
+      ]
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": [
+        "Plan de evacuación no formalizado"
+      ]
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": [
+        "Sin simulacros realizados"
+      ]
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": [
+        "Brigada no conformada"
+      ]
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": [
+        "Sin exámenes periódicos"
+      ]
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_5": {
+      "causa": "Garrafas de gas GLP almacenadas en el sector cocina y depósito con acumulación de insumos (Fotos 13 y 14)",
+      "que": "Reubicar garrafas de GLP a sector exterior ventilado y ordenar depósito",
+      "como": "Instalar jaula exterior ventilada con candado y sujeción antivuelco; despejar pasillos de depósito y acceso a extintores."
+    },
+    "item_7": {
+      "causa": "Falta medición y protocolo de PAT",
+      "que": "Medición de resistencia de Puesta a Tierra Res. SRT 900/15",
+      "como": "Efectuar medición con telurímetro calibrado en tableros y jabalinas con matriculado."
+    },
+    "item_18": {
+      "causa": "Falta estudio de carga de fuego",
+      "que": "Elaborar Estudio Técnico de Carga de Fuego",
+      "como": "Calcular carga de fuego conforme Dec. 351/79 Anexo VII en depósitos de electrónica y oficinas."
+    },
+    "item_20": {
+      "causa": "Muestra de agua tomada pendiente de análisis",
+      "que": "Completar análisis bromatológico de agua de red",
+      "como": "Verificar potabilidad física, química y bacteriológica bajo Ley 19.587 Cap. 8."
+    },
+    "item_26": {
+      "causa": "Puestos de trabajo sin evaluación ergonómica",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Evaluar puestos de técnicos en banco de trabajo y administrativos."
+    },
+    "item_27": {
+      "causa": "Falta registro de mantenimiento de herramientas y equipos",
+      "que": "Implementar programa documentado de mantenimiento preventivo de máquinas y herramientas",
+      "como": "Confeccionar registros periódicos de inspección de taladro de banco, amoladora, sensitiva y aparejos."
+    },
+    "item_28": {
+      "causa": "Falta registro formal de entrega de EPP Res. SRT 299/11 (arneses de seguridad para antenas)",
+      "que": "Implementar planillas de entrega de EPP con trazabilidad de equipos anticaídas",
+      "como": "Registrar entrega y verificación de arneses de seguridad, cabos de vida, cascos y calzado dieléctrico."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Taller, depósitos de electrónica y oficinas",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Red interna cocina y comedor",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Bancos de electrónica y oficinas",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Taller de corte y banco",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tableros eléctricos principales",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Taller de mantenimiento y electrónica",
+        "puesto": "Técnicos especialistas",
+        "obs": "Res. SRT 886/15 - Movimientos repetitivos",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Oficinas administrativas",
+        "puesto": "Personal administrativo",
+        "obs": "Res. SRT 886/15 - Pantallas",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Reubicación de garrafas de gas GLP al exterior ventilado",
+        "sector": "Sector cocina / patio",
+        "obs": "Fotos 13 y 14 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Ordenamiento de depósito y despeje de extintores",
+        "sector": "Depósito de materiales",
+        "obs": "Fotos 9 y 10 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Relevamiento de elementos de lucha contra incendio",
+        "sector": "Todo el edificio",
+        "obs": "Revisión técnica",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Recorrido por establecimiento identificando nuevos desvíos",
+        "sector": "Todo el predio",
+        "obs": "Inspección semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el predio",
+        "obs": "Seguimiento semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido de control y verificación de fin de año",
+        "sector": "Todo el predio",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Recorrido evaluando corrección final",
+        "sector": "Todo el predio",
+        "obs": "Cierre anual",
+        "month": "2026-12"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Seguridad Eléctrica en laboratorios y talleres",
+        "dest": "Personal técnico y operativo",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Trabajos en Altura y uso de sistemas anticaídas",
+        "dest": "Técnicos montadores de antenas",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención y uso de extintores portátiles",
+        "dest": "Todo el personal",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios (No RCP)",
+        "dest": "Personal administrativo y técnico",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Orden y Limpieza en depósitos y talleres",
+        "dest": "Personal general",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para Sección Técnica de Mantenimiento y Laboratorio (Belgrano 330, Paraná). Buenas condiciones generales de tableros eléctricos. Medidas de adecuación: traslado de garrafas de cocina a exterior ventilado, orden de depósito, registros de EPP anticaídas y cronograma anual."
+}

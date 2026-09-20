@@ -1,0 +1,576 @@
+{
+  "version": "1.5",
+  "timestamp": "2026-09-17T15:30:00.000Z",
+  "establecimiento": {
+    "organismo": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "razonSocial": "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS",
+    "nombreEstablecimiento": "Departamento Antecedentes - RRHH - Museo de la Policía",
+    "domicilio": "Laprida 460",
+    "direccion": "Laprida 460",
+    "cp": "3100",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos",
+    "nroEstab": "7",
+    "rowIndex": 148,
+    "cuit": "30-67119808-1",
+    "art": "IAPSER ART",
+    "fecha": "15/05/2026",
+    "relevadoPor": "Lic. Milva Trossero Luzzi (Mat. L0310 - Colegio HySER)",
+    "actividad": "Servicios auxiliares para los servicios generales de la Administración Pública. Emisión de antecedentes, recursos humanos, preservación del patrimonio policial y archivo.",
+    "inmueble": "Propio",
+    "inmuebleCondicion": "Sede histórica institucional propia",
+    "supTotal": "3600",
+    "supCubierta": "2400",
+    "plantas": "2",
+    "dotTotal": "75",
+    "dotAdm": "45",
+    "dotProd": "25",
+    "dotOtros": "5",
+    "condicionesGenerales": "Predio de dos edificios independientes (edificio principal con Museo, Antecedentes y RRHH; edificio posterior con Archivo). En el predio se ejecuta la obra de la nueva Departamental Paraná. Desvíos críticos: extintor de agua a presión en archivo subsuelo junto a cables (reemplazar por ABC/agente limpio), extintores en el suelo, escalera al subsuelo sin pasamanos y tableros eléctricos con tapas rotas."
+  },
+  "profesionales": {
+    "hysRespuesta": "S",
+    "hysNombre": "Lic. Milva Trossero Luzzi",
+    "hysMatricula": "Mat. L0310 - Colegio HySER",
+    "hysTelefono": "0343-4200000",
+    "hysModalidad": "Interno",
+    "hysEmail": "hys.policiaer@entrerios.gov.ar",
+    "medRespuesta": "N",
+    "medNombre": "",
+    "medMatricula": "",
+    "medTelefono": "",
+    "comiteMixto": "NC"
+  },
+  "respuestas": [
+    {
+      "id": "item_0",
+      "eje": "organizacional",
+      "label": "Servicio de Higiene y Seguridad en el Trabajo",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_1",
+      "eje": "organizacional",
+      "label": "Servicio de Medicina Laboral",
+      "valor": "N",
+      "causas": [
+        "No cuenta con médico del trabajo designado"
+      ]
+    },
+    {
+      "id": "item_2",
+      "eje": "organizacional",
+      "label": "Comité Mixto / Delegados de H y S",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_3",
+      "eje": "condiciones",
+      "label": "Pisos, paredes, techos, escaleras y vías de circulación",
+      "valor": "N",
+      "causas": [
+        "Escalera de acceso al subsuelo de archivo sin pasamanos",
+        "Alzada superior a 0,18 m y bandas antideslizantes incompletas",
+        "Acumulación de mobiliario en Dactiloscopía que reduce vías de circulación"
+      ]
+    },
+    {
+      "id": "item_4",
+      "eje": "mediciones",
+      "label": "Iluminación adecuada por sector (relevamiento visual)",
+      "valor": "N",
+      "causas": [
+        "Falta medición objetiva con luxómetro"
+      ]
+    },
+    {
+      "id": "item_5",
+      "eje": "condiciones",
+      "label": "Ventilación adecuada / depósitos y estibas",
+      "valor": "N",
+      "causas": [
+        "Sección Dactiloscopía con acumulación de mobiliario y expedientes en pasillos"
+      ]
+    },
+    {
+      "id": "item_6",
+      "eje": "infraestructura",
+      "label": "Tablero, seccionales y certificación de instalación",
+      "valor": "N",
+      "causas": [
+        "Tableros con faltante o rotura de tapas y contratapas",
+        "Conductores desordenados y expuestos (Fotos 5 a 8)"
+      ]
+    },
+    {
+      "id": "item_7",
+      "eje": "mediciones",
+      "label": "Puesta a tierra / disyuntores diferenciales medidos",
+      "valor": "N",
+      "causas": [
+        "Sin medición reglamentaria de PAT bajo Res. 900/15"
+      ]
+    },
+    {
+      "id": "item_8",
+      "eje": "infraestructura",
+      "label": "Certificado de instalador matriculado / habilitación",
+      "valor": "N",
+      "causas": [
+        "Sin certificado de aptitud eléctrica"
+      ]
+    },
+    {
+      "id": "item_9",
+      "eje": "infraestructura",
+      "label": "Matafuegos: sistema completo",
+      "valor": "N",
+      "causas": [
+        "Matafuegos apoyados en piso o con acceso obstruido por mobiliario (Fotos 1 a 4)"
+      ]
+    },
+    {
+      "id": "item_10",
+      "eje": "infraestructura",
+      "label": "Cantidad adecuada a la carga de fuego",
+      "valor": "N",
+      "causas": [
+        "Dotación no contrastada con carga de fuego"
+      ]
+    },
+    {
+      "id": "item_11",
+      "eje": "infraestructura",
+      "label": "Tipo de agente extintor adecuado",
+      "valor": "N",
+      "causas": [
+        "Extintor de agua a presión en archivo subsuelo peligroso ante instalaciones eléctricas"
+      ]
+    },
+    {
+      "id": "item_12",
+      "eje": "infraestructura",
+      "label": "Recarga vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_13",
+      "eje": "infraestructura",
+      "label": "Prueba hidráulica vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_14",
+      "eje": "infraestructura",
+      "label": "Montaje correcto en soporte (máx. 1,50 m)",
+      "valor": "N",
+      "causas": [
+        "Matafuegos sin soporte mural o ménsula reglamentaria"
+      ]
+    },
+    {
+      "id": "item_15",
+      "eje": "formacion",
+      "label": "Personal capacitado en uso de matafuegos",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_16",
+      "eje": "infraestructura",
+      "label": "Red de incendio / hidrantes",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_17",
+      "eje": "infraestructura",
+      "label": "Detectores de humo/calor y señalética de emergencia",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_18",
+      "eje": "mediciones",
+      "label": "Cálculo de carga de fuego por sector",
+      "valor": "N",
+      "causas": [
+        "Inexistencia de cálculo de carga de fuego"
+      ]
+    },
+    {
+      "id": "item_19",
+      "eje": "condiciones",
+      "label": "Baños, vestuarios y comedor según dotación",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_20",
+      "eje": "mediciones",
+      "label": "Análisis físico-químico y bacteriológico vigente",
+      "valor": "N",
+      "causas": [
+        "Muestra de agua tomada en cocina de Antecedentes pendiente de análisis"
+      ]
+    },
+    {
+      "id": "item_21",
+      "eje": "mediciones",
+      "label": "Medición de ruido realizada (Res. SRT 85/12)",
+      "valor": "N",
+      "causas": [
+        "Sin estudio de ruido según Res. SRT 85/12"
+      ]
+    },
+    {
+      "id": "item_22",
+      "eje": "mediciones",
+      "label": "Vibraciones",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_23",
+      "eje": "mediciones",
+      "label": "Material particulado",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_24",
+      "eje": "condiciones",
+      "label": "Hojas de seguridad (MSDS) disponibles",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_25",
+      "eje": "condiciones",
+      "label": "Exposición a agentes biológicos evaluada",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_26",
+      "eje": "ergonomia",
+      "label": "Evaluación de puestos con riesgo ergonómico",
+      "valor": "N",
+      "causas": [
+        "Pendiente Programa de Ergonomía Integrado"
+      ]
+    },
+    {
+      "id": "item_27",
+      "eje": "infraestructura",
+      "label": "Resguardos y mantenimiento preventivo en máquinas",
+      "valor": "N",
+      "causas": [
+        "Falta programa documentado de mantenimiento de instalaciones eléctricas con registros"
+      ]
+    },
+    {
+      "id": "item_28",
+      "eje": "condiciones",
+      "label": "EPP definidos por puesto, entregados y con registro",
+      "valor": "N",
+      "causas": [
+        "Sin registros de entrega de EPP"
+      ]
+    },
+    {
+      "id": "item_29",
+      "eje": "infraestructura",
+      "label": "Plan de evacuación existente y difundido",
+      "valor": "N",
+      "causas": [
+        "Plan de evacuación no formalizado"
+      ]
+    },
+    {
+      "id": "item_30",
+      "eje": "infraestructura",
+      "label": "Simulacros de evacuación realizados",
+      "valor": "N",
+      "causas": [
+        "Sin simulacros realizados"
+      ]
+    },
+    {
+      "id": "item_31",
+      "eje": "infraestructura",
+      "label": "Brigada de emergencia conformada y capacitada",
+      "valor": "N",
+      "causas": [
+        "Brigada no conformada"
+      ]
+    },
+    {
+      "id": "item_32",
+      "eje": "infraestructura",
+      "label": "Botiquín de primeros auxilios",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_33",
+      "eje": "documental",
+      "label": "RGRL confeccionado y presentado ante ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_34",
+      "eje": "documental",
+      "label": "RAR confeccionado y remitido a ART",
+      "valor": "N",
+      "causas": [
+        "No presentado"
+      ]
+    },
+    {
+      "id": "item_35",
+      "eje": "documental",
+      "label": "Carga de información en el sistema SVCC",
+      "valor": "NC",
+      "causas": []
+    },
+    {
+      "id": "item_36",
+      "eje": "organizacional",
+      "label": "Exámenes preocupacionales y periódicos al día",
+      "valor": "N",
+      "causas": [
+        "Sin exámenes periódicos"
+      ]
+    },
+    {
+      "id": "item_37",
+      "eje": "organizacional",
+      "label": "Registro de accidentes y siniestralidad",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_38",
+      "eje": "formacion",
+      "label": "Plan Anual de Capacitación vigente",
+      "valor": "S",
+      "causas": []
+    },
+    {
+      "id": "item_39",
+      "eje": "formacion",
+      "label": "Inducción a nuevo personal implementada",
+      "valor": "S",
+      "causas": []
+    }
+  ],
+  "planEdits": {
+    "item_3": {
+      "causa": "Escalera de acceso a archivo en subsuelo carece de pasamanos, alzada mayor a 0,18 m y bandas antideslizantes incompletas (Foto 9)",
+      "que": "Instalar pasamanos reglamentario y colocar bandas antideslizantes en el ancho total de peldaños",
+      "como": "Amurar pasamanos continuo metálico a 0,90 m de altura en muro lateral y colocar bandas antideslizantes cubriendo la totalidad del ancho del escalón."
+    },
+    "item_5": {
+      "causa": "Acumulación de mobiliario y expedientes en Sección Dactiloscopía reduciendo pasillos de circulación",
+      "que": "Reorganizar distribución de mobiliario y despejar vías de circulación y escape",
+      "como": "Retirar mobiliario en desuso, reordenar puestos y garantizar ancho mínimo de paso de 1 metro."
+    },
+    "item_6": {
+      "causa": "Tableros eléctricos con rotura o faltante de tapas y conductores desordenados expuestos (Fotos 5 a 8)",
+      "que": "Regularizar tableros eléctricos con colocación de tapas/contratapas y canalización",
+      "como": "Instalar contratapas aislantes de policarbonato, canalizar cableado en canaletas ignífugas y colocar carteles de riesgo eléctrico."
+    },
+    "item_7": {
+      "causa": "Ausencia de medición de puesta a tierra",
+      "que": "Medición de resistencia de Puesta a Tierra bajo Res. SRT 900/15",
+      "como": "Medir jabalinas y continuidad en tableros y masas metálicas con telurímetro calibrado por profesional matriculado."
+    },
+    "item_9": {
+      "causa": "Matafuegos apoyados directamente sobre el piso o con acceso obstruido por mobiliario (Fotos 1 a 4)",
+      "que": "Instalar extintores en soportes murales y despejar áreas de acceso",
+      "como": "Fijar soportes murales a 1,40 m de altura y señalizar con chapas baliza reflectantes IRAM."
+    },
+    "item_11": {
+      "causa": "Extintor de agua a presión en archivo subsuelo ubicado junto a instalaciones eléctricas (riesgo grave de electrocución)",
+      "que": "Reemplazar extintor de agua por extintor de polvo químico ABC o agente limpio (Haloclean)",
+      "como": "Retirar extintor de agua e instalar extintor de PQS ABC o agente limpio apto para fuego clase C eléctrico."
+    },
+    "item_18": {
+      "causa": "Falta cálculo de carga de fuego",
+      "que": "Elaborar Estudio Técnico de Carga de Fuego",
+      "como": "Relevar carga combustible de salas de archivo, museo y oficinas conforme Dec. 351/79 Anexo VII."
+    },
+    "item_20": {
+      "causa": "Muestra de agua tomada en cocina de Antecedentes pendiente de análisis",
+      "que": "Obtener protocolo de potabilidad de agua",
+      "como": "Completar análisis físico-químico y bacteriológico por laboratorio según Ley 19.587 Cap. 8."
+    },
+    "item_26": {
+      "causa": "Puestos con pantallas y atención al público sin estudio ergonómico",
+      "que": "Implementar Programa de Ergonomía Integrado Res. SRT 886/15",
+      "como": "Evaluar factores de riesgo por postura sedente y pantallas de visualización de datos."
+    },
+    "item_29": {
+      "causa": "Plan de evacuación no formalizado ni adaptado a la obra en ejecución",
+      "que": "Confeccionar Plan de Emergencias y Evacuación contemplando interferencia de obra",
+      "como": "Establecer vías de escape seguras delimitadas de la zona de obra y designar roles de brigada."
+    }
+  },
+  "programacion": {
+    "mediciones": [
+      {
+        "origId": "med_1",
+        "label": "Estudio de Carga de Fuego",
+        "sector": "Museo, Antecedentes, RRHH y Archivos",
+        "obs": "Dec. 351/79 Anexo VII",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_2",
+        "label": "Análisis de agua físico-químico y bacteriológico",
+        "sector": "Cocina Antecedentes y bidones",
+        "obs": "Ley 19.587 Cap. 8",
+        "month": "2026-06"
+      },
+      {
+        "origId": "med_3",
+        "label": "Medición de Niveles de Iluminación (Res. SRT 84/12)",
+        "sector": "Oficinas, archivo y museo",
+        "obs": "Protocolo Res. SRT 84/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_4",
+        "label": "Medición de Ruido Laboral (Res. SRT 85/12)",
+        "sector": "Áreas de atención y cercanas a obra",
+        "obs": "Protocolo Res. SRT 85/12",
+        "month": "2026-12"
+      },
+      {
+        "origId": "med_5",
+        "label": "Medición de Puesta a Tierra y Continuidad (Res. SRT 900/15)",
+        "sector": "Tableros eléctricos de ambos edificios",
+        "obs": "Protocolo Res. SRT 900/15",
+        "month": "2026-12"
+      }
+    ],
+    "ergonomia": [
+      {
+        "sector": "Oficinas de atención y antecedentes",
+        "puesto": "Personal administrativo",
+        "obs": "Res. SRT 886/15 - Pantallas",
+        "month": "2026-12"
+      },
+      {
+        "sector": "Archivo de RRHH",
+        "puesto": "Archivistas",
+        "obs": "Res. SRT 886/15 - Cargas y posturas",
+        "month": "2026-12"
+      }
+    ],
+    "visitas": [
+      {
+        "origId": "vis_1",
+        "label": "Reemplazo de extintor de agua por ABC en archivo subsuelo",
+        "sector": "Archivo subsuelo",
+        "obs": "Riesgo eléctrico",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_2",
+        "label": "Fijación mural y despeje de accesos a extintores",
+        "sector": "Oficinas y pasillos",
+        "obs": "Fotos 1 a 4 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_3",
+        "label": "Instalación de pasamanos en escalera de archivo",
+        "sector": "Escalera a subsuelo",
+        "obs": "Foto 9 informe técnico",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_4",
+        "label": "Adecuación de tapas y contratapas en tableros eléctricos",
+        "sector": "Tableros interiores",
+        "obs": "Fotos 5 a 8 informe",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_5",
+        "label": "Relevamiento de elementos de lucha contra incendio",
+        "sector": "Todo el predio",
+        "obs": "Revisión técnica",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_6",
+        "label": "Recorrido por establecimiento identificando nuevos desvíos",
+        "sector": "Todo el predio",
+        "obs": "Inspección semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_7",
+        "label": "Recorrido evaluando corrección de desvíos observados",
+        "sector": "Todo el predio",
+        "obs": "Seguimiento semestral",
+        "month": "2026-06"
+      },
+      {
+        "origId": "vis_8",
+        "label": "Recorrido de control y verificación de fin de año",
+        "sector": "Todo el predio",
+        "obs": "Inspección de fin de año",
+        "month": "2026-12"
+      },
+      {
+        "origId": "vis_9",
+        "label": "Recorrido evaluando corrección final",
+        "sector": "Todo el predio",
+        "obs": "Cierre de cronograma",
+        "month": "2026-12"
+      }
+    ],
+    "capacitacion": [
+      {
+        "tema": "Riesgo Eléctrico y seguridad en oficinas",
+        "dest": "Personal administrativo y público",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Prevención, extinción y tipos de incendios (Manejo de extintores)",
+        "dest": "Personal de Antecedentes, RRHH y Museo",
+        "modal": "Teórico-práctica",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Primeros Auxilios (No RCP)",
+        "dest": "Personal administrativo y guardia",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      },
+      {
+        "tema": "Orden y Limpieza en oficinas y archivos",
+        "dest": "Personal de maestranza y archivo",
+        "modal": "Presencial",
+        "month": "2026-12",
+        "resp": "Servicio HyS"
+      }
+    ]
+  },
+  "observaciones": "Relevamiento técnico inicial para Departamento Antecedentes, RRHH y Museo (Laprida 460, Paraná). Acciones prioritarias: sustitución urgente del extintor de agua en archivo de subsuelo por PQS ABC, colocación de pasamanos en escalera de subsuelo, montaje mural de extintores y tapas en tableros eléctricos."
+}
