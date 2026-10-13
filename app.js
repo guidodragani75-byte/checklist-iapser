@@ -975,7 +975,7 @@ function initEstablecimientos() {
   }
 
   const urlParams = new URLSearchParams(window.location.search);
-  const paramEst = urlParams.get('est');
+  const paramEst = urlParams.get('est') || urlParams.get('estId') || localStorage.getItem('hys_current_est_id');
   if (paramEst && establecimientosDB[paramEst]) {
     currentEstId = paramEst;
   }

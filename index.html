@@ -2170,6 +2170,11 @@
   </div>
 
   <div class="app-topbar-right">
+    <!-- BOTÓN PORTAL DE LEGAJOS -->
+    <a href="portal_legajo_hys.html" class="btn-action-main" style="background:#0b3d63;color:#ffffff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Ir al Portal de Legajo Digital y Gestión de Actividades">
+      📁 Portal de Legajos
+    </a>
+
     <!-- BOTÓN 1: NUEVO RELEVAMIENTO (Destacado Verde) -->
     <button type="button" class="btn-action-main btn-action-nuevo" onclick="abrirModalNuevoChecklist()" title="Iniciar un nuevo checklist de relevamiento en blanco">
       ✨ + Nuevo Relevamiento
@@ -21516,7 +21521,7 @@ function initEstablecimientos() {
   }
 
   const urlParams = new URLSearchParams(window.location.search);
-  const paramEst = urlParams.get('est');
+  const paramEst = urlParams.get('est') || urlParams.get('estId') || localStorage.getItem('hys_current_est_id');
   if (paramEst && establecimientosDB[paramEst]) {
     currentEstId = paramEst;
   }
