@@ -31,7 +31,7 @@
       color: #0f172a;
     }
 
-    /* Scrollbars elegantes */
+    /* Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -74,6 +74,28 @@
       background: #f8fafc;
       border-color: #94a3b8;
       color: #0f172a;
+    }
+
+    /* Pestañas de navegación */
+    .tab-btn {
+      padding: 0.65rem 1.15rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+      border-radius: 0.5rem 0.5rem 0 0;
+      cursor: pointer;
+    }
+    .tab-btn:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+    .tab-btn.active {
+      background-color: rgba(255, 255, 255, 0.18);
+      color: #fbbf24;
+      border-bottom: 2.5px solid #fbbf24;
     }
 
     /* Tarjetas de la lista de establecimientos */
@@ -142,159 +164,365 @@
       border-color: #0b3d63;
       box-shadow: 0 0 0 2px rgb(11 61 99 / 0.15);
     }
+
+    /* Tabla Matriz */
+    .matriz-table th {
+      background-color: #0b3d63;
+      color: #ffffff;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.65rem 0.5rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .matriz-table td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0.45rem 0.5rem;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
   <!-- ==================== HEADER CORPORATIVO ==================== -->
   <header class="bg-[#0b3d63] text-white shadow-md sticky top-0 z-40 border-b border-[#07253d]">
-    <div class="max-w-[1700px] mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div class="max-w-[1750px] mx-auto px-4 sm:px-6 pt-3 pb-0">
       
-      <!-- Marca y Título -->
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl font-black text-amber-400 border border-white/20">
-          <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs uppercase font-extrabold tracking-widest text-amber-400">IAPSER ART</span>
-            <span class="bg-white/20 text-[10px] font-bold px-2 py-0.5 rounded-full text-white/90">Gobierno de Entre Ríos</span>
+      <!-- Fila Superior: Marca y Acciones Globales -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-white/10">
+        
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl font-black text-amber-400 border border-white/20">
+            <i class="fa-solid fa-shield-halved"></i>
           </div>
-          <h1 class="text-base sm:text-lg font-extrabold tracking-tight leading-tight">
-            Portal de Legajo Digital HyS & Gestión de Actividades
-          </h1>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-amber-400">IAPSER ART</span>
+              <span class="bg-white/20 text-[10px] font-bold px-2 py-0.5 rounded-full text-white/90">Gobierno de Entre Ríos</span>
+            </div>
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight leading-tight">
+              Portal de Legajo Digital HyS & Gestión de Actividades
+            </h1>
+          </div>
         </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="abrirModalTableroGeneral()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center gap-2 border border-white/15 transition">
+            <i class="fa-solid fa-chart-pie text-amber-300"></i>
+            <span>Métricas Provinciales</span>
+          </button>
+
+          <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white flex items-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>Checklist RGRL (Dec 351)</span>
+          </a>
+
+          <button onclick="abrirModalConfiguracion()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs border border-white/15 transition" title="Configurar Webhook y Drive">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+        </div>
+
       </div>
 
-      <!-- Accesos Rápidos y Configuración -->
-      <div class="flex items-center gap-2.5">
-        <button onclick="abrirModalTableroGeneral()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center gap-2 border border-white/15 transition">
-          <i class="fa-solid fa-chart-pie text-amber-300"></i>
-          <span>Tablero de Control</span>
+      <!-- Fila Inferior: Pestañas de los 3 Módulos -->
+      <nav class="flex items-center gap-1 pt-2 overflow-x-auto">
+        <button id="tab-btn-ficha" onclick="cambiarModulo('ficha')" class="tab-btn active">
+          <i class="fa-solid fa-building"></i>
+          <span>Ficha & Carga por Sede</span>
         </button>
 
-        <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white flex items-center gap-2 shadow-sm transition">
-          <i class="fa-solid fa-clipboard-list"></i>
-          <span>Checklist RGRL (Dec 351)</span>
-        </a>
-
-        <button onclick="abrirModalConfiguracion()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs border border-white/15 transition" title="Configurar Webhook y Drive">
-          <i class="fa-solid fa-gear"></i>
+        <button id="tab-btn-matriz" onclick="cambiarModulo('matriz')" class="tab-btn">
+          <i class="fa-solid fa-table-cells"></i>
+          <span>Matriz de Cumplimiento Anual</span>
         </button>
-      </div>
+
+        <button id="tab-btn-repositorio" onclick="cambiarModulo('repositorio')" class="tab-btn">
+          <i class="fa-solid fa-folder-tree"></i>
+          <span>Repositorio de Documentos</span>
+        </button>
+      </nav>
 
     </div>
   </header>
 
   <!-- ==================== CONTENEDOR PRINCIPAL ==================== -->
-  <main class="flex-1 max-w-[1700px] w-full mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row gap-5 items-start">
-    
-    <!-- ==================== PANEL IZQUIERDO: BUSCADOR & DIRECTORIO (452 SEDES) ==================== -->
-    <aside class="w-full lg:w-[380px] xl:w-[410px] bg-white rounded-xl border border-slate-200/90 shadow-sm p-4 flex flex-col shrink-0 lg:sticky lg:top-20 max-h-[calc(100vh-6rem)]">
+  <main class="flex-1 max-w-[1750px] w-full mx-auto px-4 sm:px-6 py-4">
+
+    <!-- ========================================================
+         VISTA 1: FICHA Y CARGA POR ESTABLECIMIENTO (OPERATIVO)
+         ======================================================== -->
+    <div id="vista-ficha" class="modulo-vista flex flex-col lg:flex-row gap-5 items-start">
       
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-building-columns text-[#0b3d63]"></i>
-          <span>Directorio de Establecimientos</span>
-        </h3>
-        <span id="contador-establecimientos" class="text-[11px] font-semibold text-slate-500">
-          Cargando...
-        </span>
-      </div>
-
-      <!-- Filtros -->
-      <div class="space-y-2 mb-3">
-        <!-- Buscador general -->
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-          <input type="text" id="buscar-establecimiento" class="input-text pl-8 text-xs" placeholder="Buscar por Organismo, N° Estab, Domicilio...">
-        </div>
-
-        <!-- Filtro por Organismo -->
-        <div>
-          <select id="filtro-organismo" class="input-select text-xs">
-            <option value="">Todos los Organismos</option>
-          </select>
-        </div>
-
-        <!-- Filtro por Localidad -->
-        <div>
-          <select id="filtro-localidad" class="input-select text-xs">
-            <option value="">Todas las Localidades</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Lista con scroll -->
-      <div id="lista-establecimientos" class="flex-1 overflow-y-auto pr-1">
-        <!-- Rellenado dinámicamente con las 452 sedes -->
-      </div>
-
-    </aside>
-
-    <!-- ==================== PANEL DERECHO: FICHA TÉCNICA Y LEGAJO DE ACTIVIDADES ==================== -->
-    <section class="flex-1 w-full space-y-5">
-      
-      <!-- Ficha de Encabezado del Establecimiento Seleccionado -->
-      <div id="ficha-header" class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-sm">
-        <!-- Rellenado dinámicamente -->
-      </div>
-
-      <!-- Panel de Actividades: Grid Modular -->
-      <div>
+      <!-- PANEL IZQUIERDO: BUSCADOR & DIRECTORIO (452 SEDES) -->
+      <aside class="w-full lg:w-[380px] xl:w-[410px] bg-white rounded-xl border border-slate-200/90 shadow-sm p-4 flex flex-col shrink-0 lg:sticky lg:top-28 max-h-[calc(100vh-8rem)]">
+        
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-blue-700"></i>
-            <span>Actividades Técnicas & Documentación Requerida</span>
+          <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-building-columns text-[#0b3d63]"></i>
+            <span>Directorio de Sedes</span>
           </h3>
-          <span class="text-xs text-slate-500">
-            Cada actividad puede realizarse y documentarse de forma independiente
+          <span id="contador-establecimientos" class="text-[11px] font-semibold text-slate-500">
+            Cargando...
           </span>
         </div>
 
-        <div id="grid-actividades" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <!-- Rellenado dinámicamente con las tarjetas de actividad -->
+        <div class="space-y-2 mb-3">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="buscar-establecimiento" class="input-text pl-8 text-xs" placeholder="Buscar por Organismo, N° Estab, Domicilio...">
+          </div>
+
+          <div>
+            <select id="filtro-organismo" class="input-select text-xs">
+              <option value="">Todos los Organismos</option>
+            </select>
+          </div>
+
+          <div>
+            <select id="filtro-localidad" class="input-select text-xs">
+              <option value="">Todas las Localidades</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="lista-establecimientos" class="flex-1 overflow-y-auto pr-1">
+          <!-- Rellenado con las 452 sedes -->
+        </div>
+
+      </aside>
+
+      <!-- PANEL DERECHO: FICHA TÉCNICA Y ACTIVIDADES MODULARES -->
+      <section class="flex-1 w-full space-y-5">
+        
+        <!-- Ficha de Encabezado -->
+        <div id="ficha-header" class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-sm">
+          <!-- Inyectado dinámicamente -->
+        </div>
+
+        <!-- Grid de Actividades -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-blue-700"></i>
+              <span>Actividades Técnicas & Carga de Documentos</span>
+            </h3>
+            <span class="text-xs text-slate-500">
+              Carga y codificación independiente para esta sede
+            </span>
+          </div>
+
+          <div id="grid-actividades" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Rellenado dinámicamente con las tarjetas -->
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- ========================================================
+         VISTA 2: MATRIZ DE CUMPLIMIENTO ANUAL (EJECUTIVO / TABULAR)
+         ======================================================== -->
+    <div id="vista-matriz" class="modulo-vista hidden w-full space-y-4">
+      
+      <!-- KPIs de la Matriz -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actividades en el Año</div>
+            <div id="matriz-kpi-total-acts" class="text-2xl font-extrabold text-blue-900 mt-0.5">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-list-check"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sedes con Cobertura</div>
+            <div id="matriz-kpi-sedes-cobertura" class="text-2xl font-extrabold text-emerald-700 mt-0.5">0 de 452</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-building-circle-check"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">% Cobertura Provincial</div>
+            <div id="matriz-kpi-pct-cobertura" class="text-2xl font-extrabold text-purple-900 mt-0.5">0%</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Regla de Conteo</div>
+            <div class="text-xs font-semibold text-slate-700 mt-1">Cantidad realizada por actividad</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-calculator"></i>
+          </div>
         </div>
       </div>
 
-      <!-- Tabla Historial y Documentos Adjuntos (Google Drive) -->
-      <div class="bg-white rounded-xl border border-slate-200/90 shadow-sm p-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <i class="fa-solid fa-folder-tree text-emerald-700"></i>
-              <span>Legajo de Documentos Técnicos & Archivos Guardados</span>
-            </h3>
-            <p class="text-xs text-slate-500">
-              Archivos respaldados con codificación normalizada en Google Drive
-            </p>
+      <!-- Barra de Filtros y Exportación -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        
+        <div class="flex flex-wrap items-center gap-2 flex-1">
+          <!-- Filtro de Año -->
+          <div class="w-36">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Año a Evaluar</label>
+            <select id="matriz-filtro-anio" class="input-select font-bold text-blue-900">
+              <option value="2026" selected>Año 2026</option>
+              <option value="2027">Año 2027</option>
+              <option value="2025">Año 2025</option>
+              <option value="todos">Todos los Años (Histórico)</option>
+            </select>
           </div>
-          <button onclick="sincronizarConSheets()" class="text-xs text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-1 self-start sm:self-auto">
-            <i class="fa-solid fa-rotate mr-1"></i> Actualizar lista
+
+          <!-- Filtro Organismo -->
+          <div class="w-56">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Organismo</label>
+            <select id="matriz-filtro-org" class="input-select">
+              <option value="">Todos los Organismos</option>
+            </select>
+          </div>
+
+          <!-- Filtro Localidad -->
+          <div class="w-48">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Localidad</label>
+            <select id="matriz-filtro-loc" class="input-select">
+              <option value="">Todas las Localidades</option>
+            </select>
+          </div>
+
+          <!-- Búsqueda rápida por texto -->
+          <div class="w-64">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Buscar Sede</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="matriz-buscar-texto" class="input-text pl-7" placeholder="Nombre, calle o N°...">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0 pt-2 md:pt-0">
+          <span id="matriz-contador" class="text-xs text-slate-500 font-medium"></span>
+          <button onclick="exportarMatrizCSV()" class="btn-primary text-xs flex items-center gap-2 shadow-sm whitespace-nowrap">
+            <i class="fa-solid fa-file-excel text-emerald-300"></i>
+            <span>Exportar a Excel (CSV)</span>
           </button>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th class="py-2.5 px-3">Fecha</th>
-                <th class="py-2.5 px-3">Actividad</th>
-                <th class="py-2.5 px-3">Estado</th>
-                <th class="py-2.5 px-3">Detalle / Puesto</th>
-                <th class="py-2.5 px-3">Archivo Codificado</th>
-                <th class="py-2.5 px-3">Google Drive</th>
-                <th class="py-2.5 px-3 text-right">Acción</th>
+      </div>
+
+      <!-- Tabla Matriz de Cumplimiento -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto max-h-[calc(100vh-18rem)]">
+          <table class="w-full text-left border-collapse matriz-table">
+            <thead class="sticky top-0 z-20">
+              <tr>
+                <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
+                <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
+                <th class="text-left px-3 min-w-[160px]">Organismo</th>
+                <th class="px-3 min-w-[120px]">Localidad</th>
+                <th title="Confección de RGRL (Dec. 351/79)">RGRL</th>
+                <th title="Confección de RAR (Nómina expuestos SRT)">RAR</th>
+                <th title="Muestra de Agua (Toma in situ)">Agua Toma</th>
+                <th title="Análisis de Agua (Protocolo Laboratorio)">Agua Lab</th>
+                <th title="Medición de Puesta a Tierra (Res. SRT 900/15)">PAT</th>
+                <th title="Medición de Ruido (Res. SRT 85/12)">Ruido</th>
+                <th title="Medición de Iluminación (Res. SRT 84/12)">Ilum</th>
+                <th title="Ergonomía Res. 886/15 SRT">Res 886</th>
+                <th title="Capacitaciones HyS dictadas">Capacit.</th>
+                <th title="Evaluación de Carga de Fuego">Carga Fuego</th>
+                <th title="Simulacros de Evacuación">Simulacro</th>
+                <th class="bg-[#07253d] font-black">Total</th>
+                <th class="bg-[#07253d]">Ver</th>
               </tr>
             </thead>
-            <tbody id="tabla-documentos-body">
+            <tbody id="matriz-tabla-body">
               <!-- Rellenado dinámicamente -->
             </tbody>
           </table>
         </div>
       </div>
 
-    </section>
+    </div>
+
+    <!-- ========================================================
+         VISTA 3: REPOSITORIO GLOBAL DE DOCUMENTOS (HISTORIAL GENERAL)
+         ======================================================== -->
+    <div id="vista-repositorio" class="modulo-vista hidden w-full space-y-4">
+      
+      <!-- Barra de Filtros del Repositorio -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+          <!-- Búsqueda libre -->
+          <div class="w-72">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Buscar Archivo o Sede</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="repo-buscar-texto" class="input-text pl-7 text-xs" placeholder="Nombre archivo, sede, preventor...">
+            </div>
+          </div>
+
+          <!-- Filtro Organismo -->
+          <div class="w-60">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Filtrar Organismo</label>
+            <select id="repo-filtro-org" class="input-select text-xs">
+              <option value="">Todos los Organismos</option>
+            </select>
+          </div>
+
+          <!-- Filtro Tipo de Actividad -->
+          <div class="w-56">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipo de Actividad</label>
+            <select id="repo-filtro-act" class="input-select text-xs">
+              <option value="">Todas las Actividades</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2 md:pt-0 shrink-0">
+          <span id="repo-contador" class="text-xs text-slate-500 font-semibold"></span>
+          <button onclick="sincronizarConSheets()" class="btn-secondary text-xs flex items-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Sincronizar con Drive</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Tabla del Repositorio -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                <th class="py-3 px-3">Fecha</th>
+                <th class="py-3 px-3">Establecimiento & Organismo</th>
+                <th class="py-3 px-3">Actividad</th>
+                <th class="py-3 px-3">Estado</th>
+                <th class="py-3 px-3">Detalle / Puesto</th>
+                <th class="py-3 px-3">Archivo Codificado</th>
+                <th class="py-3 px-3">Google Drive</th>
+                <th class="py-3 px-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="repo-tabla-body">
+              <!-- Rellenado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
 
   </main>
 
@@ -321,7 +549,6 @@
       <!-- Cuerpo del Formulario -->
       <div class="p-6 overflow-y-auto space-y-4 flex-1">
         
-        <!-- Fecha y Preventor -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Fecha de Realización *</label>
@@ -334,9 +561,7 @@
         </div>
 
         <!-- Campos Dinámicos Específicos de la Actividad -->
-        <div id="campos-dinamicos-actividad" class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-          <!-- Inyectado por JS según la actividad -->
-        </div>
+        <div id="campos-dinamicos-actividad" class="p-3 bg-slate-50 rounded-xl border border-slate-200/80"></div>
 
         <!-- Observaciones Generales -->
         <div>
@@ -352,14 +577,12 @@
           
           <input type="file" id="file-input" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
 
-          <!-- Dropzone -->
           <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50/50 hover:bg-blue-50/40">
             <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
             <div class="text-xs font-semibold text-slate-700">Haz clic o arrastra un archivo aquí</div>
             <div class="text-[11px] text-slate-400 mt-0.5">Soporta PDF, Word, Excel o imágenes (Recomendado hasta 25 MB)</div>
           </div>
 
-          <!-- Archivo Seleccionado Info -->
           <div id="file-selected-info" class="hidden flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200 mt-2">
             <div class="flex items-center gap-2.5 overflow-hidden">
               <i class="fa-solid fa-file-pdf text-red-600 text-xl"></i>
@@ -482,7 +705,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: CONFIGURACIÓN DE CONEXIÓN ==================== -->
+  <!-- ==================== MODAL: CONFIGURACIÓN ==================== -->
   <div id="modal-configuracion" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
       <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between">

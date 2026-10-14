@@ -1,7 +1,9 @@
 /**
  * PORTAL DE LEGAJO DIGITAL HyS - IAPSER ART
- * Lógica de cliente: Gestión de 452 establecimientos, actividades modulares,
- * codificación normalizada de archivos y subida directa a Google Drive / Sheets.
+ * Versión 2.0: Arquitectura modular con 3 vistas especializadas:
+ * 1) Ficha & Carga por Sede (operativo)
+ * 2) Matriz de Cumplimiento Anual (grilla con cantidades y filtro de año)
+ * 3) Repositorio Global de Documentos (auditoría y archivos en Drive)
  */
 
 // URL oficial por defecto del Webhook de Google Apps Script
@@ -13,7 +15,8 @@ const STORAGE_KEYS = {
   WEBHOOK_URL: 'hys_sheets_webhook_url',
   DRIVE_ROOT_ID: 'iapser_drive_root_id',
   CURRENT_EST_ID: 'hys_current_est_id',
-  CUSTOM_ACTIVITIES: 'iapser_custom_activities_v1'
+  CUSTOM_ACTIVITIES: 'iapser_custom_activities_v1',
+  MODULO_ACTIVO: 'iapser_modulo_activo_v1'
 };
 
 // Catálogo maestro de actividades
@@ -124,12 +127,27 @@ const CATALOGO_ACTIVIDADES = {
 
 // Estado global de la aplicación
 const AppState = {
+  moduloActivo: 'ficha', // 'ficha' | 'matriz' | 'repositorio'
   establecimientos: {},
   establecimientoSeleccionado: null,
   actividadesRegistradas: {}, // estId -> array de actividades
+  
+  // Filtros Vista 1 (Ficha)
   filtroTexto: '',
   filtroOrganismo: '',
   filtroLocalidad: '',
+  
+  // Filtros Vista 2 (Matriz)
+  matrizAnio: '2026',
+  matrizFiltroOrg: '',
+  matrizFiltroLoc: '',
+  matrizFiltroTexto: '',
+
+  // Filtros Vista 3 (Repositorio)
+  repoFiltroOrg: '',
+  repoFiltroAct: '',
+  repoFiltroTexto: '',
+
   customActivities: [],
   estaSincronizando: false
 };
@@ -142,7 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFiltrosOrganismos();
   renderFiltrosLocalidades();
   renderListaEstablecimientos();
-  
+
+  // Restaurar módulo activo si fue guardado
+  const savedModulo = localStorage.getItem(STORAGE_KEYS.MODULO_ACTIVO);
+  if (savedModulo && ['ficha', 'matriz', 'repositorio'].includes(savedModulo)) {
+    cambiarModulo(savedModulo, false);
+  } else {
+    cambiarModulo('ficha', false);
+  }
+
   // Seleccionar por defecto el primer establecimiento o el que venga en URL
   const urlParams = new URLSearchParams(window.location.search);
   const paramEstId = urlParams.get('estId') || localStorage.getItem(STORAGE_KEYS.CURRENT_EST_ID);
@@ -167,18 +193,55 @@ function getWebhookUrl() {
   return localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || DEFAULT_SHEETS_WEBHOOK_URL;
 }
 
+// ==================== CONTROLADOR DE MÓDULOS (TABS) ====================
+function cambiarModulo(moduloId, guardar = true) {
+  AppState.moduloActivo = moduloId;
+  if (guardar) localStorage.setItem(STORAGE_KEYS.MODULO_ACTIVO, moduloId);
+
+  // Ocultar todas las vistas
+  document.querySelectorAll('.modulo-vista').forEach(el => el.classList.add('hidden'));
+
+  // Desactivar botones de tab
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active', 'border-b-2', 'border-amber-400', 'text-amber-300', 'bg-white/10');
+    btn.classList.add('text-white/80');
+  });
+
+  // Activar vista y tab correspondiente
+  const targetView = document.getElementById(`vista-${moduloId}`);
+  const targetTab = document.getElementById(`tab-btn-${moduloId}`);
+
+  if (targetView) targetView.classList.remove('hidden');
+  if (targetTab) {
+    targetTab.classList.add('active', 'border-b-2', 'border-amber-400', 'text-amber-300', 'bg-white/10');
+    targetTab.classList.remove('text-white/80');
+  }
+
+  // Renderizar contenido según la vista
+  if (moduloId === 'matriz') {
+    renderFiltrosMatriz();
+    renderMatrizAnual();
+  } else if (moduloId === 'repositorio') {
+    renderFiltrosRepositorio();
+    renderRepositorioGlobal();
+  } else if (moduloId === 'ficha') {
+    if (AppState.establecimientoSeleccionado) {
+      renderFichaEstablecimiento(AppState.establecimientoSeleccionado);
+      renderPanelActividades(AppState.establecimientoSeleccionado);
+    }
+  }
+}
+
 // Cargar catálogo de 452 establecimientos desde datos_precargados.js
 function cargarEstablecimientos() {
   let list = {};
   
-  // 1. Tomar catálogo completo de 452 sedes
   if (typeof PRELOADED_ESTABLECIMIENTOS !== 'undefined') {
     Object.keys(PRELOADED_ESTABLECIMIENTOS).forEach(key => {
       list[key] = { ...PRELOADED_ESTABLECIMIENTOS[key] };
     });
   }
 
-  // 2. Si hay relevamientos completos en PRELOADED_SURVEYS, enriquecer datos
   if (typeof PRELOADED_SURVEYS !== 'undefined') {
     Object.keys(PRELOADED_SURVEYS).forEach(key => {
       const survey = PRELOADED_SURVEYS[key];
@@ -190,7 +253,6 @@ function cargarEstablecimientos() {
     });
   }
 
-  // 3. Normalizar nombres y campos clave
   Object.keys(list).forEach(id => {
     const est = list[id];
     est.id = id;
@@ -281,7 +343,23 @@ function generarCodigoArchivo(org, nroEstab, actividadId, fecha, detalle, ext) {
   return `${orgAbbr}_${cleanNro}_${actCode}_${fechaStr}_${cleanDet}.${cleanExt}`;
 }
 
-// ==================== INTERFAZ Y RENDERIZADO ====================
+// Extraer año de una cadena de fecha YYYY-MM-DD o DD/MM/YYYY
+function extraerAnioDeFecha(fechaStr) {
+  if (!fechaStr) return '';
+  const s = String(fechaStr).trim();
+  if (s.includes('-')) {
+    const parts = s.split('-');
+    if (parts[0].length === 4) return parts[0];
+  }
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3 && parts[2].length === 4) return parts[2];
+  }
+  const match = s.match(/(20\d\d)/);
+  return match ? match[1] : '';
+}
+
+// ==================== VISTA 1: FICHA & CARGA POR SEDE ====================
 
 function renderFiltrosOrganismos() {
   const select = document.getElementById('filtro-organismo');
@@ -392,15 +470,9 @@ function seleccionarEstablecimiento(estId) {
   AppState.establecimientoSeleccionado = est;
   localStorage.setItem(STORAGE_KEYS.CURRENT_EST_ID, estId);
 
-  // Actualizar clase activa en la lista
-  const cards = document.querySelectorAll('.est-card-item');
-  cards.forEach(card => card.classList.remove('active'));
-  // Re-render lista ligera para resaltar
   renderListaEstablecimientos();
-
   renderFichaEstablecimiento(est);
   renderPanelActividades(est);
-  renderTablaDocumentos(est);
 }
 
 function renderFichaEstablecimiento(est) {
@@ -487,13 +559,11 @@ function renderPanelActividades(est) {
   grid.innerHTML = '';
   const actsEst = AppState.actividadesRegistradas[est.id] || [];
 
-  // 1. Renderizar actividades fijas del catálogo
   Object.values(CATALOGO_ACTIVIDADES).forEach(cat => {
     const card = crearTarjetaActividad(cat, est, actsEst);
     grid.appendChild(card);
   });
 
-  // 2. Renderizar actividades dinámicas si existen
   AppState.customActivities.forEach(custom => {
     const card = crearTarjetaActividad({
       id: custom.id,
@@ -507,7 +577,6 @@ function renderPanelActividades(est) {
     grid.appendChild(card);
   });
 
-  // 3. Tarjeta para agregar nueva actividad
   const addCard = document.createElement('div');
   addCard.className = 'activity-card-add flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition text-center text-slate-500 hover:text-blue-700';
   addCard.onclick = () => abrirModalNuevaActividadPersonalizada();
@@ -520,7 +589,6 @@ function renderPanelActividades(est) {
 }
 
 function crearTarjetaActividad(cat, est, actsEst) {
-  // Filtrar actividades registradas correspondientes a este tipo
   const registros = actsEst.filter(a => a.tipoActividad === cat.id);
   const tieneRegistros = registros.length > 0;
   const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
@@ -530,7 +598,6 @@ function crearTarjetaActividad(cat, est, actsEst) {
 
   if (tieneRegistros) {
     if (cat.id === 'muestra_agua') {
-      // Verificar si ya se cargó el análisis de agua (etapa 2)
       const tieneAnalisis = actsEst.some(a => a.tipoActividad === 'analisis_agua');
       if (tieneAnalisis) {
         estadoTexto = 'Muestra + Lab. Completo';
@@ -551,7 +618,6 @@ function crearTarjetaActividad(cat, est, actsEst) {
   const card = document.createElement('div');
   card.className = 'activity-card bg-white p-4 rounded-xl border border-slate-200/90 shadow-sm hover:shadow transition flex flex-col justify-between';
 
-  // Contenido de la tarjeta
   card.innerHTML = `
     <div>
       <div class="flex items-start justify-between gap-2 mb-2">
@@ -617,35 +683,378 @@ function crearTarjetaActividad(cat, est, actsEst) {
   return card;
 }
 
-function renderTablaDocumentos(est) {
-  const tbody = document.getElementById('tabla-documentos-body');
+// ==================== VISTA 2: MATRIZ DE CUMPLIMIENTO ANUAL ====================
+
+function renderFiltrosMatriz() {
+  const selectOrg = document.getElementById('matriz-filtro-org');
+  const selectLoc = document.getElementById('matriz-filtro-loc');
+
+  if (selectOrg && selectOrg.children.length <= 1) {
+    const orgs = new Set();
+    Object.values(AppState.establecimientos).forEach(e => {
+      if (e.organismo) orgs.add(e.organismo);
+    });
+    Array.from(orgs).sort().forEach(org => {
+      const opt = document.createElement('option');
+      opt.value = org;
+      opt.textContent = org;
+      selectOrg.appendChild(opt);
+    });
+  }
+
+  if (selectLoc && selectLoc.children.length <= 1) {
+    const locs = new Set();
+    Object.values(AppState.establecimientos).forEach(e => {
+      if (e.localidad && e.localidad !== 'Entre Ríos') locs.add(e.localidad);
+    });
+    Array.from(locs).sort().forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc;
+      opt.textContent = loc;
+      selectLoc.appendChild(opt);
+    });
+  }
+}
+
+function renderMatrizAnual() {
+  const tbody = document.getElementById('matriz-tabla-body');
+  const counterSpan = document.getElementById('matriz-contador');
   if (!tbody) return;
 
-  const acts = AppState.actividadesRegistradas[est.id] || [];
+  const anio = AppState.matrizAnio;
+  const orgFiltro = AppState.matrizFiltroOrg;
+  const locFiltro = AppState.matrizFiltroLoc;
+  const textFiltro = AppState.matrizFiltroTexto.toLowerCase().trim();
+
+  // Filtrar establecimientos
+  const establecimientosFiltrados = Object.values(AppState.establecimientos).filter(e => {
+    if (orgFiltro && e.organismo !== orgFiltro) return false;
+    if (locFiltro && e.localidad !== locFiltro) return false;
+    if (textFiltro) {
+      const match = (e.organismo && e.organismo.toLowerCase().includes(textFiltro)) ||
+                    (e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(textFiltro)) ||
+                    (e.domicilio && e.domicilio.toLowerCase().includes(textFiltro)) ||
+                    (e.localidad && e.localidad.toLowerCase().includes(textFiltro)) ||
+                    (e.nroEstab && e.nroEstab.toString().includes(textFiltro));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  if (counterSpan) {
+    counterSpan.textContent = `Mostrando ${establecimientosFiltrados.length} de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
+  }
+
+  // Métricas del resumen en cabecera
+  let totalActividadesPeriodo = 0;
+  let sedesConAlMenosUnaActividad = 0;
+  const conteoPorColumna = {};
+  Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoPorColumna[k] = 0);
+
   tbody.innerHTML = '';
 
-  if (acts.length === 0) {
+  if (establecimientosFiltrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center py-8 text-slate-400 text-xs">
-          <i class="fa-regular fa-folder-open text-2xl mb-2 block"></i>
-          Aún no se han registrado actividades ni subido documentos para este establecimiento.
+        <td colspan="16" class="text-center py-8 text-slate-400 text-xs">
+          No se encontraron sedes que coincidan con los filtros aplicados.
+        </td>
+      </tr>
+    `;
+    actualizarKPIsMatriz(0, 0, 0);
+    return;
+  }
+
+  establecimientosFiltrados.forEach(e => {
+    const acts = AppState.actividadesRegistradas[e.id] || [];
+    
+    // Filtrar actividades correspondientes al año seleccionado
+    const actsPeriodo = acts.filter(a => {
+      if (anio === 'todos') return true;
+      const anioAct = extraerAnioDeFecha(a.fechaActividad);
+      return anioAct === anio;
+    });
+
+    let totalSedePeriodo = actsPeriodo.length;
+    if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
+    totalActividadesPeriodo += totalSedePeriodo;
+
+    // Conteo por cada actividad técnica
+    const conteoSede = {};
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
+
+    actsPeriodo.forEach(a => {
+      if (conteoSede[a.tipoActividad] !== undefined) {
+        conteoSede[a.tipoActividad]++;
+        conteoPorColumna[a.tipoActividad]++;
+      }
+    });
+
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer';
+    tr.onclick = (event) => {
+      // Si hizo clic en un botón no cambiamos, sino vamos a la ficha de la sede
+      if (event.target.tagName !== 'BUTTON' && event.target.tagName !== 'A') {
+        irAFichaEstablecimiento(e.id);
+      }
+    };
+
+    let cellsHtml = `
+      <td class="py-2.5 px-3 font-mono font-bold text-slate-700 whitespace-nowrap bg-white sticky left-0 z-10 border-r border-slate-200">
+        ${e.nroEstab ? `#${e.nroEstab}` : '-'}
+      </td>
+      <td class="py-2.5 px-3 font-semibold text-slate-900 max-w-[200px] truncate" title="${escapeHtml(e.nombreEstablecimiento)}">
+        ${escapeHtml(e.nombreEstablecimiento)}
+      </td>
+      <td class="py-2.5 px-3 text-slate-600 max-w-[160px] truncate" title="${escapeHtml(e.organismo)}">
+        ${escapeHtml(e.organismo)}
+      </td>
+      <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">
+        ${escapeHtml(e.localidad)}
+      </td>
+    `;
+
+    // Columnas de actividades con badge numérico
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+      const count = conteoSede[k] || 0;
+      let badgeHtml = '';
+
+      if (count === 0) {
+        badgeHtml = `<span class="text-slate-300 font-mono text-[11px]">0</span>`;
+      } else if (count === 1) {
+        badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs shadow-xs">1</span>`;
+      } else {
+        badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-900 font-extrabold text-xs shadow-xs">${count}</span>`;
+      }
+
+      cellsHtml += `<td class="py-2.5 px-2 text-center whitespace-nowrap">${badgeHtml}</td>`;
+    });
+
+    // Columna Total
+    cellsHtml += `
+      <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
+        ${totalSedePeriodo}
+      </td>
+      <td class="py-2.5 px-3 text-right whitespace-nowrap">
+        <button onclick="irAFichaEstablecimiento('${e.id}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1 hover:bg-blue-100 rounded" title="Abrir Ficha de la sede">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </td>
+    `;
+
+    tr.innerHTML = cellsHtml;
+    tbody.appendChild(tr);
+  });
+
+  const totalSedes = establecimientosFiltrados.length;
+  actualizarKPIsMatriz(totalActividadesPeriodo, sedesConAlMenosUnaActividad, totalSedes);
+}
+
+function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedes) {
+  const kpiActs = document.getElementById('matriz-kpi-total-acts');
+  const kpiSedes = document.getElementById('matriz-kpi-sedes-cobertura');
+  const kpiPct = document.getElementById('matriz-kpi-pct-cobertura');
+
+  const pct = totalSedes > 0 ? Math.round((sedesConAct / totalSedes) * 100) : 0;
+
+  if (kpiActs) kpiActs.textContent = totalActs;
+  if (kpiSedes) kpiSedes.textContent = `${sedesConAct} de ${totalSedes}`;
+  if (kpiPct) kpiPct.textContent = `${pct}%`;
+}
+
+function irAFichaEstablecimiento(estId) {
+  cambiarModulo('ficha');
+  seleccionarEstablecimiento(estId);
+}
+
+// Exportación a Excel / CSV con BOM
+function exportarMatrizCSV() {
+  const anio = AppState.matrizAnio;
+  const establecimientos = Object.values(AppState.establecimientos);
+
+  const headers = [
+    'N° Estab',
+    'Organismo',
+    'Nombre Establecimiento',
+    'Localidad',
+    'RGRL',
+    'RAR',
+    'Muestra Agua',
+    'Analisis Agua',
+    'PAT',
+    'Ruido',
+    'Iluminacion',
+    'Res 886',
+    'Capacitaciones',
+    'Carga de Fuego',
+    'Simulacro',
+    'Total Realizado'
+  ];
+
+  let csvContent = '\uFEFF'; // BOM para que Excel abra UTF-8 con tildes correctamente
+  csvContent += headers.map(h => `"${h}"`).join(';') + '\r\n';
+
+  establecimientos.forEach(e => {
+    const acts = AppState.actividadesRegistradas[e.id] || [];
+    const actsPeriodo = acts.filter(a => {
+      if (anio === 'todos') return true;
+      return extraerAnioDeFecha(a.fechaActividad) === anio;
+    });
+
+    const conteoSede = {};
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
+    actsPeriodo.forEach(a => {
+      if (conteoSede[a.tipoActividad] !== undefined) conteoSede[a.tipoActividad]++;
+    });
+
+    const row = [
+      e.nroEstab || '',
+      e.organismo || '',
+      e.nombreEstablecimiento || '',
+      e.localidad || '',
+      conteoSede['confeccion_rgrl'] || 0,
+      conteoSede['confeccion_rar'] || 0,
+      conteoSede['muestra_agua'] || 0,
+      conteoSede['analisis_agua'] || 0,
+      conteoSede['medicion_pat'] || 0,
+      conteoSede['medicion_ruido'] || 0,
+      conteoSede['medicion_iluminacion'] || 0,
+      conteoSede['res_886'] || 0,
+      conteoSede['capacitaciones'] || 0,
+      conteoSede['carga_fuego'] || 0,
+      conteoSede['simulacro'] || 0,
+      actsPeriodo.length
+    ];
+
+    csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `Matriz_Cumplimiento_HyS_${anio}_IAPSER.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  mostrarToast(`Matriz ${anio} exportada a CSV para Excel.`);
+}
+
+// ==================== VISTA 3: REPOSITORIO GLOBAL DE DOCUMENTOS ====================
+
+function renderFiltrosRepositorio() {
+  const selectOrg = document.getElementById('repo-filtro-org');
+  const selectAct = document.getElementById('repo-filtro-act');
+
+  if (selectOrg && selectOrg.children.length <= 1) {
+    const orgs = new Set();
+    Object.values(AppState.establecimientos).forEach(e => {
+      if (e.organismo) orgs.add(e.organismo);
+    });
+    Array.from(orgs).sort().forEach(org => {
+      const opt = document.createElement('option');
+      opt.value = org;
+      opt.textContent = org;
+      selectOrg.appendChild(opt);
+    });
+  }
+
+  if (selectAct && selectAct.children.length <= 1) {
+    Object.values(CATALOGO_ACTIVIDADES).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = `${cat.icono} ${cat.nombre}`;
+      selectAct.appendChild(opt);
+    });
+  }
+}
+
+function renderRepositorioGlobal() {
+  const tbody = document.getElementById('repo-tabla-body');
+  const counterSpan = document.getElementById('repo-contador');
+  if (!tbody) return;
+
+  const orgFiltro = AppState.repoFiltroOrg;
+  const actFiltro = AppState.repoFiltroAct;
+  const textFiltro = AppState.repoFiltroTexto.toLowerCase().trim();
+
+  // Aplanar todos los registros de todos los establecimientos
+  let todosLosRegistros = [];
+  Object.keys(AppState.actividadesRegistradas).forEach(estId => {
+    const est = AppState.establecimientos[estId];
+    if (!est) return;
+    const acts = AppState.actividadesRegistradas[estId] || [];
+    acts.forEach(a => {
+      todosLosRegistros.push({
+        ...a,
+        estId: estId,
+        organismo: est.organismo,
+        nombreEstablecimiento: est.nombreEstablecimiento,
+        nroEstab: est.nroEstab,
+        localidad: est.localidad
+      });
+    });
+  });
+
+  // Ordenar cronológicamente descendente (más recientes primero)
+  todosLosRegistros.sort((a, b) => {
+    const fA = a.fechaActividad || '';
+    const fB = b.fechaActividad || '';
+    return fB.localeCompare(fA);
+  });
+
+  // Aplicar filtros
+  const filtrados = todosLosRegistros.filter(r => {
+    if (orgFiltro && r.organismo !== orgFiltro) return false;
+    if (actFiltro && r.tipoActividad !== actFiltro) return false;
+    if (textFiltro) {
+      const match = (r.organismo && r.organismo.toLowerCase().includes(textFiltro)) ||
+                    (r.nombreEstablecimiento && r.nombreEstablecimiento.toLowerCase().includes(textFiltro)) ||
+                    (r.fileName && r.fileName.toLowerCase().includes(textFiltro)) ||
+                    (r.detalle && r.detalle.toLowerCase().includes(textFiltro)) ||
+                    (r.preventor && r.preventor.toLowerCase().includes(textFiltro)) ||
+                    (r.nroEstab && r.nroEstab.toString().includes(textFiltro));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  if (counterSpan) {
+    counterSpan.textContent = `Mostrando ${filtrados.length} de ${todosLosRegistros.length} documentos cargados`;
+  }
+
+  tbody.innerHTML = '';
+
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-10 text-slate-400 text-xs">
+          <i class="fa-regular fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+          No se encontraron documentos o registros que coincidan con los filtros aplicados.
         </td>
       </tr>
     `;
     return;
   }
 
-  acts.slice().reverse().forEach((a, index) => {
-    const cat = CATALOGO_ACTIVIDADES[a.tipoActividad] || { nombre: a.tipoActividad, icono: '📌', codigo: 'ACT' };
+  filtrados.forEach((r, idx) => {
+    const cat = CATALOGO_ACTIVIDADES[r.tipoActividad] || { nombre: r.tipoActividad, icono: '📌', codigo: 'ACT' };
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50/70 border-b border-slate-100 text-xs text-slate-700';
+    tr.className = 'hover:bg-slate-50 border-b border-slate-100 text-xs text-slate-700 transition';
 
     tr.innerHTML = `
-      <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">
-        ${a.fechaActividad || 'S/F'}
+      <td class="py-2.5 px-3 font-semibold text-slate-900 whitespace-nowrap">
+        ${r.fechaActividad || 'S/F'}
       </td>
       <td class="py-2.5 px-3">
+        <div class="font-bold text-blue-900">
+          ${r.nroEstab ? `<span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1">#${r.nroEstab}</span>` : ''}
+          ${escapeHtml(r.nombreEstablecimiento)}
+        </div>
+        <div class="text-[11px] text-slate-500 truncate max-w-xs">${escapeHtml(r.organismo)} (${escapeHtml(r.localidad)})</div>
+      </td>
+      <td class="py-2.5 px-3 whitespace-nowrap">
         <div class="flex items-center gap-1.5 font-medium">
           <span>${cat.icono}</span>
           <span>${escapeHtml(cat.nombre)}</span>
@@ -653,25 +1062,25 @@ function renderTablaDocumentos(est) {
       </td>
       <td class="py-2.5 px-3 whitespace-nowrap">
         <span class="badge-completo text-[10px] px-2 py-0.5 rounded-full font-bold">
-          ${escapeHtml(a.estadoActividad || 'Completado')}
+          ${escapeHtml(r.estadoActividad || 'Completado')}
         </span>
       </td>
-      <td class="py-2.5 px-3 max-w-xs truncate" title="${escapeHtml(a.detalle || '')}">
-        ${escapeHtml(a.detalle || '-')}
+      <td class="py-2.5 px-3 max-w-xs truncate" title="${escapeHtml(r.detalle || '')}">
+        ${escapeHtml(r.detalle || '-')}
       </td>
-      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600 max-w-xs truncate" title="${escapeHtml(a.fileName || '')}">
-        ${a.fileName ? `<i class="fa-solid fa-file-pdf text-red-500 mr-1"></i>${escapeHtml(a.fileName)}` : '<span class="text-slate-400">Sin archivo adjunto</span>'}
+      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 max-w-xs truncate" title="${escapeHtml(r.fileName || '')}">
+        ${r.fileName ? `<i class="fa-solid fa-file-pdf text-red-500 mr-1"></i>${escapeHtml(r.fileName)}` : '<span class="text-slate-400">Sin archivo adjunto</span>'}
       </td>
       <td class="py-2.5 px-3 whitespace-nowrap">
-        ${a.fileUrl ? `
-          <a href="${a.fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-semibold underline text-xs">
+        ${r.fileUrl ? `
+          <a href="${r.fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-semibold underline text-xs">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver en Drive
           </a>
-        ` : (a.fileName ? `<span class="text-amber-600 text-[10px] font-semibold"><i class="fa-solid fa-clock"></i> Guardado Local</span>` : '-')}
+        ` : (r.fileName ? `<span class="text-amber-600 text-[10px] font-semibold"><i class="fa-solid fa-clock"></i> Guardado Local</span>` : '-')}
       </td>
       <td class="py-2.5 px-3 text-right whitespace-nowrap">
-        <button onclick="eliminarActividad('${est.id}', '${a.id || index}')" class="text-slate-400 hover:text-red-600 p-1" title="Eliminar este registro">
-          <i class="fa-regular fa-trash-can"></i>
+        <button onclick="irAFichaEstablecimiento('${r.estId}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1.5 hover:bg-blue-50 rounded" title="Ver ficha completa">
+          <i class="fa-solid fa-arrow-right mr-1"></i> Ver Ficha
         </button>
       </td>
     `;
@@ -710,15 +1119,11 @@ function abrirModalRegistrarActividad(actividadId) {
   document.getElementById('modal-act-subtitulo').textContent = `${est.nombreEstablecimiento} (N° ${est.nroEstab || 'S/N'})`;
   document.getElementById('modal-act-icono').innerHTML = cat.icono;
 
-  // Fecha por defecto: hoy
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('act-fecha').value = today;
   document.getElementById('act-preventor').value = localStorage.getItem('hys_ultimo_preventor') || '';
 
-  // Configurar campos dinámicos específicos según la actividad
   configurarCamposDinamicosModal(cat, est);
-
-  // Reset uploader
   resetUploaderUI();
   actualizarPreviewNombreArchivo();
 
@@ -746,9 +1151,7 @@ function configurarCamposDinamicosModal(cat, est) {
           </label>
         </div>
       </div>
-      <div id="agua-campos-extra" class="space-y-3">
-        <!-- Rellenado dinámicamente -->
-      </div>
+      <div id="agua-campos-extra" class="space-y-3"></div>
     `;
     cambiarFaseAgua(cat.id === 'analisis_agua' ? 'protocolo_lab' : 'toma_muestra');
   } else if (cat.id === 'res_886') {
@@ -816,7 +1219,6 @@ function configurarCamposDinamicosModal(cat, est) {
       </div>
     `;
   } else {
-    // Genérico
     container.innerHTML = `
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">Detalle o Descripción de la Actividad</label>
@@ -936,7 +1338,7 @@ function resetUploaderUI() {
 }
 
 function setupEventListeners() {
-  // Búsqueda instantánea
+  // Filtros Vista 1 (Ficha)
   const searchInput = document.getElementById('buscar-establecimiento');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -945,7 +1347,6 @@ function setupEventListeners() {
     });
   }
 
-  // Filtro organismo
   const orgSelect = document.getElementById('filtro-organismo');
   if (orgSelect) {
     orgSelect.addEventListener('change', (e) => {
@@ -954,12 +1355,69 @@ function setupEventListeners() {
     });
   }
 
-  // Filtro localidad
   const locSelect = document.getElementById('filtro-localidad');
   if (locSelect) {
     locSelect.addEventListener('change', (e) => {
       AppState.filtroLocalidad = e.target.value;
       renderListaEstablecimientos();
+    });
+  }
+
+  // Filtros Vista 2 (Matriz)
+  const anioSelect = document.getElementById('matriz-filtro-anio');
+  if (anioSelect) {
+    anioSelect.addEventListener('change', (e) => {
+      AppState.matrizAnio = e.target.value;
+      renderMatrizAnual();
+    });
+  }
+
+  const matrizOrgSelect = document.getElementById('matriz-filtro-org');
+  if (matrizOrgSelect) {
+    matrizOrgSelect.addEventListener('change', (e) => {
+      AppState.matrizFiltroOrg = e.target.value;
+      renderMatrizAnual();
+    });
+  }
+
+  const matrizLocSelect = document.getElementById('matriz-filtro-loc');
+  if (matrizLocSelect) {
+    matrizLocSelect.addEventListener('change', (e) => {
+      AppState.matrizFiltroLoc = e.target.value;
+      renderMatrizAnual();
+    });
+  }
+
+  const matrizSearch = document.getElementById('matriz-buscar-texto');
+  if (matrizSearch) {
+    matrizSearch.addEventListener('input', (e) => {
+      AppState.matrizFiltroTexto = e.target.value;
+      renderMatrizAnual();
+    });
+  }
+
+  // Filtros Vista 3 (Repositorio)
+  const repoSearch = document.getElementById('repo-buscar-texto');
+  if (repoSearch) {
+    repoSearch.addEventListener('input', (e) => {
+      AppState.repoFiltroTexto = e.target.value;
+      renderRepositorioGlobal();
+    });
+  }
+
+  const repoOrg = document.getElementById('repo-filtro-org');
+  if (repoOrg) {
+    repoOrg.addEventListener('change', (e) => {
+      AppState.repoFiltroOrg = e.target.value;
+      renderRepositorioGlobal();
+    });
+  }
+
+  const repoAct = document.getElementById('repo-filtro-act');
+  if (repoAct) {
+    repoAct.addEventListener('change', (e) => {
+      AppState.repoFiltroAct = e.target.value;
+      renderRepositorioGlobal();
     });
   }
 
@@ -993,10 +1451,9 @@ function setupEventListeners() {
 }
 
 function procesarArchivoSeleccionado(file) {
-  // Validar tamaño máximo recomendado (25 MB)
   const maxMb = 25;
   if (file.size > maxMb * 1024 * 1024) {
-    alert(`⚠️ El archivo seleccionado pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB. El límite recomendado para subida a Google Apps Script es de ${maxMb} MB para evitar que Google corte la conexión por timeout. Si es posible, comprime el PDF antes de subirlo.`);
+    alert(`⚠️ El archivo pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB. El límite recomendado para subida a Google Apps Script es de ${maxMb} MB. Si es posible, comprime el PDF antes de subirlo.`);
   }
 
   let ext = 'pdf';
@@ -1014,7 +1471,6 @@ function procesarArchivoSeleccionado(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const result = e.target.result;
-    // Extraer solo la parte base64 sin el encabezado data:...;base64,
     const commaIndex = result.indexOf(',');
     archivoSeleccionadoBase64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
 
@@ -1067,7 +1523,6 @@ async function guardarActividadYSubir() {
   const detalle = obtenerDetalleActualParaCodificacion();
   const observaciones = document.getElementById('act-obs') ? document.getElementById('act-obs').value.trim() : '';
 
-  // Determinar estado de la actividad
   let estado = 'Completado';
   if (currentActividadModal === 'muestra_agua') {
     estado = 'Muestra Tomada (En Análisis)';
@@ -1085,7 +1540,6 @@ async function guardarActividadYSubir() {
   const ext = archivoSeleccionadoMeta ? archivoSeleccionadoMeta.ext : 'pdf';
   const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, currentActividadModal, fecha, detalle, ext);
 
-  // UI: Mostrar progreso
   const progressBox = document.getElementById('upload-progress-box');
   const progressBar = document.getElementById('upload-progress-bar');
   const progressLabel = document.getElementById('upload-progress-label');
@@ -1149,7 +1603,6 @@ async function guardarActividadYSubir() {
 
   animarProgreso(progressBar, progressLabel, 100, '¡Guardado completado!');
 
-  // Guardar en la base de datos local
   if (!AppState.actividadesRegistradas[est.id]) {
     AppState.actividadesRegistradas[est.id] = [];
   }
@@ -1171,7 +1624,6 @@ async function guardarActividadYSubir() {
   AppState.actividadesRegistradas[est.id].push(nuevoRegistro);
   guardarLegajoLocal();
 
-  // Actualizar la interfaz
   setTimeout(() => {
     cerrarModal('modal-registro-actividad');
     seleccionarEstablecimiento(est.id);
@@ -1182,17 +1634,6 @@ async function guardarActividadYSubir() {
 function animarProgreso(bar, label, targetPercent, text) {
   if (bar) bar.style.width = targetPercent + '%';
   if (label) label.textContent = `${targetPercent}% - ${text}`;
-}
-
-function eliminarActividad(estId, regId) {
-  if (!confirm('¿Estás seguro de eliminar este registro del historial local de este establecimiento?')) {
-    return;
-  }
-  const list = AppState.actividadesRegistradas[estId] || [];
-  AppState.actividadesRegistradas[estId] = list.filter((a, idx) => a.id !== regId && String(idx) !== String(regId));
-  guardarLegajoLocal();
-  seleccionarEstablecimiento(estId);
-  mostrarToast('Registro eliminado del legajo.');
 }
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
@@ -1211,7 +1652,6 @@ async function sincronizarConSheets() {
 
     if (json && json.status === 'success' && Array.isArray(json.actividades)) {
       if (json.actividades.length > 0) {
-        // Mapear registros de Google Sheet a estructura local
         const mapped = json.actividades.map(row => ({
           id: row['ID Registro'] || ('ACT_' + Date.now()),
           tipoActividad: normalizarActividadDesdeSheet(row['Tipo Actividad']),
@@ -1239,7 +1679,6 @@ async function sincronizarConSheets() {
     AppState.estaSincronizando = false;
     renderFichaEstablecimiento(est);
     renderPanelActividades(est);
-    renderTablaDocumentos(est);
   }
 }
 
@@ -1254,7 +1693,7 @@ function normalizarActividadDesdeSheet(str) {
   return str;
 }
 
-// ==================== ENLACE DIRECTO CON CHECKLIST RGRL (DEC 351/79) ====================
+// ==================== ENLACE DIRECTO CON CHECKLIST RGRL ====================
 
 function abrirChecklistRGRL(estId) {
   localStorage.setItem(STORAGE_KEYS.CURRENT_EST_ID, estId);
