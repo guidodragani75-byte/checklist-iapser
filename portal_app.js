@@ -23,6 +23,24 @@ const STORAGE_KEYS = {
 
 // Catálogo maestro de actividades
 const CATALOGO_ACTIVIDADES = {
+  constancia_visita: {
+    id: 'constancia_visita',
+    codigo: 'CV',
+    nombre: 'Constancia de Visita (CV)',
+    subtitulo: 'Formulario oficial SRT de constancia de visita firmado in situ por las partes',
+    icono: '📝',
+    color: '#0284c7',
+    permiteMultiples: true
+  },
+  informe_tecnico: {
+    id: 'informe_tecnico',
+    codigo: 'INFORME',
+    nombre: 'Informe Técnico',
+    subtitulo: 'Informe técnico pericial de relevamiento, desvíos y mejoras recomendadas',
+    icono: '📄',
+    color: '#0f766e',
+    permiteMultiples: true
+  },
   confeccion_rgrl: {
     id: 'confeccion_rgrl',
     codigo: 'RGRL',
@@ -659,6 +677,8 @@ function crearTarjetaActividad(cat, est, actsEst) {
   const registros = actsEst.filter(a => a.tipoActividad === cat.id);
   const tieneRegistros = registros.length > 0;
   const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
+  const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
+  const fileUrlFinal = ultimoRegistro ? (ultimoRegistro.fileUrl || ultimoRegistro.monthFolderUrl || '') : '';
 
   let estadoTexto = 'Pendiente';
   let estadoClase = 'badge-pendiente';
@@ -717,14 +737,44 @@ function crearTarjetaActividad(cat, est, actsEst) {
               <span class="text-slate-400">Detalle:</span> ${escapeHtml(ultimoRegistro.detalle)}
             </div>
           ` : ''}
-          ${ultimoRegistro.fileName ? `
-            <div class="text-[10px] font-mono text-blue-700 truncate" title="${escapeHtml(ultimoRegistro.fileName)}">
-              <i class="fa-solid fa-paperclip mr-1"></i>${escapeHtml(ultimoRegistro.fileName)}
+
+          ${tieneArchivo ? `
+            <div class="mt-2 pt-2 border-t border-slate-200/70">
+              <div class="flex items-center justify-between gap-2 p-1.5 px-2 bg-white rounded-lg border border-slate-200 hover:border-emerald-400 transition shadow-2xs">
+                <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                  <i class="fa-solid fa-file-pdf text-red-600 text-sm shrink-0"></i>
+                  <div class="overflow-hidden min-w-0">
+                    <div class="text-[11px] font-mono font-bold text-slate-800 truncate" title="${escapeHtml(ultimoRegistro.fileName || 'Documento adjunto')}">
+                      ${escapeHtml(ultimoRegistro.fileName || 'Documento adjunto')}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  ${fileUrlFinal ? `
+                    <a href="${fileUrlFinal}" target="_blank" onclick="event.stopPropagation()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 transition shadow-2xs" title="Abrir y ver documento en Google Drive">
+                      <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                      <span>Abrir</span>
+                    </a>
+                  ` : `
+                    <button onclick="event.stopPropagation(); abrirModalDocumentosActividad('${cat.id}')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 shrink-0 transition" title="Ver detalles del documento">
+                      <i class="fa-solid fa-circle-info text-[9px]"></i>
+                      <span>Ver</span>
+                    </button>
+                  `}
+                  <button onclick="event.stopPropagation(); eliminarDocumentoActividad('${ultimoRegistro.id}', '${est.id}')" class="p-1 px-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 text-[10px] transition shrink-0" title="Eliminar documento y limpiar registro">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           ` : ''}
+
           ${cat.permiteMultiples && registros.length > 1 ? `
-            <div class="text-[10px] font-semibold text-purple-700 pt-0.5">
-              + ${registros.length - 1} registro(s) adicional(es)
+            <div class="flex items-center justify-between text-[11px] font-semibold text-purple-700 pt-1 border-t border-slate-200/50 mt-1">
+              <span><i class="fa-solid fa-layer-group mr-1"></i>${registros.length} registros cargados</span>
+              <button onclick="event.stopPropagation(); abrirModalDocumentosActividad('${cat.id}')" class="text-[11px] text-purple-800 hover:text-purple-950 font-bold underline">
+                Ver todos (${registros.length})
+              </button>
             </div>
           ` : ''}
         </div>
@@ -736,11 +786,41 @@ function crearTarjetaActividad(cat, est, actsEst) {
     </div>
 
     <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-      <button onclick="abrirModalRegistrarActividad('${cat.id}')" class="btn-action flex-1 text-center py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded font-semibold text-xs transition">
-        <i class="fa-solid fa-cloud-arrow-up mr-1"></i>${tieneRegistros && cat.permiteMultiples ? 'Agregar otro' : 'Registrar / Subir'}
-      </button>
+      ${tieneArchivo ? `
+        ${registros.length > 1 ? `
+          <button onclick="abrirModalDocumentosActividad('${cat.id}')" class="btn-action flex-1 text-center py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs" title="Ver los ${registros.length} documentos subidos">
+            <i class="fa-solid fa-folder-open text-white"></i>
+            <span>Ver Documentos (${registros.length})</span>
+          </button>
+        ` : `
+          ${fileUrlFinal ? `
+            <a href="${fileUrlFinal}" target="_blank" class="btn-action flex-1 text-center py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs" title="Ver documento subido en Google Drive">
+              <i class="fa-solid fa-eye text-white"></i>
+              <span>Ver Documento</span>
+            </a>
+          ` : `
+            <button onclick="abrirModalDocumentosActividad('${cat.id}')" class="btn-action flex-1 text-center py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs" title="Ver detalles del documento">
+              <i class="fa-solid fa-eye text-white"></i>
+              <span>Ver Documento</span>
+            </button>
+          `}
+          <button onclick="eliminarDocumentoActividad('${ultimoRegistro.id}', '${est.id}')" class="btn-action px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded font-semibold text-xs transition flex items-center gap-1 shrink-0" title="Eliminar documento y limpiar registro">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `}
+        <button onclick="abrirModalRegistrarActividad('${cat.id}')" class="btn-action px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded font-semibold text-xs transition flex items-center gap-1" title="${cat.permiteMultiples ? 'Subir otro documento para esta actividad' : 'Reemplazar o volver a subir documento'}">
+          <i class="fa-solid ${cat.permiteMultiples ? 'fa-plus' : 'fa-cloud-arrow-up'}"></i>
+          <span>${cat.permiteMultiples ? 'Nuevo' : 'Subir'}</span>
+        </button>
+      ` : `
+        <button onclick="abrirModalRegistrarActividad('${cat.id}')" class="btn-action flex-1 text-center py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Registrar / Subir</span>
+        </button>
+      `}
+
       ${cat.esChecklist ? `
-        <button onclick="abrirChecklistRGRL('${est.id}')" class="btn-action px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs transition" title="Ir al Checklist interactivo">
+        <button onclick="abrirChecklistRGRL('${est.id}')" class="btn-action px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs transition" title="Ir al Checklist interactivo RGRL">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </button>
       ` : ''}
@@ -749,6 +829,217 @@ function crearTarjetaActividad(cat, est, actsEst) {
 
   return card;
 }
+
+function abrirModalDocumentosActividad(catId) {
+  const est = AppState.establecimientoSeleccionado;
+  if (!est) return;
+
+  const cat = CATALOGO_ACTIVIDADES[catId] || {
+    id: catId,
+    nombre: catId,
+    icono: '📄',
+    codigo: 'DOC'
+  };
+
+  const modal = document.getElementById('modal-historial-actividad');
+  if (!modal) return;
+
+  const acts = (AppState.actividadesRegistradas[est.id] || []).filter(a => a.tipoActividad === catId);
+
+  document.getElementById('modal-hist-icono').innerHTML = cat.icono || '📄';
+  document.getElementById('modal-hist-titulo').textContent = `Documentos: ${cat.nombre}`;
+  document.getElementById('modal-hist-subtitulo').textContent = `${est.nombreEstablecimiento} (N° ${est.nroEstab || 'S/N'})`;
+  document.getElementById('modal-hist-contador').textContent = `${acts.length} documento(s) registrado(s)`;
+
+  const btnNuevo = document.getElementById('modal-hist-btn-nuevo');
+  if (btnNuevo) {
+    btnNuevo.onclick = () => {
+      cerrarModal('modal-historial-actividad');
+      abrirModalRegistrarActividad(catId);
+    };
+  }
+
+  const container = document.getElementById('modal-hist-lista');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (acts.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+        No hay documentos subidos para esta actividad en este establecimiento.
+      </div>
+    `;
+  } else {
+    // Mostrar del más reciente al más antiguo
+    const reversed = [...acts].reverse();
+    reversed.forEach((act) => {
+      const fAct = act.fechaActividad || 'S/F';
+      const mInfo = parsearAnioMesCliente(fAct);
+      const mFUrl = act.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+      const fileUrl = act.fileUrl || mFUrl || '';
+
+      const card = document.createElement('div');
+      card.className = 'bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+      card.innerHTML = `
+        <div class="space-y-1 flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="badge-completo text-[10px] font-bold px-2 py-0.5 rounded-full">
+              ${escapeHtml(act.estadoActividad || 'Completado')}
+            </span>
+            <span class="text-xs font-semibold text-slate-900">
+              <i class="fa-regular fa-calendar text-slate-400 mr-1"></i>${fAct}
+            </span>
+            ${act.preventor ? `<span class="text-[11px] text-slate-500 truncate"><i class="fa-solid fa-user-shield text-[10px] text-slate-400 mr-1"></i>${escapeHtml(act.preventor)}</span>` : ''}
+          </div>
+
+          ${act.detalle ? `
+            <div class="text-xs text-slate-700 font-medium">
+              <span class="text-slate-400">Detalle:</span> ${escapeHtml(act.detalle)}
+            </div>
+          ` : ''}
+
+          <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-blue-900 truncate">
+            <i class="fa-solid fa-file-pdf text-red-600 text-sm shrink-0"></i>
+            <span class="truncate" title="${escapeHtml(act.fileName || 'Documento')}">${escapeHtml(act.fileName || 'Documento sin nombre')}</span>
+          </div>
+
+          ${act.observaciones ? `
+            <div class="text-[11px] text-slate-500 italic truncate" title="${escapeHtml(act.observaciones)}">
+              ${escapeHtml(act.observaciones)}
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          ${fileUrl ? `
+            <a href="${fileUrl}" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <span>Ver en Drive</span>
+            </a>
+          ` : `
+            <span class="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded text-[11px] font-semibold">
+              <i class="fa-solid fa-clock mr-1"></i>Guardado Local
+            </span>
+          `}
+          ${mFUrl ? `
+            <a href="${mFUrl}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold text-xs flex items-center gap-1.5 transition" title="Abrir carpeta mensual de Drive">
+              <i class="fa-solid fa-folder-open text-amber-700"></i>
+              <span>Mes</span>
+            </a>
+          ` : ''}
+          <button onclick="eliminarDocumentoActividad('${act.id}', '${est.id}')" class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1.5 transition" title="Eliminar este documento y registro">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  modal.classList.remove('hidden');
+}
+
+/**
+ * Elimina un documento y limpia su registro del establecimiento y vistas.
+ * Envía notificación al backend Google Apps Script para enviarlo a la papelera en Drive
+ * y borrar la fila de la hoja de cálculo 'Legajo_Actividades_Archivos'.
+ */
+async function eliminarDocumentoActividad(regId, estId) {
+  if (!regId) return;
+
+  const confirmacion = confirm('¿Estás seguro de que deseas eliminar este documento y limpiar su registro?\n\nEsta acción removerá el registro del establecimiento y enviará el archivo a la papelera de Drive.');
+  if (!confirmacion) return;
+
+  // 1. Localizar el registro y establecimiento correspondiente
+  let targetEstId = estId;
+  let targetItem = null;
+
+  if (targetEstId && AppState.actividadesRegistradas[targetEstId]) {
+    targetItem = AppState.actividadesRegistradas[targetEstId].find(a => 
+      a.id === regId || (a.fileId && a.fileId === regId) || (a.fileName && a.fileName === regId)
+    );
+  }
+
+  if (!targetItem) {
+    for (const [eId, acts] of Object.entries(AppState.actividadesRegistradas)) {
+      const found = acts.find(a => 
+        a.id === regId || (a.fileId && a.fileId === regId) || (a.fileName && a.fileName === regId)
+      );
+      if (found) {
+        targetItem = found;
+        targetEstId = eId;
+        break;
+      }
+    }
+  }
+
+  if (!targetItem) {
+    mostrarToast('⚠️ No se encontró el registro para eliminar.');
+    return;
+  }
+
+  // 2. Limpiar el registro del estado local y persistir
+  AppState.actividadesRegistradas[targetEstId] = (AppState.actividadesRegistradas[targetEstId] || []).filter(a => a !== targetItem);
+  guardarLegajoLocal();
+
+  // 3. Actualizar vistas locales de inmediato
+  const estActual = AppState.establecimientoSeleccionado;
+  if (estActual && estActual.id === targetEstId) {
+    renderPanelActividades(estActual);
+    actualizarIndicadorLegajo(targetEstId);
+    actualizarProgresoGeneral();
+  } else if (AppState.establecimientos[targetEstId]) {
+    actualizarIndicadorLegajo(targetEstId);
+    actualizarProgresoGeneral();
+  }
+
+  // Si el modal de historial de actividades está abierto para esta actividad, actualizarlo
+  const modalHist = document.getElementById('modal-historial-actividad');
+  if (modalHist && !modalHist.classList.contains('hidden')) {
+    if (estActual && estActual.id === targetEstId) {
+      abrirModalDocumentosActividad(targetItem.tipoActividad);
+    } else {
+      cerrarModal('modal-historial-actividad');
+    }
+  }
+
+  renderRepositorioGlobal(false);
+  renderMatrizAnual();
+  renderDashboard();
+
+  mostrarToast(`🗑️ Documento "${targetItem.fileName || 'adjunto'}" y registro eliminados.`);
+
+  // 4. Sincronizar eliminación en Google Apps Script (Drive papelera + Sheet fila)
+  const webhookUrl = getWebhookUrl();
+  if (webhookUrl && !webhookUrl.includes('TU_WEBHOOK_URL_AQUI')) {
+    const estObj = AppState.establecimientos[targetEstId] || {};
+    try {
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          tipoOperacion: 'eliminar_actividad_documento',
+          registroId: targetItem.id || regId,
+          fileId: targetItem.fileId || '',
+          fileName: targetItem.fileName || '',
+          establecimiento: estObj.nombreEstablecimiento || '',
+          nroEstab: estObj.nroEstab || '',
+          tipoActividad: targetItem.tipoActividad || ''
+        })
+      }).then(r => r.json()).then(res => {
+        if (res && res.status === 'success') {
+          console.log('✅ Eliminación sincronizada en Google Sheets y Drive:', res);
+        }
+      }).catch(err => {
+        console.warn('Aviso sincronización remota eliminación:', err);
+      });
+    } catch (errPost) {
+      console.warn('Error al solicitar eliminación remota:', errPost);
+    }
+  }
+}
+window.eliminarDocumentoActividad = eliminarDocumentoActividad;
 
 // ==================== VISTA 2: MATRIZ DE CUMPLIMIENTO ANUAL ====================
 
@@ -823,7 +1114,7 @@ function renderMatrizAnual() {
   if (establecimientosFiltrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="16" class="text-center py-8 text-slate-400 text-xs">
+        <td colspan="19" class="text-center py-8 text-slate-400 text-xs">
           No se encontraron sedes que coincidan con los filtros aplicados.
         </td>
       </tr>
@@ -939,22 +1230,13 @@ function exportarMatrizCSV() {
   const anio = AppState.matrizAnio;
   const establecimientos = Object.values(AppState.establecimientos);
 
+  const activityHeaders = Object.values(CATALOGO_ACTIVIDADES).map(cat => cat.nombre);
   const headers = [
     'N° Estab',
     'Organismo',
     'Nombre Establecimiento',
     'Localidad',
-    'RGRL',
-    'RAR',
-    'Muestra Agua',
-    'Analisis Agua',
-    'PAT',
-    'Ruido',
-    'Iluminacion',
-    'Res 886',
-    'Capacitaciones',
-    'Carga de Fuego',
-    'Simulacro',
+    ...activityHeaders,
     'Total Realizado'
   ];
 
@@ -979,17 +1261,7 @@ function exportarMatrizCSV() {
       e.organismo || '',
       e.nombreEstablecimiento || '',
       e.localidad || '',
-      conteoSede['confeccion_rgrl'] || 0,
-      conteoSede['confeccion_rar'] || 0,
-      conteoSede['muestra_agua'] || 0,
-      conteoSede['analisis_agua'] || 0,
-      conteoSede['medicion_pat'] || 0,
-      conteoSede['medicion_ruido'] || 0,
-      conteoSede['medicion_iluminacion'] || 0,
-      conteoSede['res_886'] || 0,
-      conteoSede['capacitaciones'] || 0,
-      conteoSede['carga_fuego'] || 0,
-      conteoSede['simulacro'] || 0,
+      ...Object.keys(CATALOGO_ACTIVIDADES).map(k => conteoSede[k] || 0),
       actsPeriodo.length
     ];
 
@@ -1175,9 +1447,14 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
         `}
       </td>
       <td class="py-2.5 px-3 text-right whitespace-nowrap">
-        <button onclick="irAFichaEstablecimiento('${r.estId}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1.5 hover:bg-blue-50 rounded" title="Ver ficha completa">
-          <i class="fa-solid fa-arrow-right mr-1"></i> Ver Ficha
-        </button>
+        <div class="inline-flex items-center gap-1.5 justify-end">
+          <button onclick="irAFichaEstablecimiento('${r.estId}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1.5 hover:bg-blue-50 rounded" title="Ver ficha completa">
+            <i class="fa-solid fa-arrow-right mr-1"></i> Ficha
+          </button>
+          <button onclick="eliminarDocumentoActividad('${r.id || r.fileId || r.fileName}', '${r.estId}')" class="text-xs text-red-600 hover:text-red-800 p-1.5 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition" title="Eliminar documento y limpiar registro">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1290,7 +1567,75 @@ function configurarCamposDinamicosModal(cat, est) {
 
   container.innerHTML = '';
 
-  if (cat.id === 'muestra_agua' || cat.id === 'analisis_agua') {
+  if (cat.id === 'constancia_visita') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Número o Tipo de Visita *</label>
+          <select id="campo-cv-visita" class="input-select text-xs" onchange="actualizarPreviewNombreArchivo()" required>
+            <option value="Visita 1">Visita 1 (Relevamiento Inicial)</option>
+            <option value="Visita 2">Visita 2 (Seguimiento / Semestral)</option>
+            <option value="Visita 3">Visita 3</option>
+            <option value="Visita de Seguimiento">Visita de Seguimiento</option>
+            <option value="Visita Extraordinaria">Visita Extraordinaria / Auditoría</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Representante Sede (Firmante in situ)</label>
+          <input type="text" id="campo-cv-firmante" class="input-text text-xs" placeholder="Ej: Director / Encargado de Sede">
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Resultado de la Visita</label>
+          <select id="campo-cv-estado" class="input-select text-xs">
+            <option value="Firmada in situ">Firmada in situ (Conforme)</option>
+            <option value="Firmada con Desvíos">Firmada in situ (Con Desvíos Notificados)</option>
+            <option value="Completada sin firma">Completada sin firma (Remitida digital)</option>
+            <option value="Sede Cerrada">Sede Cerrada / No atendida</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Motivo / Temario de la Visita</label>
+          <input type="text" id="campo-cv-motivo" class="input-text text-xs" placeholder="Ej: Relevamiento anual HyS" oninput="actualizarPreviewNombreArchivo()">
+        </div>
+      </div>
+    `;
+  } else if (cat.id === 'informe_tecnico') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Tipo o Carácter del Informe *</label>
+          <select id="campo-informe-tipo" class="input-select text-xs" onchange="actualizarPreviewNombreArchivo()" required>
+            <option value="Relevamiento Inicial">Informe de Relevamiento Inicial</option>
+            <option value="Seguimiento y Mejoras">Informe de Seguimiento y Mejoras</option>
+            <option value="Pericial Siniestro">Informe Pericial / Siniestro</option>
+            <option value="Diagnostico Condiciones">Informe Diagnóstico de Condiciones</option>
+            <option value="Dictamen Tecnico">Dictamen Técnico Especial</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Instancia / Visita de Referencia</label>
+          <input type="text" id="campo-informe-visita-ref" class="input-text text-xs" placeholder="Ej: Visita 1 / Solicitud ART" oninput="actualizarPreviewNombreArchivo()">
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Conclusión / Dictamen del Informe</label>
+          <select id="campo-informe-estado" class="input-select text-xs">
+            <option value="Con Desvíos">Con Desvíos (Plan de Acción sugerido)</option>
+            <option value="Sin Desvíos">Sin Desvíos (Condiciones adecuadas)</option>
+            <option value="En Adecuación">En Adecuación / Seguimiento</option>
+            <option value="Informe Notificado">Informe Emitido y Notificado</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad de Desvíos Detectados</label>
+          <input type="number" id="campo-informe-cant-desvios" class="input-text text-xs" placeholder="Ej: 0" min="0">
+        </div>
+      </div>
+    `;
+  } else if (cat.id === 'muestra_agua' || cat.id === 'analisis_agua') {
     container.innerHTML = `
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">Fase del Relevamiento de Agua:</label>
@@ -1432,6 +1777,20 @@ function cambiarFaseAgua(fase) {
 }
 
 function obtenerDetalleActualParaCodificacion() {
+  const cvVis = document.getElementById('campo-cv-visita');
+  const cvMot = document.getElementById('campo-cv-motivo');
+  if (cvVis && cvVis.value.trim()) {
+    const mot = cvMot && cvMot.value.trim() ? '_' + cvMot.value.trim() : '';
+    return sanitizeText(cvVis.value.trim() + mot);
+  }
+
+  const infTipo = document.getElementById('campo-informe-tipo');
+  const infRef = document.getElementById('campo-informe-visita-ref');
+  if (infTipo && infTipo.value.trim()) {
+    const ref = infRef && infRef.value.trim() ? '_' + infRef.value.trim() : '';
+    return sanitizeText(infTipo.value.trim() + ref);
+  }
+
   const pErg = document.getElementById('campo-puesto-erg');
   if (pErg && pErg.value.trim()) return pErg.value.trim();
 
@@ -1480,11 +1839,13 @@ function resetUploaderUI() {
   const infoBox = document.getElementById('file-selected-info');
   const progressBox = document.getElementById('upload-progress-box');
   const btnSubmit = document.getElementById('btn-guardar-actividad');
+  const badgeFecha = document.getElementById('act-fecha-detectada-badge');
 
   if (fileInput) fileInput.value = '';
   if (infoBox) infoBox.classList.add('hidden');
   if (progressBox) progressBox.classList.add('hidden');
   if (dropzone) dropzone.classList.remove('hidden');
+  if (badgeFecha) badgeFecha.classList.add('hidden');
   if (btnSubmit) {
     btnSubmit.disabled = false;
     btnSubmit.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>Guardar y Subir a Google Drive';
@@ -1612,6 +1973,24 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Listener para cambios manuales en la fecha de la actividad
+  const inputFecha = document.getElementById('act-fecha');
+  if (inputFecha) {
+    inputFecha.addEventListener('change', () => {
+      const badge = document.getElementById('act-fecha-detectada-badge');
+      const badgeTxt = document.getElementById('act-fecha-detectada-txt');
+      if (inputFecha.value && badge && badgeTxt) {
+        const partes = inputFecha.value.split('-');
+        if (partes.length === 3) {
+          const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
+          badge.className = 'mt-1.5 p-1.5 px-2 bg-blue-50 border border-blue-200 rounded-lg text-[11px] text-blue-800 flex items-center justify-between gap-1 transition';
+          badgeTxt.innerHTML = `✏️ Fecha seleccionada: <strong>${fechaFmt}</strong>.`;
+          badge.classList.remove('hidden');
+        }
+      }
+    });
+  }
 }
 
 function procesarArchivoSeleccionado(file) {
@@ -1640,6 +2019,9 @@ function procesarArchivoSeleccionado(file) {
 
     mostrarArchivoSeleccionadoUI(file);
     actualizarPreviewNombreArchivo();
+
+    // Analizar el archivo para extraer automáticamente la fecha del documento
+    analizarYCargarFechaArchivo(file, archivoSeleccionadoBase64);
   };
   reader.readAsDataURL(file);
 }
@@ -1669,6 +2051,186 @@ function cerrarModal(modalId) {
   if (m) m.classList.add('hidden');
 }
 
+/**
+ * Decodifica de forma segura un fragmento inicial de un string Base64 a texto ASCII/Latin-1
+ */
+function decodificarFragmentoBase64(base64Str, maxChars = 120000) {
+  if (!base64Str) return '';
+  try {
+    const end = Math.min(base64Str.length, maxChars);
+    const validLen = end - (end % 4);
+    if (validLen <= 0) return '';
+    return atob(base64Str.substring(0, validLen));
+  } catch (err) {
+    return '';
+  }
+}
+
+/**
+ * Decodifica de forma segura la cola final de un string Base64 (útil para trailers y metadatos de PDF)
+ */
+function decodificarColaBase64(base64Str, maxChars = 40000) {
+  if (!base64Str) return '';
+  try {
+    const start = Math.max(0, base64Str.length - maxChars);
+    const alignedStart = start - (start % 4);
+    const chunk = base64Str.substring(alignedStart);
+    const validLen = chunk.length - (chunk.length % 4);
+    if (validLen <= 0) return '';
+    return atob(chunk.substring(0, validLen));
+  } catch (err) {
+    return '';
+  }
+}
+
+/**
+ * Analiza el nombre, contenido y metadatos del archivo para extraer la fecha técnica del documento
+ */
+function extraerFechaDeArchivo(file, base64Str) {
+  const meses = {
+    enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+    julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+    noviembre: '11', diciembre: '12',
+    ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
+    jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
+  };
+
+  const nombre = file && file.name ? file.name : '';
+
+  // 1. Análisis del NOMBRE DEL ARCHIVO (prioridad alta: suele reflejar la fecha que asignó el usuario)
+  if (nombre) {
+    // Patrón ISO: YYYY-MM-DD / YYYY_MM_DD / YYYY.MM.DD
+    let m = nombre.match(/(202[0-9])[-_./](0[1-9]|1[0-2])[-_./]([0-2][0-9]|3[01])/);
+    if (m) {
+      return { fecha: `${m[1]}-${m[2]}-${m[3]}`, origen: 'nombre del archivo' };
+    }
+
+    // Patrón Latino: DD-MM-YYYY / DD_MM_YYYY / DD.MM.YYYY
+    m = nombre.match(/([0-2]?[0-9]|3[01])[-_./](0?[1-9]|1[0-2])[-_./](202[0-9])/);
+    if (m) {
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      return { fecha: `${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
+    }
+
+    // Patrón Corto: DD-MM-YY (ej: 14-04-26)
+    m = nombre.match(/([0-2]?[0-9]|3[01])[-_./](0?[1-9]|1[0-2])[-_./](2[0-9])\b/);
+    if (m) {
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      return { fecha: `20${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
+    }
+
+    // Patrón Compacto: YYYYMMDD (ej: 20260414)
+    m = nombre.match(/(202[0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])/);
+    if (m) {
+      return { fecha: `${m[1]}-${m[2]}-${m[3]}`, origen: 'nombre del archivo' };
+    }
+
+    // Mes en texto en el nombre: ej "14 de abril 2026", "14_abril_2026", "abril_2026"
+    m = nombre.match(/([0-2]?[0-9]|3[01])?[-_\s]*(?:de[-_\s]*)?([a-zA-Z]{3,10})[-_\s]*(?:de[-_\s]*)?(202[0-9])/i);
+    if (m && meses[m[2].toLowerCase()]) {
+      const d = m[1] ? m[1].padStart(2, '0') : '01';
+      const mo = meses[m[2].toLowerCase()];
+      return { fecha: `${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
+    }
+  }
+
+  // 2. Análisis del CONTENIDO Y METADATOS INTERNOS DEL ARCHIVO
+  if (base64Str) {
+    const headerText = decodificarFragmentoBase64(base64Str, 120000);
+    const trailerText = decodificarColaBase64(base64Str, 40000);
+    const sample = headerText + '\n' + trailerText;
+
+    // A. Metadatos directos de PDF: /CreationDate (D:YYYYMMDD...) o /ModDate
+    let mPdf = sample.match(/\/(?:CreationDate|ModDate)\s*\(\s*D:?(202[0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])/i);
+    if (mPdf) {
+      return { fecha: `${mPdf[1]}-${mPdf[2]}-${mPdf[3]}`, origen: 'metadatos PDF' };
+    }
+
+    // B. Texto del documento con encabezado de fecha: "Fecha: DD/MM/YYYY" o "Fecha de visita: DD/MM/YYYY"
+    let mFechaDoc = sample.match(/fecha[^\d\n\r]{0,35}([0-2]?[0-9]|3[01])[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](202[0-9])/i);
+    if (mFechaDoc) {
+      const d = mFechaDoc[1].padStart(2, '0');
+      const mo = mFechaDoc[2].padStart(2, '0');
+      return { fecha: `${mFechaDoc[3]}-${mo}-${d}`, origen: 'texto del documento' };
+    }
+
+    // C. Expresión formal en español: "14 de abril de 2026" o "a los 14 días del mes de abril de 2026"
+    let mTextoMes = sample.match(/([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del\s+a[ñn]o\s+|de\s+)?(202[0-9])/i);
+    if (mTextoMes && meses[mTextoMes[2].toLowerCase()]) {
+      const d = mTextoMes[1].padStart(2, '0');
+      const mo = meses[mTextoMes[2].toLowerCase()];
+      return { fecha: `${mTextoMes[3]}-${mo}-${d}`, origen: 'texto del documento' };
+    }
+
+    // D. Cualquier fecha válida DD/MM/YYYY presente en el cuerpo
+    let mGeneral = headerText.match(/\b([0-2]?[0-9]|3[01])[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](202[0-9])\b/);
+    if (mGeneral) {
+      const d = mGeneral[1].padStart(2, '0');
+      const mo = mGeneral[2].padStart(2, '0');
+      return { fecha: `${mGeneral[3]}-${mo}-${d}`, origen: 'contenido del documento' };
+    }
+  }
+
+  // 3. Fallback: Fecha de última modificación del archivo en el dispositivo
+  if (file && file.lastModified) {
+    const modDate = new Date(file.lastModified);
+    if (!isNaN(modDate.getTime())) {
+      const yyyy = modDate.getFullYear();
+      if (yyyy >= 2020 && yyyy <= 2030) {
+        const mm = String(modDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(modDate.getDate()).padStart(2, '0');
+        return { fecha: `${yyyy}-${mm}-${dd}`, origen: 'archivo (última modificación)' };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Ejecuta el análisis inteligente del archivo y auto-completa el campo de fecha,
+ * dejando habilitada la opción de modificarla libremente.
+ */
+function analizarYCargarFechaArchivo(file, base64Str) {
+  const detectado = extraerFechaDeArchivo(file, base64Str);
+  const inputFecha = document.getElementById('act-fecha');
+  const badge = document.getElementById('act-fecha-detectada-badge');
+  const badgeTxt = document.getElementById('act-fecha-detectada-txt');
+
+  if (!inputFecha) return;
+
+  if (detectado && detectado.fecha) {
+    inputFecha.value = detectado.fecha;
+    actualizarPreviewNombreArchivo();
+
+    if (badge && badgeTxt) {
+      const partes = detectado.fecha.split('-');
+      const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
+      badgeTxt.innerHTML = `✨ Fecha detectada (${detectado.origen}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
+      badge.classList.remove('hidden');
+    }
+    mostrarToast(`✨ Fecha detectada del documento: ${detectado.fecha}`);
+  }
+}
+
+/**
+ * Permite al usuario volver a la fecha de hoy con un solo clic si lo prefiere.
+ */
+function restablecerFechaHoy() {
+  const inputFecha = document.getElementById('act-fecha');
+  const badge = document.getElementById('act-fecha-detectada-badge');
+  if (inputFecha) {
+    inputFecha.value = new Date().toISOString().slice(0, 10);
+    actualizarPreviewNombreArchivo();
+  }
+  if (badge) badge.classList.add('hidden');
+  mostrarToast('📅 Fecha restablecida a hoy.');
+}
+window.restablecerFechaHoy = restablecerFechaHoy;
+
 // ==================== ENVÍO Y GUARDADO A GOOGLE DRIVE / APPS SCRIPT ====================
 
 async function guardarActividadYSubir() {
@@ -1685,10 +2247,23 @@ async function guardarActividadYSubir() {
   if (preventor) localStorage.setItem('hys_ultimo_preventor', preventor);
 
   const detalle = obtenerDetalleActualParaCodificacion();
-  const observaciones = document.getElementById('act-obs') ? document.getElementById('act-obs').value.trim() : '';
-
   let estado = 'Completado';
-  if (currentActividadModal === 'muestra_agua') {
+  let obsFinal = observaciones;
+  if (currentActividadModal === 'constancia_visita') {
+    const stCv = document.getElementById('campo-cv-estado');
+    estado = stCv ? stCv.value : 'Firmada in situ';
+    const firmante = document.getElementById('campo-cv-firmante') ? document.getElementById('campo-cv-firmante').value.trim() : '';
+    if (firmante) {
+      obsFinal = (obsFinal ? obsFinal + ' | ' : '') + 'Firmado por: ' + firmante;
+    }
+  } else if (currentActividadModal === 'informe_tecnico') {
+    const stInf = document.getElementById('campo-informe-estado');
+    estado = stInf ? stInf.value : 'Completado';
+    const cantD = document.getElementById('campo-informe-cant-desvios') ? document.getElementById('campo-informe-cant-desvios').value.trim() : '';
+    if (cantD) {
+      obsFinal = (obsFinal ? obsFinal + ' | ' : '') + 'Desvíos detectados: ' + cantD;
+    }
+  } else if (currentActividadModal === 'muestra_agua') {
     estado = 'Muestra Tomada (En Análisis)';
   } else if (currentActividadModal === 'analisis_agua') {
     const resBac = document.getElementById('campo-agua-res-bac') ? document.getElementById('campo-agua-res-bac').value : 'APTO';
@@ -1721,7 +2296,7 @@ async function guardarActividadYSubir() {
     estadoActividad: estado,
     detalle: detalle,
     preventor: preventor,
-    observaciones: observaciones,
+    observaciones: obsFinal,
     fileBase64: archivoSeleccionadoBase64 || '',
     originalFileName: archivoSeleccionadoMeta ? archivoSeleccionadoMeta.originalName : '',
     mimeType: archivoSeleccionadoMeta ? archivoSeleccionadoMeta.type : 'application/pdf',
@@ -1802,7 +2377,7 @@ async function guardarActividadYSubir() {
     estadoActividad: estado,
     detalle: detalle,
     preventor: preventor,
-    observaciones: observaciones,
+    observaciones: obsFinal,
     fileName: codedFileName,
     fileUrl: driveUrl,
     fileId: driveFileId,
@@ -1830,72 +2405,208 @@ function animarProgreso(bar, label, targetPercent, text) {
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
 
+function mapearFilaActividad(row) {
+  if (!row) return null;
+  const fAct = row['Fecha Actividad'] ? String(row['Fecha Actividad']).split('T')[0] : '';
+  const mInfo = parsearAnioMesCliente(fAct);
+  const mUrl = row['URL Carpeta Mensual'] || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+  if (mUrl && mInfo.key) {
+    AppState.carpetasMensuales[mInfo.key] = {
+      key: mInfo.key,
+      label: mInfo.label,
+      url: mUrl,
+      id: ''
+    };
+  }
+  return {
+    id: row['ID Registro'] || ('ACT_' + Math.random().toString(36).substring(2, 9)),
+    tipoActividad: normalizarActividadDesdeSheet(row['Tipo Actividad']),
+    fechaActividad: fAct,
+    estadoActividad: row['Estado'] || 'Completado',
+    detalle: row['Detalle / Puesto / Tema'] || '',
+    fileName: row['Nombre Archivo'] || '',
+    fileUrl: row['URL Google Drive'] || '',
+    fileId: row['ID Drive'] || '',
+    preventor: row['Preventor Responsable'] || '',
+    observaciones: row['Observaciones'] || '',
+    monthFolderUrl: mUrl,
+    monthKey: mInfo.key,
+    monthLabel: mInfo.label
+  };
+}
+
+function encontrarEstablecimiento(nro, nom, org) {
+  const sNro = nro ? String(nro).trim().toLowerCase() : '';
+  const sNom = nom ? String(nom).trim().toLowerCase() : '';
+  const sOrg = org ? String(org).trim().toLowerCase() : '';
+
+  if (sNro) {
+    const found = AppState.establecimientos.find(e => e.nroEstab && String(e.nroEstab).trim().toLowerCase() === sNro);
+    if (found) return found;
+  }
+  if (sNom) {
+    const found = AppState.establecimientos.find(e => {
+      const eNom = String(e.nombreEstablecimiento || '').trim().toLowerCase();
+      return eNom === sNom || (sNom.length > 5 && eNom.includes(sNom)) || (eNom.length > 5 && sNom.includes(eNom));
+    });
+    if (found) return found;
+  }
+  if (sOrg) {
+    const found = AppState.establecimientos.find(e => String(e.organismo || '').trim().toLowerCase() === sOrg);
+    if (found) return found;
+  }
+  return null;
+}
+
 async function sincronizarConSheets() {
   const est = AppState.establecimientoSeleccionado;
-  if (!est) return;
-
   AppState.estaSincronizando = true;
-  renderFichaEstablecimiento(est);
+
+  // Actualizar spinners visuales en todos los botones de sincronización
+  const allSyncBtns = document.querySelectorAll('.btn-sync-action, #btn-sync-repo-global, #btn-sync-ficha');
+  allSyncBtns.forEach(btn => {
+    btn.disabled = true;
+    const icon = btn.querySelector('i');
+    if (icon) icon.classList.add('fa-spin');
+  });
+
+  if (est) {
+    renderFichaEstablecimiento(est);
+  }
 
   try {
-    const url = `${getWebhookUrl()}?action=get_legajo_establecimiento&nroEstab=${encodeURIComponent(est.nroEstab || '')}&nombreEstab=${encodeURIComponent(est.nombreEstablecimiento)}&organismo=${encodeURIComponent(est.organismo)}`;
+    mostrarToast('⏳ Sincronizando con Google Sheets y Google Drive...');
+
+    // Si hay un establecimiento seleccionado, sincronizamos esa sede.
+    // Si no hay seleccionado (estamos en Repositorio Global, Matriz o Dashboard), sincronizamos TODO.
+    const isGlobal = !est;
+    const url = isGlobal 
+      ? `${getWebhookUrl()}?action=get_todos_legajos`
+      : `${getWebhookUrl()}?action=get_legajo_establecimiento&nroEstab=${encodeURIComponent(est.nroEstab || '')}&nombreEstab=${encodeURIComponent(est.nombreEstablecimiento)}&organismo=${encodeURIComponent(est.organismo)}`;
+
     const res = await fetch(url);
     const json = await res.json();
 
+    // 1. Verificación si la versión desplegada en Google Apps Script está desactualizada
+    if (json && json.status === 'success' && !Array.isArray(json.actividades) && json.establecimientos) {
+      mostrarModalVersionDesactualizada();
+      return;
+    }
+
+    // 2. Si recibimos actividades válidas
     if (json && json.status === 'success' && Array.isArray(json.actividades)) {
       if (json.actividades.length > 0) {
-        const mapped = json.actividades.map(row => {
-          const fAct = row['Fecha Actividad'] || '';
-          const mInfo = parsearAnioMesCliente(fAct);
-          const mUrl = row['URL Carpeta Mensual'] || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
-          if (mUrl && mInfo.key) {
-            AppState.carpetasMensuales[mInfo.key] = {
-              key: mInfo.key,
-              label: mInfo.label,
-              url: mUrl,
-              id: ''
-            };
-          }
-          return {
-            id: row['ID Registro'] || ('ACT_' + Date.now()),
-            tipoActividad: normalizarActividadDesdeSheet(row['Tipo Actividad']),
-            fechaActividad: fAct,
-            estadoActividad: row['Estado'] || 'Completado',
-            detalle: row['Detalle / Puesto / Tema'] || '',
-            fileName: row['Nombre Archivo'] || '',
-            fileUrl: row['URL Google Drive'] || '',
-            fileId: row['ID Drive'] || '',
-            preventor: row['Preventor Responsable'] || '',
-            observaciones: row['Observaciones'] || '',
-            monthFolderUrl: mUrl,
-            monthKey: mInfo.key,
-            monthLabel: mInfo.label
-          };
-        });
+        if (isGlobal) {
+          let totalMapped = 0;
+          json.actividades.forEach(row => {
+            const mappedItem = mapearFilaActividad(row);
+            if (!mappedItem) return;
+            totalMapped++;
 
-        guardarCarpetasMensualesLocal();
-        AppState.actividadesRegistradas[est.id] = mapped;
-        guardarLegajoLocal();
-        renderRepositorioGlobal(true);
-        mostrarToast(`Sincronizados ${mapped.length} registros desde Google Drive/Sheets.`);
+            const targetEst = encontrarEstablecimiento(
+              row['N° Estab'] || row['Nro Estab'],
+              row['Nombre Establecimiento'],
+              row['Organismo']
+            );
+            const estKey = targetEst ? targetEst.id : ('est_' + (row['N° Estab'] || 'gen'));
+
+            if (!AppState.actividadesRegistradas[estKey]) {
+              AppState.actividadesRegistradas[estKey] = [];
+            }
+
+            const idx = AppState.actividadesRegistradas[estKey].findIndex(a => 
+              a.id === mappedItem.id || 
+              (a.fileName && mappedItem.fileName && a.fileName === mappedItem.fileName)
+            );
+            if (idx >= 0) {
+              AppState.actividadesRegistradas[estKey][idx] = mappedItem;
+            } else {
+              AppState.actividadesRegistradas[estKey].push(mappedItem);
+            }
+          });
+
+          guardarCarpetasMensualesLocal();
+          guardarLegajoLocal();
+          renderRepositorioGlobal(true);
+          renderMatrizAnual();
+          renderDashboard();
+          mostrarToast(`✅ Sincronizados ${totalMapped} registros globales desde Google Sheets.`);
+        } else {
+          const mapped = json.actividades.map(mapearFilaActividad).filter(Boolean);
+          guardarCarpetasMensualesLocal();
+          AppState.actividadesRegistradas[est.id] = mapped;
+          guardarLegajoLocal();
+          renderRepositorioGlobal(true);
+          renderPanelActividades(est);
+          renderMatrizAnual();
+          mostrarToast(`✅ Sincronizados ${mapped.length} registros para ${est.nombreEstablecimiento}.`);
+        }
       } else {
-        mostrarToast('No se encontraron registros previos en Google Sheets para esta sede.');
+        mostrarToast(isGlobal 
+          ? 'No se encontraron registros en Google Sheets (Hoja Legajo vacía).' 
+          : 'No se encontraron registros previos en Google Sheets para esta sede.');
       }
+    } else {
+      mostrarToast('⚠️ Respuesta inesperada de Google Sheets. Verificá la configuración del Webhook.');
     }
+
+    // Sincronizar también carpetas mensuales desde Drive
+    try {
+      await cargarCarpetasMensualesDesdeDrive();
+    } catch(e) {}
 
   } catch (err) {
     console.warn('Error sincronizando con Sheets:', err);
-    mostrarToast('No se pudo conectar con Google Sheets. Mostrando datos locales.');
+    mostrarToast('❌ No se pudo conectar con Google Sheets: ' + err.message);
   } finally {
     AppState.estaSincronizando = false;
-    renderFichaEstablecimiento(est);
-    renderPanelActividades(est);
+    allSyncBtns.forEach(btn => {
+      btn.disabled = false;
+      const icon = btn.querySelector('i');
+      if (icon) icon.classList.remove('fa-spin');
+    });
+    if (est) {
+      renderFichaEstablecimiento(est);
+      renderPanelActividades(est);
+    }
+  }
+}
+
+function mostrarModalVersionDesactualizada() {
+  const modal = document.getElementById('modal-desactualizado-apps-script');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  } else {
+    alert(
+      '⚠️ ATENCIÓN: El Webhook de Google Apps Script necesita actualizarse.\n\n' +
+      'La URL actual respondió correctamente, pero está ejecutando una versión previa que todavía no incluye la función de sincronización de legajos y carpetas Drive.\n\n' +
+      'Pasos para solucionarlo en 1 minuto:\n' +
+      '1. Abrí tu proyecto en Google Apps Script (script.google.com)\n' +
+      '2. Copiá y pegá el código completo del archivo "codigo_google_apps_script.js"\n' +
+      '3. Hacé clic en "Implementar" > "Administrar implementaciones"\n' +
+      '4. Hacé clic en el lápiz (Editar), elegí "Versión: Nueva versión" y pulsá "Implementar".'
+    );
+  }
+}
+
+function cerrarModalVersionDesactualizada() {
+  const modal = document.getElementById('modal-desactualizado-apps-script');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
 
 function normalizarActividadDesdeSheet(str) {
   if (!str) return 'confeccion_rgrl';
-  const s = str.toLowerCase();
+  const s = str.toLowerCase().trim();
+  if (s.includes('constancia') || s === 'cv' || s.startsWith('cv_') || s.startsWith('cv ') || s.includes('visita')) {
+    return 'constancia_visita';
+  }
+  if (s.includes('informe') || s === 'inf' || s.startsWith('informe_') || s.startsWith('informe ')) {
+    return 'informe_tecnico';
+  }
   for (const [key, val] of Object.entries(CATALOGO_ACTIVIDADES)) {
     if (s.includes(key) || s.includes(val.codigo.toLowerCase()) || s.includes(val.nombre.toLowerCase())) {
       return key;

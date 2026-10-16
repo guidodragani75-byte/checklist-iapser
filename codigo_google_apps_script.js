@@ -142,6 +142,13 @@ function obtenerAbreviaturaOrganismo(org) {
 function normalizarCodigoActividad(act) {
   var s = (act || "").toLowerCase().trim();
   var map = {
+    "constancia_visita": "CV",
+    "constancia": "CV",
+    "cv": "CV",
+    "visita": "CV",
+    "informe_tecnico": "INFORME",
+    "informe": "INFORME",
+    "informe_visita": "INFORME",
     "confeccion_rgrl": "RGRL",
     "rgrl": "RGRL",
     "confeccion_rar": "RAR",
@@ -222,7 +229,11 @@ function doGet(e) {
       for (var r = 1; r < mData.length; r++) {
         var obj = {};
         for (var c = 0; c < mHeaders.length; c++) {
-          obj[mHeaders[c]] = mData[r][c];
+          var mVal = mData[r][c];
+          if (mVal instanceof Date) {
+            try { mVal = Utilities.formatDate(mVal, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd"); } catch(eD) { mVal = mVal.toISOString(); }
+          }
+          obj[mHeaders[c]] = mVal;
         }
         mRows.push(obj);
       }
@@ -230,8 +241,8 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 2. Obtener Historial de Actividades / Documentos del Legajo por Establecimiento
-    if (action === "get_legajo_establecimiento") {
+    // 2. Obtener Historial de Actividades / Documentos del Legajo (Individual o Global)
+    if (action === "get_legajo_establecimiento" || action === "get_todos_legajos") {
       var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
       if (!sheetLegajo) {
         return ContentService.createTextOutput(JSON.stringify({ status: "success", actividades: [] }))
@@ -242,23 +253,48 @@ function doGet(e) {
       var targetNro = (e.parameter.nroEstab || "").toString().trim().toLowerCase();
       var targetNom = (e.parameter.nombreEstab || "").toString().trim().toLowerCase();
       var targetOrg = (e.parameter.organismo || "").toString().trim().toLowerCase();
+      var isGlobal = (action === "get_todos_legajos") || (!targetNro && !targetNom && !targetOrg);
+
+      var colNroIdx = lHeaders.indexOf("N° Estab");
+      if (colNroIdx === -1) colNroIdx = lHeaders.indexOf("Nro Estab");
+      if (colNroIdx === -1) colNroIdx = 4;
+
+      var colNomIdx = lHeaders.indexOf("Nombre Establecimiento");
+      if (colNomIdx === -1) colNomIdx = 5;
+
+      var colOrgIdx = lHeaders.indexOf("Organismo");
+      if (colOrgIdx === -1) colOrgIdx = 3;
 
       var results = [];
       for (var i = 1; i < lData.length; i++) {
         var row = lData[i];
-        var rNro = String(row[4] || "").trim().toLowerCase();
-        var rNom = String(row[5] || "").trim().toLowerCase();
-        var rOrg = String(row[3] || "").trim().toLowerCase();
+        var rNro = String(row[colNroIdx] || "").trim().toLowerCase();
+        var rNom = String(row[colNomIdx] || "").trim().toLowerCase();
+        var rOrg = String(row[colOrgIdx] || "").trim().toLowerCase();
 
         var match = false;
-        if (targetNro && rNro && targetNro === rNro) match = true;
-        else if (targetNom && rNom && (rNom.includes(targetNom) || targetNom.includes(rNom))) match = true;
-        else if (!targetNro && !targetNom && targetOrg && rOrg.includes(targetOrg)) match = true;
+        if (isGlobal) {
+          match = true;
+        } else if (targetNro && rNro && targetNro === rNro) {
+          match = true;
+        } else if (targetNom && rNom && (rNom.includes(targetNom) || targetNom.includes(rNom))) {
+          match = true;
+        } else if (!targetNro && !targetNom && targetOrg && rOrg.includes(targetOrg)) {
+          match = true;
+        }
 
         if (match) {
           var item = {};
           for (var col = 0; col < lHeaders.length; col++) {
-            item[lHeaders[col]] = row[col];
+            var val = row[col];
+            if (val instanceof Date) {
+              try {
+                val = Utilities.formatDate(val, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd");
+              } catch(eDate) {
+                val = val.toISOString().substring(0, 10);
+              }
+            }
+            item[lHeaders[col]] = val;
           }
           results.push(item);
         }
@@ -501,6 +537,121 @@ function doPost(e) {
 
 
     // ========================================================
+    // CASO 1.5: ELIMINAR DOCUMENTO / ACTIVIDAD Y LIMPIAR REGISTRO
+    // ========================================================
+    if (data.tipoOperacion === "eliminar_actividad_documento") {
+      var targetRegId = String(data.registroId || "").trim();
+      var targetFileId = String(data.fileId || "").trim();
+      var targetFileName = String(data.fileName || "").trim();
+      var targetEstab = String(data.establecimiento || "").trim();
+      var targetNroEstab = String(data.nroEstab || "").trim();
+      var targetTipoAct = String(data.tipoActividad || "").trim();
+
+      var fileDeleted = false;
+      var rowDeleted = false;
+
+      // 1. Enviar archivo a papelera de Drive si se tiene el ID
+      if (targetFileId) {
+        try {
+          var driveFile = DriveApp.getFileById(targetFileId);
+          driveFile.setTrashed(true);
+          fileDeleted = true;
+        } catch (eDrive) {
+          Logger.log("Aviso al mover archivo a papelera en Drive: " + eDrive);
+        }
+      }
+
+      // 2. Eliminar fila en Legajo_Actividades_Archivos
+      var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+      if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+        var dataLeg = sheetLegajo.getDataRange().getValues();
+        for (var r = dataLeg.length - 1; r >= 1; r--) {
+          var row = dataLeg[r];
+          var rowRegId = String(row[0] || "").trim();
+          var rowEstab = String(row[5] || "").trim();
+          var rowTipo = String(row[7] || "").trim();
+          var rowFileName = String(row[10] || "").trim();
+          var rowFileId = String(row[12] || "").trim();
+
+          var match = false;
+          if (targetRegId && rowRegId && targetRegId === rowRegId) {
+            match = true;
+          } else if (targetFileId && rowFileId && targetFileId === rowFileId) {
+            match = true;
+          } else if (targetFileName && rowFileName && targetFileName === rowFileName) {
+            match = true;
+          }
+
+          if (match) {
+            if (!fileDeleted && rowFileId) {
+              try {
+                DriveApp.getFileById(rowFileId).setTrashed(true);
+                fileDeleted = true;
+              } catch (eF) {}
+            }
+            if (!targetEstab && rowEstab) targetEstab = rowEstab;
+            if (!targetTipoAct && rowTipo) targetTipoAct = rowTipo;
+
+            sheetLegajo.deleteRow(r + 1);
+            rowDeleted = true;
+            break;
+          }
+        }
+      }
+
+      // 3. Actualizar celda en 'Matriz_Control_Gestion'
+      if (targetEstab && targetTipoAct) {
+        var colNameMap = {
+          "constancia_visita": "CONSTANCIA_VISITA",
+          "cv": "CONSTANCIA_VISITA",
+          "informe_tecnico": "INFORME_TECNICO",
+          "informe": "INFORME_TECNICO",
+          "confeccion_rgrl": "RGRL",
+          "confeccion_rar": "RAR",
+          "capacitaciones": "CAPACITACION_EN_OCASION_DE_VISITA",
+          "mediciones_ruido": "MEDICION_DE_RUIDO",
+          "mediciones_iluminacion": "MEDICION_DE_ILUMINACION",
+          "mediciones_puesta_a_tierra": "MEDICION_PUESTA_A_TIERRA",
+          "muestra_agua": "ANALISIS_DE_AGUA",
+          "analisis_agua": "ANALISIS_DE_AGUA",
+          "res_886": "RES_886",
+          "carga_fuego": "ESTUDIO_CARGA_DE_FUEGO",
+          "simulacro": "SIMULACRO_EVACUACION",
+          "control_extintores": "CONTROL_DE_EXTINTORES"
+        };
+        var colTarget = colNameMap[targetTipoAct.toLowerCase()] || colNameMap[normalizarCodigoActividad(targetTipoAct).toLowerCase()];
+        if (colTarget) {
+          // Buscar si queda algún otro registro para esta sede y actividad
+          var remainingValue = "";
+          if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+            var freshData = sheetLegajo.getDataRange().getValues();
+            for (var f = freshData.length - 1; f >= 1; f--) {
+              var fEstab = String(freshData[f][5] || "").toLowerCase().trim();
+              var fTipo = String(freshData[f][7] || "").toLowerCase().trim();
+              if (fEstab.includes(targetEstab.toLowerCase()) || targetEstab.toLowerCase().includes(fEstab)) {
+                if (fTipo === targetTipoAct.toLowerCase() || normalizarCodigoActividad(fTipo) === normalizarCodigoActividad(targetTipoAct)) {
+                  var fEstado = freshData[f][8] || "Completado";
+                  var fFecha = freshData[f][2] ? String(freshData[f][2]).split("T")[0] : "";
+                  remainingValue = fEstado + (fFecha ? " (" + fFecha + ")" : "");
+                  break;
+                }
+              }
+            }
+          }
+          actualizarColumnaMatriz(ss, targetEstab, colTarget, remainingValue);
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Registro eliminado y archivo enviado a papelera correctamente.",
+        fileDeleted: fileDeleted,
+        rowDeleted: rowDeleted
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+
+    // ========================================================
     // CASO 2: CONTROL DE EXTINTORES (Móvil Offline)
     // ========================================================
     if (data.tipoOperacion === "control_extintores") {
@@ -653,6 +804,10 @@ function actualizarMatrizPorActividad(ss, nombreEstab, nroEstab, actTipo, estado
   if (!sheetMatriz) return;
 
   var colNameMap = {
+    "constancia_visita": "CONSTANCIA_VISITA",
+    "cv": "CONSTANCIA_VISITA",
+    "informe_tecnico": "INFORME_TECNICO",
+    "informe": "INFORME_TECNICO",
     "confeccion_rgrl": "RGRL",
     "confeccion_rar": "RAR",
     "capacitaciones": "CAPACITACION_EN_OCASION_DE_VISITA",

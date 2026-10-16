@@ -23277,7 +23277,7 @@ function guardarUrlSheetsYEnviar() {
 
 function ejecutarEnvioSheets(url) {
   const payload = collectAllData();
-  const btn = document.querySelector('.btn-sheets');
+  const btn = document.querySelector('.btn-action-sheets, .btn-sheets');
   const prevText = btn ? btn.textContent : '';
   if (btn) {
     btn.textContent = '⏳ Guardando en Sheets...';

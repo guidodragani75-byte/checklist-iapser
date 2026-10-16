@@ -208,6 +208,11 @@
         </div>
 
         <div class="flex items-center gap-2.5">
+          <button onclick="sincronizarConSheets()" class="btn-sync-action px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white flex items-center gap-2 shadow-sm transition" title="Sincronizar historial con Google Sheets y Drive">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Sincronizar</span>
+          </button>
+
           <button onclick="abrirModalTableroGeneral()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center gap-2 border border-white/15 transition">
             <i class="fa-solid fa-chart-pie text-amber-300"></i>
             <span>Métricas Provinciales</span>
@@ -435,6 +440,8 @@
                 <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
                 <th class="text-left px-3 min-w-[160px]">Organismo</th>
                 <th class="px-3 min-w-[120px]">Localidad</th>
+                <th title="Constancia de Visita Oficial (CV firmado in situ)">CV</th>
+                <th title="Informe Técnico de Relevamiento / Visita">Informe</th>
                 <th title="Confección de RGRL (Dec. 351/79)">RGRL</th>
                 <th title="Confección de RAR (Nómina expuestos SRT)">RAR</th>
                 <th title="Muestra de Agua (Toma in situ)">Agua Toma</th>
@@ -508,7 +515,7 @@
             <i class="fa-solid fa-folder-open text-amber-300"></i>
             <span id="label-abrir-carpeta-mes-repo">Carpeta Mensual en Drive</span>
           </button>
-          <button onclick="sincronizarConSheets()" class="btn-secondary text-xs flex items-center gap-2" title="Sincronizar historial con Google Sheets y Drive">
+          <button id="btn-sync-repo-global" onclick="sincronizarConSheets()" class="btn-secondary btn-sync-action text-xs flex items-center gap-2" title="Sincronizar historial con Google Sheets y Drive">
             <i class="fa-solid fa-arrows-rotate"></i>
             <span>Sincronizar</span>
           </button>
@@ -569,8 +576,22 @@
         
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Fecha de Realización *</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-slate-700">Fecha de Realización *</label>
+              <span class="text-[10px] text-blue-700 font-semibold flex items-center gap-1" title="Se auto-detecta del archivo subido o puedes elegirla manualmente">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Auto-detectable
+              </span>
+            </div>
             <input type="date" id="act-fecha" class="input-text text-xs" onchange="actualizarPreviewNombreArchivo()" required>
+            <div id="act-fecha-detectada-badge" class="hidden mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition">
+              <div class="flex items-center gap-1.5 overflow-hidden">
+                <i class="fa-solid fa-wand-magic-sparkles text-emerald-600 shrink-0"></i>
+                <span id="act-fecha-detectada-txt" class="truncate">Fecha detectada automáticamente</span>
+              </div>
+              <button type="button" onclick="restablecerFechaHoy()" class="text-[10px] text-emerald-700 hover:text-emerald-950 underline shrink-0 font-bold" title="Volver a la fecha de hoy">
+                Hoy
+              </button>
+            </div>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Preventor / Profesional Responsable</label>
@@ -653,6 +674,45 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: DOCUMENTOS DE UNA ACTIVIDAD ==================== -->
+  <div id="modal-historial-actividad" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div id="modal-hist-icono" class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-lg text-amber-400">
+            📄
+          </div>
+          <div>
+            <h3 id="modal-hist-titulo" class="font-bold text-base leading-tight">Documentos Subidos</h3>
+            <div id="modal-hist-subtitulo" class="text-xs text-white/80">Establecimiento</div>
+          </div>
+        </div>
+        <button onclick="cerrarModal('modal-historial-actividad')" class="text-white/80 hover:text-white text-lg p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-3 flex-1 bg-slate-50/50">
+        <div id="modal-hist-lista" class="space-y-3">
+          <!-- Rellenado dinámicamente -->
+        </div>
+      </div>
+
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <span id="modal-hist-contador" class="text-xs text-slate-500 font-medium"></span>
+        <div class="flex gap-2">
+          <button id="modal-hist-btn-nuevo" class="btn-primary text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Subir Nuevo</span>
+          </button>
+          <button onclick="cerrarModal('modal-historial-actividad')" class="btn-secondary text-xs">
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -808,6 +868,77 @@
       <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
         <span class="text-[11px] text-slate-500 font-medium">IAPSER ART — Gestión Digital</span>
         <button onclick="cerrarModal('modal-carpetas-mensuales')" class="btn-secondary text-xs">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal Alerta de Versión Desactualizada de Google Apps Script -->
+  <div id="modal-desactualizado-apps-script" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-amber-200 overflow-hidden">
+      <div class="p-5 px-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base">Actualización de Google Apps Script Requerida</h3>
+            <p class="text-xs text-amber-100">El Webhook respondió, pero requiere publicar una Nueva Versión en Google</p>
+          </div>
+        </div>
+        <button onclick="cerrarModalVersionDesactualizada()" class="text-white/80 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs text-slate-700 leading-relaxed">
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
+          <i class="fa-solid fa-circle-info text-amber-600 text-sm mt-0.5"></i>
+          <div>
+            <span class="font-bold text-amber-900">¿Por qué sucede esto?</span>
+            <p class="text-slate-600 mt-0.5">
+              Tu enlace de Google Apps Script está activo, pero Google mantiene ejecutando la versión previa hasta que publiques una <strong>"Nueva versión"</strong> en el panel de implementaciones.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-ol text-blue-700"></i>
+            <span>Pasos para actualizar en 1 minuto:</span>
+          </h4>
+          <ol class="space-y-2 list-decimal list-inside text-slate-700">
+            <li class="pl-1">
+              Abrí tu proyecto en <a href="https://script.google.com" target="_blank" class="text-blue-600 font-bold underline hover:text-blue-800">script.google.com <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>.
+            </li>
+            <li class="pl-1">
+              Abrí en tu equipo el archivo <code class="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-mono font-bold">codigo_google_apps_script.js</code>, copiá todo su contenido y pegalo en el editor de Google Apps Script (reemplazando el código anterior).
+            </li>
+            <li class="pl-1">
+              Hacé clic en el botón azul superior: <strong>"Implementar"</strong> &gt; <strong>"Administrar implementaciones"</strong>.
+            </li>
+            <li class="pl-1">
+              Hacé clic en el ícono del <strong>lápiz (Editar)</strong> de tu implementación activa.
+            </li>
+            <li class="pl-1">
+              En el desplegable <strong>"Versión"</strong>, seleccioná <strong>"Nueva versión"</strong> y pulsá <strong>"Implementar"</strong>.
+            </li>
+          </ol>
+        </div>
+
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+          <div class="text-[11px] text-slate-500">
+            Archivo con el código listo para copiar: <strong class="text-slate-700">codigo_google_apps_script.js</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="cerrarModalVersionDesactualizada()" class="btn-secondary text-xs">Cerrar</button>
+        <button onclick="cerrarModalVersionDesactualizada(); sincronizarConSheets();" class="btn-primary text-xs flex items-center gap-2 bg-blue-700 hover:bg-blue-800">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Reintentar Sincronización</span>
+        </button>
       </div>
     </div>
   </div>
