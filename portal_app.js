@@ -2243,8 +2243,11 @@ async function guardarActividadYSubir() {
     return;
   }
 
-  const preventor = document.getElementById('act-preventor').value.trim();
+  const preventor = document.getElementById('act-preventor') ? document.getElementById('act-preventor').value.trim() : '';
   if (preventor) localStorage.setItem('hys_ultimo_preventor', preventor);
+
+  const obsElem = document.getElementById('act-obs');
+  const observaciones = obsElem ? obsElem.value.trim() : '';
 
   const detalle = obtenerDetalleActualParaCodificacion();
   let estado = 'Completado';
@@ -2397,6 +2400,7 @@ async function guardarActividadYSubir() {
     mostrarToast(`✓ Guardado en sede y en carpeta mensual: ${mInfo.label}`);
   }, 600);
 }
+window.guardarActividadYSubir = guardarActividadYSubir;
 
 function animarProgreso(bar, label, targetPercent, text) {
   if (bar) bar.style.width = targetPercent + '%';
