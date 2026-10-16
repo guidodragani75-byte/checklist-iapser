@@ -164,6 +164,7 @@ const AppState = {
   matrizFiltroOrg: '',
   matrizFiltroLoc: '',
   matrizFiltroTexto: '',
+  matrizFiltroDocs: '',
 
   // Filtros Vista 3 (Repositorio)
   repoFiltroOrg: '',
@@ -749,6 +750,19 @@ function renderPanelActividades(est) {
     grid.appendChild(card);
   });
 
+  // Tarjeta: Subida Rápida General por Establecimiento (con OCR)
+  const quickUploadCard = document.createElement('div');
+  quickUploadCard.className = 'activity-card-quick-upload flex flex-col items-center justify-center p-6 border-2 border-dashed border-amber-400 bg-amber-50/40 hover:bg-amber-100/70 hover:border-amber-600 rounded-xl cursor-pointer transition text-center text-amber-900 shadow-xs group';
+  quickUploadCard.onclick = () => abrirModalSubidaRapida(est.id);
+  quickUploadCard.innerHTML = `
+    <div class="w-11 h-11 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition shadow-2xs">
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+    </div>
+    <div class="font-extrabold text-xs text-amber-950">Subida Rápida (OCR)</div>
+    <div class="text-[11px] text-amber-800/90 mt-0.5">Elegí el archivo y detecta fecha y tipo</div>
+  `;
+  grid.appendChild(quickUploadCard);
+
   const addCard = document.createElement('div');
   addCard.className = 'activity-card-add flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition text-center text-slate-500 hover:text-blue-700';
   addCard.onclick = () => abrirModalNuevaActividadPersonalizada();
@@ -1212,6 +1226,7 @@ function renderMatrizAnual() {
   // Métricas del resumen en cabecera
   let totalActividadesPeriodo = 0;
   let sedesConAlMenosUnaActividad = 0;
+  let sedesMostradas = 0;
   const conteoPorColumna = {};
   Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoPorColumna[k] = 0);
 
@@ -1279,16 +1294,33 @@ function renderMatrizAnual() {
       }
     }
 
-    // Calcular total de actividades de la sede en el período y sumar a columnas
+    // Calcular total de actividades de la sede en el período
     let totalSedePeriodo = 0;
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
       const cant = conteoSede[k] || 0;
       totalSedePeriodo += cant;
-      conteoPorColumna[k] += cant;
     });
 
+    // Filtro por Estado / Documentos específicos solicitado por el usuario
+    const docsFiltro = AppState.matrizFiltroDocs || '';
+    if (docsFiltro === 'con_docs' && totalSedePeriodo === 0) return;
+    if (docsFiltro === 'sin_docs' && totalSedePeriodo > 0) return;
+    if (docsFiltro.startsWith('con_')) {
+      const actTarget = docsFiltro.replace('con_', '');
+      if ((conteoSede[actTarget] || 0) === 0) return;
+    }
+    if (docsFiltro.startsWith('sin_')) {
+      const actTarget = docsFiltro.replace('sin_', '');
+      if ((conteoSede[actTarget] || 0) > 0) return;
+    }
+
+    sedesMostradas++;
     if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
     totalActividadesPeriodo += totalSedePeriodo;
+
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+      conteoPorColumna[k] += (conteoSede[k] || 0);
+    });
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer';
@@ -1346,8 +1378,21 @@ function renderMatrizAnual() {
     tbody.appendChild(tr);
   });
 
-  const totalSedes = establecimientosFiltrados.length;
-  actualizarKPIsMatriz(totalActividadesPeriodo, sedesConAlMenosUnaActividad, totalSedes);
+  if (counterSpan) {
+    counterSpan.textContent = `Mostrando ${sedesMostradas} de ${establecimientosFiltrados.length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
+  }
+
+  if (sedesMostradas === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="19" class="text-center py-8 text-slate-400 text-xs">
+          No se encontraron sedes que coincidan con los filtros aplicados.
+        </td>
+      </tr>
+    `;
+  }
+
+  actualizarKPIsMatriz(totalActividadesPeriodo, sedesConAlMenosUnaActividad, sedesMostradas);
 }
 
 function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedes) {
@@ -2061,6 +2106,14 @@ function setupEventListeners() {
   if (matrizSearch) {
     matrizSearch.addEventListener('input', (e) => {
       AppState.matrizFiltroTexto = e.target.value;
+      renderMatrizAnual();
+    });
+  }
+
+  const matrizDocsSelect = document.getElementById('matriz-filtro-docs');
+  if (matrizDocsSelect) {
+    matrizDocsSelect.addEventListener('change', (e) => {
+      AppState.matrizFiltroDocs = e.target.value;
       renderMatrizAnual();
     });
   }
@@ -2798,6 +2851,516 @@ function animarProgreso(bar, label, targetPercent, text) {
   if (bar) bar.style.width = targetPercent + '%';
   if (label) label.textContent = `${targetPercent}% - ${text}`;
 }
+
+// ==================== SUBIDA RÁPIDA GENERAL POR ESTABLECIMIENTO ====================
+
+let fastArchivoSeleccionadoBase64 = null;
+let fastArchivoSeleccionadoMeta = null;
+let fastEstIdActual = null;
+
+function detectarTipoActividadDeTexto(texto) {
+  if (!texto) return null;
+  const t = texto.toLowerCase();
+
+  // RGRL
+  if (t.includes('relevamiento general de riesgos') || t.includes('rgrl') || (t.includes('decreto 351') && t.includes('anexo i'))) {
+    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)' };
+  }
+  // RAR
+  if (t.includes('relevamiento de agentes de riesgo') || t.includes('nómina de expuestos') || t.includes('nomina de expuestos') || (t.includes('agentes de riesgo') && t.includes('srt'))) {
+    return { id: 'confeccion_rar', nombre: 'Confección de RAR (Nómina de expuestos)' };
+  }
+  // Agua Bacteriológico o Fisicoquímico / Protocolo
+  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo'))) {
+    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo de Laboratorio)' };
+  }
+  // Muestra de agua
+  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión'))) {
+    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)' };
+  }
+  // Puesta a tierra
+  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas')) {
+    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT - Res. 900/15)' };
+  }
+  // Ruido
+  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || (t.includes('ruido') && t.includes('protocolo'))) {
+    return { id: 'medicion_ruido', nombre: 'Medición de Ruido (Res. 85/12)' };
+  }
+  // Iluminación
+  if (t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || (t.includes('iluminaci') && t.includes('protocolo'))) {
+    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación (Res. 84/12)' };
+  }
+  // Ergonomía
+  if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos')) {
+    return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT' };
+  }
+  // Constancia de visita
+  if (t.includes('constancia de visita') || (t.includes('visita') && t.includes('notificado')) || t.includes('formulario de visita')) {
+    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)' };
+  }
+  // Capacitaciones
+  if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento')) {
+    return { id: 'capacitaciones', nombre: 'Capacitaciones' };
+  }
+  // Informe técnico
+  if (t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos')) {
+    return { id: 'informe_tecnico', nombre: 'Informe Técnico' };
+  }
+
+  return null;
+}
+
+function abrirModalSubidaRapida(estId) {
+  const modal = document.getElementById('modal-subida-rapida-general');
+  if (!modal) return;
+
+  // Determinar sede
+  let targetId = estId || (AppState.establecimientoSeleccionado ? AppState.establecimientoSeleccionado.id : null);
+  if (!targetId || !AppState.establecimientos[targetId]) {
+    targetId = Object.keys(AppState.establecimientos)[0];
+  }
+  fastEstIdActual = targetId;
+
+  // Poblar selectores
+  poblarSelectEstablecimientosFast(targetId);
+  poblarSelectActividadesFast();
+
+  // Resetear archivo y badges
+  fastArchivoSeleccionadoBase64 = null;
+  fastArchivoSeleccionadoMeta = null;
+  const fileInput = document.getElementById('fast-file-input');
+  if (fileInput) fileInput.value = '';
+
+  const dropTxt = document.getElementById('fast-dropzone-txt');
+  const dropSub = document.getElementById('fast-dropzone-subtxt');
+  if (dropTxt) dropTxt.textContent = 'Hacé clic aquí o arrastrá tu documento';
+  if (dropSub) dropSub.textContent = 'Admite PDF escaneados, informes digitales o fotos JPG/PNG';
+
+  const ocrBadge = document.getElementById('fast-ocr-loading-badge');
+  const actBadge = document.getElementById('fast-act-sugerida-badge');
+  const fecBadge = document.getElementById('fast-fecha-detectada-badge');
+  const progBox = document.getElementById('fast-upload-progress-box');
+  if (ocrBadge) ocrBadge.classList.add('hidden');
+  if (actBadge) actBadge.classList.add('hidden');
+  if (fecBadge) fecBadge.classList.add('hidden');
+  if (progBox) progBox.classList.add('hidden');
+
+  const inputFecha = document.getElementById('fast-fecha-actividad');
+  if (inputFecha) inputFecha.value = new Date().toISOString().slice(0, 10);
+
+  const inputDetalle = document.getElementById('fast-detalle-actividad');
+  if (inputDetalle) inputDetalle.value = '';
+
+  const inputPrev = document.getElementById('fast-preventor-actividad');
+  if (inputPrev) inputPrev.value = localStorage.getItem('hys_ultimo_preventor') || '';
+
+  const inputObs = document.getElementById('fast-obs-actividad');
+  if (inputObs) inputObs.value = '';
+
+  actualizarSedeHeaderFast();
+  actualizarPreviewNombreArchivoFast();
+
+  modal.classList.remove('hidden');
+}
+window.abrirModalSubidaRapida = abrirModalSubidaRapida;
+
+function poblarSelectEstablecimientosFast(selectedId) {
+  const sel = document.getElementById('fast-select-estab');
+  if (!sel) return;
+  sel.innerHTML = '';
+  Object.values(AppState.establecimientos).forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = `${e.nroEstab ? '#' + e.nroEstab + ' - ' : ''}${e.nombreEstablecimiento} (${e.organismo})`;
+    if (e.id === selectedId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function cambiarSedeEnSubidaRapida(newEstId) {
+  if (!AppState.establecimientos[newEstId]) return;
+  fastEstIdActual = newEstId;
+  actualizarSedeHeaderFast();
+  actualizarPreviewNombreArchivoFast();
+}
+window.cambiarSedeEnSubidaRapida = cambiarSedeEnSubidaRapida;
+
+function actualizarSedeHeaderFast() {
+  const est = AppState.establecimientos[fastEstIdActual];
+  const tit = document.getElementById('fast-estab-titulo');
+  if (tit && est) {
+    tit.textContent = `${est.nroEstab ? '#' + est.nroEstab + ' - ' : ''}${est.nombreEstablecimiento} (${est.organismo} | ${est.localidad})`;
+  }
+}
+
+function poblarSelectActividadesFast() {
+  const sel = document.getElementById('fast-tipo-actividad');
+  if (!sel) return;
+  sel.innerHTML = '';
+
+  // Actividades del catálogo estándar
+  Object.values(CATALOGO_ACTIVIDADES).forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat.id;
+    opt.textContent = `${cat.icono} ${cat.nombre} (${cat.codigo})`;
+    sel.appendChild(opt);
+  });
+
+  // Actividades personalizadas si existen
+  AppState.customActivities.forEach(custom => {
+    const opt = document.createElement('option');
+    opt.value = custom.id;
+    opt.textContent = `📌 ${custom.nombre}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function manejarArchivoSubidaRapida(file) {
+  if (!file) return;
+
+  const ext = file.name ? file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() : 'pdf';
+  fastArchivoSeleccionadoMeta = {
+    originalName: file.name,
+    size: file.size,
+    type: file.type || 'application/pdf',
+    ext: ext
+  };
+
+  const dropTxt = document.getElementById('fast-dropzone-txt');
+  const dropSub = document.getElementById('fast-dropzone-subtxt');
+  if (dropTxt) {
+    dropTxt.innerHTML = `<i class="fa-solid fa-file-pdf text-red-600 mr-1.5"></i>${escapeHtml(file.name)}`;
+  }
+  if (dropSub) {
+    dropSub.textContent = `Tamaño: ${Math.round(file.size / 1024)} KB. Procesando interior...`;
+  }
+
+  // 1. Leer Base64
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const result = e.target.result;
+    const commaIndex = result.indexOf(',');
+    fastArchivoSeleccionadoBase64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
+
+    actualizarPreviewNombreArchivoFast();
+
+    // 2. Extraer fecha preliminar por nombre
+    analizarFechaRapidaPorNombre(file);
+
+    // 3. Procesar OCR en el interior del documento
+    try {
+      let arrayBuffer = null;
+      if (typeof file.arrayBuffer === 'function') {
+        arrayBuffer = await file.arrayBuffer();
+      }
+      await procesarOcrSubidaRapida(file, arrayBuffer);
+    } catch(errOcr) {
+      console.warn('Aviso en OCR subida rápida:', errOcr);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+window.manejarArchivoSubidaRapida = manejarArchivoSubidaRapida;
+
+function analizarFechaRapidaPorNombre(file) {
+  const detectado = extraerFechaDeArchivo(file, fastArchivoSeleccionadoBase64);
+  const inputFecha = document.getElementById('fast-fecha-actividad');
+  const badgeFec = document.getElementById('fast-fecha-detectada-badge');
+  const txtFec = document.getElementById('fast-fecha-detectada-txt');
+
+  if (detectado && detectado.fecha && inputFecha) {
+    inputFecha.value = detectado.fecha;
+    if (badgeFec && txtFec) {
+      const p = detectado.fecha.split('-');
+      txtFec.innerHTML = `✨ Fecha detectada (${detectado.origen}): <strong>${p[2]}/${p[1]}/${p[0]}</strong>`;
+      badgeFec.classList.remove('hidden');
+    }
+    actualizarPreviewNombreArchivoFast();
+  }
+}
+
+async function procesarOcrSubidaRapida(file, arrayBuffer) {
+  const ocrBadge = document.getElementById('fast-ocr-loading-badge');
+  const ocrTxt = document.getElementById('fast-ocr-loading-txt');
+  const actBadge = document.getElementById('fast-act-sugerida-badge');
+  const actTxt = document.getElementById('fast-act-sugerida-txt');
+  const fecBadge = document.getElementById('fast-fecha-detectada-badge');
+  const fecTxt = document.getElementById('fast-fecha-detectada-txt');
+  const inputFecha = document.getElementById('fast-fecha-actividad');
+  const selectAct = document.getElementById('fast-tipo-actividad');
+
+  if (ocrBadge) ocrBadge.classList.remove('hidden');
+  if (ocrTxt) ocrTxt.textContent = 'Analizando texto en el interior del archivo...';
+
+  let extractedText = '';
+  let fechaEncontrada = null;
+  let origenFecha = '';
+
+  try {
+    const isPdf = (file.type === 'application/pdf') || (file.name && file.name.toLowerCase().endsWith('.pdf'));
+
+    if (isPdf && arrayBuffer && window.pdfjsLib) {
+      const typedArray = new Uint8Array(arrayBuffer);
+      const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+      const maxPags = Math.min(pdf.numPages, 3);
+
+      for (let p = 1; p <= maxPags; p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        extractedText += textContent.items.map(it => it.str).join(' ') + ' ';
+      }
+
+      if (extractedText.trim().length > 30) {
+        fechaEncontrada = buscarFechasEnTexto(extractedText);
+        if (fechaEncontrada) origenFecha = 'interior del PDF';
+      }
+
+      // Si no hay capa de texto digital, intentar OCR sobre página 1
+      if (!fechaEncontrada && window.Tesseract) {
+        if (ocrTxt) ocrTxt.textContent = 'Escaneo detectado: Ejecutando OCR en página 1...';
+        const page1 = await pdf.getPage(1);
+        const viewport = page1.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page1.render({ canvasContext: context, viewport: viewport }).promise;
+
+        const ocrRes = await Tesseract.recognize(canvas, 'spa');
+        if (ocrRes && ocrRes.data && ocrRes.data.text) {
+          extractedText += ' ' + ocrRes.data.text;
+          fechaEncontrada = buscarFechasEnTexto(ocrRes.data.text);
+          if (fechaEncontrada) origenFecha = 'OCR de escaneo';
+        }
+      }
+    } else if (window.Tesseract) {
+      // Imagen directa
+      if (ocrTxt) ocrTxt.textContent = 'Ejecutando OCR sobre imagen...';
+      const ocrResImg = await Tesseract.recognize(file, 'spa');
+      if (ocrResImg && ocrResImg.data && ocrResImg.data.text) {
+        extractedText = ocrResImg.data.text;
+        fechaEncontrada = buscarFechasEnTexto(extractedText);
+        if (fechaEncontrada) origenFecha = 'OCR en imagen';
+      }
+    }
+  } catch(e) {
+    console.warn('Aviso en OCR:', e);
+  } finally {
+    if (ocrBadge) ocrBadge.classList.add('hidden');
+  }
+
+  // 1. Aplicar fecha detectada
+  if (fechaEncontrada && inputFecha) {
+    inputFecha.value = fechaEncontrada;
+    if (fecBadge && fecTxt) {
+      const p = fechaEncontrada.split('-');
+      fecTxt.innerHTML = `✨ Fecha detectada (${origenFecha}): <strong>${p[2]}/${p[1]}/${p[0]}</strong>`;
+      fecBadge.classList.remove('hidden');
+    }
+  }
+
+  // 2. Aplicar sugerencia de actividad inteligente
+  if (extractedText && selectAct) {
+    const detectada = detectarTipoActividadDeTexto(extractedText);
+    if (detectada) {
+      selectAct.value = detectada.id;
+      if (actBadge && actTxt) {
+        actTxt.innerHTML = `✨ Tipo sugerido por OCR: <strong>${detectada.nombre}</strong>`;
+        actBadge.classList.remove('hidden');
+      }
+      mostrarToast(`✨ Actividad detectada: ${detectada.nombre}`);
+    }
+  }
+
+  actualizarPreviewNombreArchivoFast();
+}
+
+function restablecerFechaHoyFast() {
+  const inputFecha = document.getElementById('fast-fecha-actividad');
+  const badgeFec = document.getElementById('fast-fecha-detectada-badge');
+  if (inputFecha) inputFecha.value = new Date().toISOString().slice(0, 10);
+  if (badgeFec) badgeFec.classList.add('hidden');
+  actualizarPreviewNombreArchivoFast();
+}
+window.restablecerFechaHoyFast = restablecerFechaHoyFast;
+
+function actualizarPreviewNombreArchivoFast() {
+  const preview = document.getElementById('fast-preview-nombre');
+  if (!preview) return;
+
+  const est = AppState.establecimientos[fastEstIdActual];
+  const actId = document.getElementById('fast-tipo-actividad')?.value || 'confeccion_rgrl';
+  const fecha = document.getElementById('fast-fecha-actividad')?.value || '';
+  const detalle = document.getElementById('fast-detalle-actividad')?.value?.trim() || '';
+  const ext = fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.ext : 'pdf';
+
+  if (!est) {
+    preview.textContent = 'Seleccioná un establecimiento';
+    return;
+  }
+
+  const cod = generarCodigoArchivo(est.organismo, est.nroEstab, actId, fecha, detalle, ext);
+  preview.textContent = cod;
+}
+window.actualizarPreviewNombreArchivoFast = actualizarPreviewNombreArchivoFast;
+
+async function guardarSubidaRapidaYSubir() {
+  const est = AppState.establecimientos[fastEstIdActual];
+  if (!est) {
+    alert('Por favor seleccioná un establecimiento.');
+    return;
+  }
+
+  if (!fastArchivoSeleccionadoBase64) {
+    alert('Por favor seleccioná o arrastrá un archivo para subir.');
+    return;
+  }
+
+  const actTipo = document.getElementById('fast-tipo-actividad').value;
+  const fecha = document.getElementById('fast-fecha-actividad').value;
+  if (!fecha) {
+    alert('Por favor indicá la fecha de la actividad.');
+    return;
+  }
+
+  const detalle = document.getElementById('fast-detalle-actividad').value.trim() || 'Informe';
+  const preventor = document.getElementById('fast-preventor-actividad').value.trim();
+  if (preventor) localStorage.setItem('hys_ultimo_preventor', preventor);
+
+  const observaciones = document.getElementById('fast-obs-actividad').value.trim();
+
+  let cleanB64 = fastArchivoSeleccionadoBase64.replace(/^data:.*base64,/, '').replace(/\s+/g, '');
+  const ext = fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.ext : 'pdf';
+  const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, actTipo, fecha, detalle, ext);
+
+  const progressBox = document.getElementById('fast-upload-progress-box');
+  const progressBar = document.getElementById('fast-upload-progress-bar');
+  const progressLabel = document.getElementById('fast-upload-progress-label');
+  const btnSubmit = document.getElementById('btn-fast-guardar');
+
+  if (progressBox) progressBox.classList.remove('hidden');
+  if (btnSubmit) btnSubmit.disabled = true;
+
+  animarProgreso(progressBar, progressLabel, 20, 'Preparando metadatos y codificación oficial...');
+
+  const payload = {
+    tipoOperacion: 'upload_actividad_documento',
+    tipoActividad: actTipo,
+    fechaActividad: fecha,
+    estadoActividad: 'Completado',
+    detalle: detalle,
+    preventor: preventor,
+    observaciones: observaciones,
+    fileBase64: cleanB64,
+    originalFileName: fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.originalName : '',
+    mimeType: fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.type : 'application/pdf',
+    establecimiento: {
+      id: est.id,
+      organismo: est.organismo,
+      razonSocial: est.razonSocial || est.organismo,
+      nombreEstablecimiento: est.nombreEstablecimiento,
+      domicilio: est.domicilio,
+      localidad: est.localidad,
+      nroEstab: est.nroEstab,
+      cuit: est.cuit
+    }
+  };
+
+  animarProgreso(progressBar, progressLabel, 50, 'Transmitiendo a Google Drive y Google Sheets...');
+
+  let driveUrl = '';
+  let driveFileId = '';
+  let monthFolderUrl = '';
+  let monthFolderId = '';
+  let monthKey = '';
+  let monthLabel = '';
+  let registroId = 'ACT_' + Date.now();
+
+  try {
+    const webhookUrl = getWebhookUrl();
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    animarProgreso(progressBar, progressLabel, 85, 'Confirmando guardado en el servidor...');
+    const result = await response.json();
+
+    if (result && result.status === 'success') {
+      driveUrl = result.fileUrl || '';
+      driveFileId = result.fileId || '';
+      registroId = result.registroId || registroId;
+      monthFolderUrl = result.monthFolderUrl || '';
+      monthFolderId = result.monthFolderId || '';
+      monthKey = result.monthKey || '';
+      monthLabel = result.monthLabel || '';
+
+      if (monthFolderUrl && monthKey) {
+        AppState.carpetasMensuales[monthKey] = {
+          key: monthKey,
+          label: monthLabel || monthKey,
+          url: monthFolderUrl,
+          id: monthFolderId
+        };
+        if (result.parentMensualUrl) {
+          AppState.parentMensualUrl = result.parentMensualUrl;
+        }
+        guardarCarpetasMensualesLocal();
+      }
+    } else {
+      console.warn('Aviso servidor Google Apps Script:', result);
+      mostrarToast('⚠️ Aviso del servidor: ' + ((result && result.message) || 'Guardado local'));
+    }
+  } catch(err) {
+    console.warn('Error de red al subir archivo:', err);
+    mostrarToast('⚠️ Conexión no disponible. Se guardó copia local.');
+  }
+
+  animarProgreso(progressBar, progressLabel, 100, '¡Documento registrado con éxito!');
+
+  if (!AppState.actividadesRegistradas[est.id]) {
+    AppState.actividadesRegistradas[est.id] = [];
+  }
+
+  const mInfo = parsearAnioMesCliente(fecha);
+  const mFUrl = monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+
+  const nuevoRegistro = {
+    id: registroId,
+    tipoActividad: actTipo,
+    fechaActividad: fecha,
+    estadoActividad: 'Completado',
+    detalle: detalle,
+    preventor: preventor,
+    observaciones: observaciones,
+    fileName: codedFileName,
+    fileUrl: driveUrl,
+    fileId: driveFileId,
+    monthFolderUrl: mFUrl,
+    monthKey: monthKey || mInfo.key,
+    monthLabel: monthLabel || mInfo.label,
+    timestamp: new Date().toISOString()
+  };
+
+  AppState.actividadesRegistradas[est.id].push(nuevoRegistro);
+  guardarLegajoLocal();
+
+  setTimeout(() => {
+    cerrarModal('modal-subida-rapida-general');
+    if (btnSubmit) btnSubmit.disabled = false;
+    seleccionarEstablecimiento(est.id);
+    renderRepositorioGlobal(true);
+    renderMatrizAnual();
+    renderDashboard();
+    if (driveUrl) {
+      mostrarToast(`✓ Subido a Google Drive: ${codedFileName}`);
+    } else {
+      mostrarToast(`✓ Guardado localmente en sede ${est.nroEstab ? '#' + est.nroEstab : ''}`);
+    }
+  }, 600);
+}
+window.guardarSubidaRapidaYSubir = guardarSubidaRapidaYSubir;
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
 
