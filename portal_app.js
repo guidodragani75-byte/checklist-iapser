@@ -1331,6 +1331,9 @@ function renderMatrizAnual() {
         ${totalSedePeriodo}
       </td>
       <td class="py-2.5 px-3 text-right whitespace-nowrap">
+        <button onclick="abrirModalSubidaRapida('${e.id}'); event.stopPropagation();" class="text-xs text-amber-600 hover:text-amber-800 font-semibold p-1 hover:bg-amber-100 rounded mr-1" title="Subida rápida (OCR) para esta sede">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+        </button>
         <button onclick="irAFichaEstablecimiento('${e.id}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1 hover:bg-blue-100 rounded" title="Abrir Ficha de la sede">
           <i class="fa-solid fa-arrow-right"></i>
         </button>
@@ -2822,10 +2825,6 @@ function animarProgreso(bar, label, targetPercent, text) {
 
 // ==================== SUBIDA RÁPIDA GENERAL POR ESTABLECIMIENTO ====================
 
-let fastArchivoSeleccionadoBase64 = null;
-let fastArchivoSeleccionadoMeta = null;
-let fastEstIdActual = null;
-
 function detectarTipoActividadDeTexto(texto) {
   if (!texto) return null;
   const t = texto.toLowerCase();
@@ -2878,457 +2877,743 @@ function detectarTipoActividadDeTexto(texto) {
   return null;
 }
 
+// ==================== SUBIDA RÁPIDA POR LOTE CON OCR ====================
+
+let fastBatchItems = [];
+let fastEstIdActual = null;
+let fastIsUploading = false;
+
 function abrirModalSubidaRapida(estId) {
   const modal = document.getElementById('modal-subida-rapida-general');
   if (!modal) return;
 
-  // Determinar sede
+  // Determinar sede destino inicial
   let targetId = estId || (AppState.establecimientoSeleccionado ? AppState.establecimientoSeleccionado.id : null);
   if (!targetId || !AppState.establecimientos[targetId]) {
     targetId = Object.keys(AppState.establecimientos)[0];
   }
   fastEstIdActual = targetId;
 
-  // Poblar selectores
-  poblarSelectEstablecimientosFast(targetId);
-  poblarSelectActividadesFast();
+  // Limpiar buscador y poblar selector de sedes
+  const inputBuscar = document.getElementById('fast-buscar-estab');
+  if (inputBuscar) inputBuscar.value = '';
+  poblarSelectEstablecimientosFast(targetId, '');
 
-  // Resetear archivo y badges
-  fastArchivoSeleccionadoBase64 = null;
-  fastArchivoSeleccionadoMeta = null;
+  // Resetear input de archivo
   const fileInput = document.getElementById('fast-file-input');
   if (fileInput) fileInput.value = '';
 
-  const dropTxt = document.getElementById('fast-dropzone-txt');
-  const dropSub = document.getElementById('fast-dropzone-subtxt');
-  if (dropTxt) dropTxt.textContent = 'Hacé clic aquí o arrastrá tu documento';
-  if (dropSub) dropSub.textContent = 'Admite PDF escaneados, informes digitales o fotos JPG/PNG';
-
-  const ocrBadge = document.getElementById('fast-ocr-loading-badge');
-  const actBadge = document.getElementById('fast-act-sugerida-badge');
-  const fecBadge = document.getElementById('fast-fecha-detectada-badge');
-  const progBox = document.getElementById('fast-upload-progress-box');
-  if (ocrBadge) ocrBadge.classList.add('hidden');
-  if (actBadge) actBadge.classList.add('hidden');
-  if (fecBadge) fecBadge.classList.add('hidden');
-  if (progBox) progBox.classList.add('hidden');
-
-  const inputFecha = document.getElementById('fast-fecha-actividad');
-  if (inputFecha) inputFecha.value = new Date().toISOString().slice(0, 10);
-
-  const inputDetalle = document.getElementById('fast-detalle-actividad');
-  if (inputDetalle) inputDetalle.value = '';
-
-  const inputPrev = document.getElementById('fast-preventor-actividad');
+  // Preventor responsable por defecto
+  const inputPrev = document.getElementById('fast-preventor-batch');
   if (inputPrev) inputPrev.value = localStorage.getItem('hys_ultimo_preventor') || '';
 
-  const inputObs = document.getElementById('fast-obs-actividad');
+  const inputObs = document.getElementById('fast-obs-batch');
   if (inputObs) inputObs.value = '';
 
-  actualizarSedeHeaderFast();
-  actualizarPreviewNombreArchivoFast();
+  const progBox = document.getElementById('fast-upload-progress-box');
+  if (progBox) progBox.classList.add('hidden');
+
+  // Configurar zona drag & drop
+  configurarDragAndDropFast();
+
+  // Renderizar la lista de documentos en lote
+  renderFastBatchList();
 
   modal.classList.remove('hidden');
 }
 window.abrirModalSubidaRapida = abrirModalSubidaRapida;
 
-function poblarSelectEstablecimientosFast(selectedId) {
+function configurarDragAndDropFast() {
+  const dropzone = document.getElementById('fast-dropzone');
+  if (!dropzone || dropzone.dataset.dndInit) return;
+  dropzone.dataset.dndInit = 'true';
+
+  ['dragenter', 'dragover'].forEach(name => {
+    dropzone.addEventListener(name, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('border-blue-500', 'bg-blue-100/60');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(name => {
+    dropzone.addEventListener(name, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('border-blue-500', 'bg-blue-100/60');
+    }, false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt ? dt.files : null;
+    if (files && files.length > 0) {
+      manejarArchivosSubidaRapida(files);
+    }
+  }, false);
+}
+
+function filtrarSelectEstablecimientosFast(query) {
+  poblarSelectEstablecimientosFast(fastEstIdActual, query);
+}
+window.filtrarSelectEstablecimientosFast = filtrarSelectEstablecimientosFast;
+
+function poblarSelectEstablecimientosFast(selectedId, query = '') {
   const sel = document.getElementById('fast-select-estab');
+  const countBadge = document.getElementById('fast-estab-count-badge');
   if (!sel) return;
   sel.innerHTML = '';
-  Object.values(AppState.establecimientos).forEach(e => {
+
+  const q = (query || '').toLowerCase().trim();
+  const allEsts = Object.values(AppState.establecimientos);
+  const filtrados = allEsts.filter(e => {
+    if (!q) return true;
+    const matchName = e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(q);
+    const matchOrg = e.organismo && e.organismo.toLowerCase().includes(q);
+    const matchLoc = e.localidad && e.localidad.toLowerCase().includes(q);
+    const matchNro = e.nroEstab && e.nroEstab.toString().includes(q);
+    const matchDom = e.domicilio && e.domicilio.toLowerCase().includes(q);
+    return matchName || matchOrg || matchLoc || matchNro || matchDom;
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `${filtrados.length} sedes`;
+  }
+
+  if (filtrados.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No se encontraron sedes coincidentes';
+    sel.appendChild(opt);
+    actualizarSedeHeaderFast();
+    return;
+  }
+
+  let idEncontrado = false;
+  filtrados.forEach(e => {
     const opt = document.createElement('option');
     opt.value = e.id;
-    opt.textContent = `${e.nroEstab ? '#' + e.nroEstab + ' - ' : ''}${e.nombreEstablecimiento} (${e.organismo})`;
-    if (e.id === selectedId) opt.selected = true;
+    opt.textContent = `${e.nroEstab ? '#' + e.nroEstab + ' - ' : ''}${e.nombreEstablecimiento} (${e.organismo} | ${e.localidad})`;
+    if (e.id === selectedId) {
+      opt.selected = true;
+      idEncontrado = true;
+    }
     sel.appendChild(opt);
   });
+
+  if (!idEncontrado && filtrados.length > 0) {
+    fastEstIdActual = filtrados[0].id;
+    sel.value = fastEstIdActual;
+  }
+
+  actualizarSedeHeaderFast();
+
+  // Actualizar previews de nombres codificados en todos los items del lote
+  if (fastBatchItems && fastBatchItems.length > 0) {
+    fastBatchItems.forEach(it => actualizarPreviewItemLote(it));
+  }
 }
 
 function cambiarSedeEnSubidaRapida(newEstId) {
   if (!AppState.establecimientos[newEstId]) return;
   fastEstIdActual = newEstId;
   actualizarSedeHeaderFast();
-  actualizarPreviewNombreArchivoFast();
+  if (fastBatchItems && fastBatchItems.length > 0) {
+    fastBatchItems.forEach(it => actualizarPreviewItemLote(it));
+  }
 }
 window.cambiarSedeEnSubidaRapida = cambiarSedeEnSubidaRapida;
 
 function actualizarSedeHeaderFast() {
   const est = AppState.establecimientos[fastEstIdActual];
-  const tit = document.getElementById('fast-estab-titulo');
-  if (tit && est) {
-    tit.textContent = `${est.nroEstab ? '#' + est.nroEstab + ' - ' : ''}${est.nombreEstablecimiento} (${est.organismo} | ${est.localidad})`;
+  const infoNom = document.getElementById('fast-info-nombre');
+  const infoCuit = document.getElementById('fast-info-cuit');
+  const infoLoc = document.getElementById('fast-info-loc');
+
+  if (!est) {
+    if (infoNom) infoNom.textContent = 'Seleccioná un establecimiento';
+    if (infoCuit) infoCuit.textContent = 'CUIT: -';
+    if (infoLoc) infoLoc.textContent = 'Localidad: -';
+    return;
   }
+
+  if (infoNom) {
+    infoNom.textContent = `${est.nroEstab ? '#' + est.nroEstab + ' - ' : ''}${est.nombreEstablecimiento} (${est.organismo})`;
+  }
+  if (infoCuit) infoCuit.textContent = `CUIT: ${est.cuit || 'S/D'}`;
+  if (infoLoc) infoLoc.textContent = `Localidad: ${est.localidad || 'S/D'}`;
 }
 
-function poblarSelectActividadesFast() {
-  const sel = document.getElementById('fast-tipo-actividad');
-  if (!sel) return;
-  sel.innerHTML = '';
-
-  // Actividades del catálogo estándar
+function generarOpcionesActividades(selectedId) {
+  let opts = '';
   Object.values(CATALOGO_ACTIVIDADES).forEach(cat => {
-    const opt = document.createElement('option');
-    opt.value = cat.id;
-    opt.textContent = `${cat.icono} ${cat.nombre} (${cat.codigo})`;
-    sel.appendChild(opt);
+    const isSel = (cat.id === selectedId) ? 'selected' : '';
+    opts += `<option value="${cat.id}" ${isSel}>${cat.icono} ${cat.nombre} (${cat.codigo})</option>`;
   });
-
-  // Actividades personalizadas si existen
-  AppState.customActivities.forEach(custom => {
-    const opt = document.createElement('option');
-    opt.value = custom.id;
-    opt.textContent = `📌 ${custom.nombre}`;
-    sel.appendChild(opt);
-  });
-}
-
-async function manejarArchivoSubidaRapida(file) {
-  if (!file) return;
-
-  const ext = file.name ? file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() : 'pdf';
-  fastArchivoSeleccionadoMeta = {
-    originalName: file.name,
-    size: file.size,
-    type: file.type || 'application/pdf',
-    ext: ext
-  };
-
-  const dropTxt = document.getElementById('fast-dropzone-txt');
-  const dropSub = document.getElementById('fast-dropzone-subtxt');
-  if (dropTxt) {
-    dropTxt.innerHTML = `<i class="fa-solid fa-file-pdf text-red-600 mr-1.5"></i>${escapeHtml(file.name)}`;
-  }
-  if (dropSub) {
-    dropSub.textContent = `Tamaño: ${Math.round(file.size / 1024)} KB. Procesando interior...`;
-  }
-
-  // 1. Leer Base64
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const result = e.target.result;
-    const commaIndex = result.indexOf(',');
-    fastArchivoSeleccionadoBase64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
-
-    actualizarPreviewNombreArchivoFast();
-
-    // 2. Extraer fecha preliminar por nombre
-    analizarFechaRapidaPorNombre(file);
-
-    // 3. Procesar OCR en el interior del documento
-    try {
-      let arrayBuffer = null;
-      if (typeof file.arrayBuffer === 'function') {
-        arrayBuffer = await file.arrayBuffer();
-      }
-      await procesarOcrSubidaRapida(file, arrayBuffer);
-    } catch(errOcr) {
-      console.warn('Aviso en OCR subida rápida:', errOcr);
-    }
-  };
-  reader.readAsDataURL(file);
-}
-window.manejarArchivoSubidaRapida = manejarArchivoSubidaRapida;
-
-function analizarFechaRapidaPorNombre(file) {
-  const detectado = extraerFechaDeArchivo(file, fastArchivoSeleccionadoBase64);
-  const inputFecha = document.getElementById('fast-fecha-actividad');
-  const badgeFec = document.getElementById('fast-fecha-detectada-badge');
-  const txtFec = document.getElementById('fast-fecha-detectada-txt');
-
-  if (detectado && detectado.fecha && inputFecha) {
-    inputFecha.value = detectado.fecha;
-    if (badgeFec && txtFec) {
-      const p = detectado.fecha.split('-');
-      txtFec.innerHTML = `✨ Fecha detectada (${detectado.origen}): <strong>${p[2]}/${p[1]}/${p[0]}</strong>`;
-      badgeFec.classList.remove('hidden');
-    }
-    actualizarPreviewNombreArchivoFast();
-  }
-}
-
-async function procesarOcrSubidaRapida(file, arrayBuffer) {
-  const ocrBadge = document.getElementById('fast-ocr-loading-badge');
-  const ocrTxt = document.getElementById('fast-ocr-loading-txt');
-  const actBadge = document.getElementById('fast-act-sugerida-badge');
-  const actTxt = document.getElementById('fast-act-sugerida-txt');
-  const fecBadge = document.getElementById('fast-fecha-detectada-badge');
-  const fecTxt = document.getElementById('fast-fecha-detectada-txt');
-  const inputFecha = document.getElementById('fast-fecha-actividad');
-  const selectAct = document.getElementById('fast-tipo-actividad');
-
-  if (ocrBadge) ocrBadge.classList.remove('hidden');
-  if (ocrTxt) ocrTxt.textContent = 'Analizando texto en el interior del archivo...';
-
-  let extractedText = '';
-  let fechaEncontrada = null;
-  let origenFecha = '';
-
-  try {
-    const isPdf = (file.type === 'application/pdf') || (file.name && file.name.toLowerCase().endsWith('.pdf'));
-
-    if (isPdf && arrayBuffer && window.pdfjsLib) {
-      const typedArray = new Uint8Array(arrayBuffer);
-      const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-      const maxPags = Math.min(pdf.numPages, 3);
-
-      for (let p = 1; p <= maxPags; p++) {
-        const page = await pdf.getPage(p);
-        const textContent = await page.getTextContent();
-        extractedText += textContent.items.map(it => it.str).join(' ') + ' ';
-      }
-
-      if (extractedText.trim().length > 30) {
-        fechaEncontrada = buscarFechasEnTexto(extractedText);
-        if (fechaEncontrada) origenFecha = 'interior del PDF';
-      }
-
-      // Si no hay capa de texto digital, intentar OCR sobre página 1
-      if (!fechaEncontrada && window.Tesseract) {
-        if (ocrTxt) ocrTxt.textContent = 'Escaneo detectado: Ejecutando OCR en página 1...';
-        const page1 = await pdf.getPage(1);
-        const viewport = page1.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        await page1.render({ canvasContext: context, viewport: viewport }).promise;
-
-        const ocrRes = await Tesseract.recognize(canvas, 'spa');
-        if (ocrRes && ocrRes.data && ocrRes.data.text) {
-          extractedText += ' ' + ocrRes.data.text;
-          fechaEncontrada = buscarFechasEnTexto(ocrRes.data.text);
-          if (fechaEncontrada) origenFecha = 'OCR de escaneo';
-        }
-      }
-    } else if (window.Tesseract) {
-      // Imagen directa
-      if (ocrTxt) ocrTxt.textContent = 'Ejecutando OCR sobre imagen...';
-      const ocrResImg = await Tesseract.recognize(file, 'spa');
-      if (ocrResImg && ocrResImg.data && ocrResImg.data.text) {
-        extractedText = ocrResImg.data.text;
-        fechaEncontrada = buscarFechasEnTexto(extractedText);
-        if (fechaEncontrada) origenFecha = 'OCR en imagen';
-      }
-    }
-  } catch(e) {
-    console.warn('Aviso en OCR:', e);
-  } finally {
-    if (ocrBadge) ocrBadge.classList.add('hidden');
-  }
-
-  // 1. Aplicar fecha detectada
-  if (fechaEncontrada && inputFecha) {
-    inputFecha.value = fechaEncontrada;
-    if (fecBadge && fecTxt) {
-      const p = fechaEncontrada.split('-');
-      fecTxt.innerHTML = `✨ Fecha detectada (${origenFecha}): <strong>${p[2]}/${p[1]}/${p[0]}</strong>`;
-      fecBadge.classList.remove('hidden');
-    }
-  }
-
-  // 2. Aplicar sugerencia de actividad inteligente
-  if (extractedText && selectAct) {
-    const detectada = detectarTipoActividadDeTexto(extractedText);
-    if (detectada) {
-      selectAct.value = detectada.id;
-      if (actBadge && actTxt) {
-        actTxt.innerHTML = `✨ Tipo sugerido por OCR: <strong>${detectada.nombre}</strong>`;
-        actBadge.classList.remove('hidden');
-      }
-      mostrarToast(`✨ Actividad detectada: ${detectada.nombre}`);
-    }
-  }
-
-  actualizarPreviewNombreArchivoFast();
-}
-
-function restablecerFechaHoyFast() {
-  const inputFecha = document.getElementById('fast-fecha-actividad');
-  const badgeFec = document.getElementById('fast-fecha-detectada-badge');
-  if (inputFecha) inputFecha.value = new Date().toISOString().slice(0, 10);
-  if (badgeFec) badgeFec.classList.add('hidden');
-  actualizarPreviewNombreArchivoFast();
-}
-window.restablecerFechaHoyFast = restablecerFechaHoyFast;
-
-function actualizarPreviewNombreArchivoFast() {
-  const preview = document.getElementById('fast-preview-nombre');
-  if (!preview) return;
-
-  const est = AppState.establecimientos[fastEstIdActual];
-  const actId = document.getElementById('fast-tipo-actividad')?.value || 'confeccion_rgrl';
-  const fecha = document.getElementById('fast-fecha-actividad')?.value || '';
-  const detalle = document.getElementById('fast-detalle-actividad')?.value?.trim() || '';
-  const ext = fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.ext : 'pdf';
-
-  if (!est) {
-    preview.textContent = 'Seleccioná un establecimiento';
-    return;
-  }
-
-  const cod = generarCodigoArchivo(est.organismo, est.nroEstab, actId, fecha, detalle, ext);
-  preview.textContent = cod;
-}
-window.actualizarPreviewNombreArchivoFast = actualizarPreviewNombreArchivoFast;
-
-async function guardarSubidaRapidaYSubir() {
-  const est = AppState.establecimientos[fastEstIdActual];
-  if (!est) {
-    alert('Por favor seleccioná un establecimiento.');
-    return;
-  }
-
-  if (!fastArchivoSeleccionadoBase64) {
-    alert('Por favor seleccioná o arrastrá un archivo para subir.');
-    return;
-  }
-
-  const actTipo = document.getElementById('fast-tipo-actividad').value;
-  const fecha = document.getElementById('fast-fecha-actividad').value;
-  if (!fecha) {
-    alert('Por favor indicá la fecha de la actividad.');
-    return;
-  }
-
-  const detalle = document.getElementById('fast-detalle-actividad').value.trim() || 'Informe';
-  const preventor = document.getElementById('fast-preventor-actividad').value.trim();
-  if (preventor) localStorage.setItem('hys_ultimo_preventor', preventor);
-
-  const observaciones = document.getElementById('fast-obs-actividad').value.trim();
-
-  let cleanB64 = fastArchivoSeleccionadoBase64.replace(/^data:.*base64,/, '').replace(/\s+/g, '');
-  const ext = fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.ext : 'pdf';
-  const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, actTipo, fecha, detalle, ext);
-
-  const progressBox = document.getElementById('fast-upload-progress-box');
-  const progressBar = document.getElementById('fast-upload-progress-bar');
-  const progressLabel = document.getElementById('fast-upload-progress-label');
-  const btnSubmit = document.getElementById('btn-fast-guardar');
-
-  if (progressBox) progressBox.classList.remove('hidden');
-  if (btnSubmit) btnSubmit.disabled = true;
-
-  animarProgreso(progressBar, progressLabel, 20, 'Preparando metadatos y codificación oficial...');
-
-  const payload = {
-    tipoOperacion: 'upload_actividad_documento',
-    tipoActividad: actTipo,
-    fechaActividad: fecha,
-    estadoActividad: 'Completado',
-    detalle: detalle,
-    preventor: preventor,
-    observaciones: observaciones,
-    fileBase64: cleanB64,
-    originalFileName: fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.originalName : '',
-    mimeType: fastArchivoSeleccionadoMeta ? fastArchivoSeleccionadoMeta.type : 'application/pdf',
-    establecimiento: {
-      id: est.id,
-      organismo: est.organismo,
-      razonSocial: est.razonSocial || est.organismo,
-      nombreEstablecimiento: est.nombreEstablecimiento,
-      domicilio: est.domicilio,
-      localidad: est.localidad,
-      nroEstab: est.nroEstab,
-      cuit: est.cuit
-    }
-  };
-
-  animarProgreso(progressBar, progressLabel, 50, 'Transmitiendo a Google Drive y Google Sheets...');
-
-  let driveUrl = '';
-  let driveFileId = '';
-  let monthFolderUrl = '';
-  let monthFolderId = '';
-  let monthKey = '';
-  let monthLabel = '';
-  let registroId = 'ACT_' + Date.now();
-
-  try {
-    const webhookUrl = getWebhookUrl();
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+  if (AppState.customActivities && AppState.customActivities.length > 0) {
+    AppState.customActivities.forEach(custom => {
+      const isSel = (custom.id === selectedId) ? 'selected' : '';
+      opts += `<option value="${custom.id}" ${isSel}>📌 ${custom.nombre}</option>`;
     });
+  }
+  return opts;
+}
 
-    animarProgreso(progressBar, progressLabel, 85, 'Confirmando guardado en el servidor...');
-    const result = await response.json();
+async function manejarArchivosSubidaRapida(files) {
+  if (!files || files.length === 0) return;
+  const fileArray = Array.from(files);
 
-    if (result && result.status === 'success') {
-      driveUrl = result.fileUrl || '';
-      driveFileId = result.fileId || '';
-      registroId = result.registroId || registroId;
-      monthFolderUrl = result.monthFolderUrl || '';
-      monthFolderId = result.monthFolderId || '';
-      monthKey = result.monthKey || '';
-      monthLabel = result.monthLabel || '';
+  const nuevosItems = [];
 
-      if (monthFolderUrl && monthKey) {
-        AppState.carpetasMensuales[monthKey] = {
-          key: monthKey,
-          label: monthLabel || monthKey,
-          url: monthFolderUrl,
-          id: monthFolderId
-        };
-        if (result.parentMensualUrl) {
-          AppState.parentMensualUrl = result.parentMensualUrl;
-        }
-        guardarCarpetasMensualesLocal();
-      }
-    } else {
-      console.warn('Aviso servidor Google Apps Script:', result);
-      mostrarToast('⚠️ Aviso del servidor: ' + ((result && result.message) || 'Guardado local'));
-    }
-  } catch(err) {
-    console.warn('Error de red al subir archivo:', err);
-    mostrarToast('⚠️ Conexión no disponible. Se guardó copia local.');
+  for (let i = 0; i < fileArray.length; i++) {
+    const file = fileArray[i];
+    const ext = file.name ? file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() : 'pdf';
+    
+    // Intento preliminar de fecha en nombre
+    const fechaPreliminar = extraerFechaDeArchivo(file, null);
+    const hoyIso = new Date().toISOString().slice(0, 10);
+    const fechaFinal = (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : hoyIso;
+
+    // Intento preliminar de tipo en nombre
+    const tipoPreliminar = detectarTipoActividadDeTexto(file.name);
+
+    const item = {
+      id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+      file: file,
+      originalName: file.name,
+      size: file.size,
+      ext: ext,
+      type: file.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+      base64: null,
+      fecha: fechaFinal,
+      fechaDetectada: (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : null,
+      origenFecha: (fechaPreliminar && fechaPreliminar.origen) ? fechaPreliminar.origen : null,
+      actTipo: tipoPreliminar ? tipoPreliminar.id : 'confeccion_rgrl',
+      actDetectada: tipoPreliminar ? tipoPreliminar.nombre : null,
+      detalle: '',
+      preventor: '',
+      observaciones: '',
+      ocrStatus: 'processing', // 'processing' | 'done' | 'error'
+      uploadStatus: 'pending' // 'pending' | 'uploading' | 'success' | 'error'
+    };
+
+    fastBatchItems.push(item);
+    nuevosItems.push(item);
   }
 
-  animarProgreso(progressBar, progressLabel, 100, '¡Documento registrado con éxito!');
+  // Renderizar la cola inmediatamente
+  renderFastBatchList();
+
+  // Resetear el input file para permitir seleccionar los mismos archivos o más
+  const fileInput = document.getElementById('fast-file-input');
+  if (fileInput) fileInput.value = '';
+
+  // Iniciar procesamiento OCR en segundo plano para cada archivo añadido
+  for (let j = 0; j < nuevosItems.length; j++) {
+    procesarOcrItemLote(nuevosItems[j]);
+  }
+}
+window.manejarArchivosSubidaRapida = manejarArchivosSubidaRapida;
+
+async function procesarOcrItemLote(item) {
+  try {
+    // 1. Leer Base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const result = e.target.result;
+      const commaIndex = result.indexOf(',');
+      item.base64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
+
+      let extractedText = '';
+      let fechaEncontrada = null;
+      let origenFecha = '';
+
+      try {
+        const isPdf = (item.type === 'application/pdf') || (item.ext === 'pdf') || (item.originalName && item.originalName.toLowerCase().endsWith('.pdf'));
+
+        if (isPdf && typeof item.file.arrayBuffer === 'function' && window.pdfjsLib) {
+          const arrayBuffer = await item.file.arrayBuffer();
+          const typedArray = new Uint8Array(arrayBuffer);
+          const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+          const maxPags = Math.min(pdf.numPages, 3);
+
+          for (let p = 1; p <= maxPags; p++) {
+            const page = await pdf.getPage(p);
+            const textContent = await page.getTextContent();
+            extractedText += textContent.items.map(it => it.str).join(' ') + ' ';
+          }
+
+          if (extractedText.trim().length > 30) {
+            fechaEncontrada = buscarFechasEnTexto(extractedText);
+            if (fechaEncontrada) origenFecha = 'interior del PDF';
+          }
+
+          // Si no hay texto digital o no se halló fecha, probar OCR sobre página 1 escaneada
+          if ((!fechaEncontrada || extractedText.trim().length < 20) && window.Tesseract) {
+            const page1 = await pdf.getPage(1);
+            const viewport = page1.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page1.render({ canvasContext: context, viewport: viewport }).promise;
+
+            const ocrRes = await Tesseract.recognize(canvas, 'spa');
+            if (ocrRes && ocrRes.data && ocrRes.data.text) {
+              extractedText += ' ' + ocrRes.data.text;
+              const fOcr = buscarFechasEnTexto(ocrRes.data.text);
+              if (fOcr) {
+                fechaEncontrada = fOcr;
+                origenFecha = 'OCR en escaneo';
+              }
+            }
+          }
+        } else if (window.Tesseract) {
+          // Imagen directa JPG / PNG
+          const ocrResImg = await Tesseract.recognize(item.file, 'spa');
+          if (ocrResImg && ocrResImg.data && ocrResImg.data.text) {
+            extractedText = ocrResImg.data.text;
+            fechaEncontrada = buscarFechasEnTexto(extractedText);
+            if (fechaEncontrada) origenFecha = 'OCR en imagen';
+          }
+        }
+      } catch(errOcr) {
+        console.warn('Aviso en OCR para', item.originalName, errOcr);
+      }
+
+      // Si se halló fecha en el interior, actualizar item
+      if (fechaEncontrada) {
+        item.fecha = fechaEncontrada;
+        item.fechaDetectada = fechaEncontrada;
+        item.origenFecha = origenFecha;
+      }
+
+      // Analizar tipo de actividad por texto interior o por nombre
+      const textoAnalisis = (extractedText && extractedText.trim().length > 10) ? extractedText : item.originalName;
+      const detectada = detectarTipoActividadDeTexto(textoAnalisis);
+      if (detectada) {
+        item.actTipo = detectada.id;
+        item.actDetectada = detectada.nombre;
+      }
+
+      item.ocrStatus = 'done';
+
+      // Actualizar tarjeta del item
+      actualizarCardItemLote(item);
+    };
+    reader.readAsDataURL(item.file);
+  } catch(err) {
+    console.error('Error general en procesamiento de item:', err);
+    item.ocrStatus = 'error';
+    actualizarCardItemLote(item);
+  }
+}
+
+function renderFastBatchList() {
+  const container = document.getElementById('fast-batch-list');
+  const countBadge = document.getElementById('fast-batch-count');
+  const btnTxt = document.getElementById('btn-fast-guardar-lote-txt');
+  if (!container) return;
+
+  const count = fastBatchItems.length;
+  if (countBadge) countBadge.textContent = count;
+  if (btnTxt) btnTxt.textContent = `Guardar y Subir Bloque (${count})`;
+
+  if (count === 0) {
+    container.innerHTML = `
+      <div id="fast-batch-empty-placeholder" class="p-8 text-center text-slate-400 bg-slate-50/80 border border-dashed border-slate-200 rounded-xl">
+        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
+        <p class="text-xs font-medium">Aún no agregaste documentos a este bloque.</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Arrastrá archivos en la zona superior o hacé clic en "Agregar más archivos".</p>
+      </div>
+    `;
+    return;
+  }
+
+  const est = AppState.establecimientos[fastEstIdActual];
+
+  let html = '';
+  fastBatchItems.forEach((item) => {
+    const isPdf = (item.ext === 'pdf');
+    const iconClass = isPdf ? 'fa-solid fa-file-pdf text-red-600' : 'fa-solid fa-file-image text-emerald-600';
+    const sizeKb = Math.round(item.size / 1024);
+
+    const codedName = est ? generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext) : 'Seleccioná establecimiento';
+
+    let ocrBadgeHtml = '';
+    if (item.ocrStatus === 'processing') {
+      ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full"><i class="fa-solid fa-spinner fa-spin text-amber-600"></i> Analizando OCR...</span>`;
+    } else if (item.actDetectada || item.fechaDetectada) {
+      let desc = [];
+      if (item.actDetectada) desc.push(`${item.actDetectada}`);
+      if (item.fechaDetectada) {
+        const p = item.fechaDetectada.split('-');
+        desc.push(`${p[2]}/${p[1]}/${p[0]}`);
+      }
+      ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
+    } else {
+      ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Manual</span>`;
+    }
+
+    let uploadStatusHtml = '';
+    if (item.uploadStatus === 'uploading') {
+      uploadStatusHtml = `<span class="text-xs font-bold text-blue-600 flex items-center gap-1"><i class="fa-solid fa-spinner fa-spin"></i> Subiendo...</span>`;
+    } else if (item.uploadStatus === 'success') {
+      uploadStatusHtml = `<span class="text-xs font-bold text-emerald-600 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Subido a Drive</span>`;
+    } else if (item.uploadStatus === 'error') {
+      uploadStatusHtml = `<span class="text-xs font-bold text-rose-600 flex items-center gap-1"><i class="fa-solid fa-circle-xmark"></i> Error</span>`;
+    }
+
+    html += `
+      <div id="item-card-${item.id}" class="p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl space-y-2 shadow-2xs transition">
+        <!-- Fila 1: Cabecera del archivo -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 truncate flex-1 min-w-0">
+            <span class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-sm shrink-0">
+              <i class="${iconClass}"></i>
+            </span>
+            <div class="truncate">
+              <span class="text-xs font-bold text-slate-800 truncate" title="${escapeHtml(item.originalName)}">${escapeHtml(item.originalName)}</span>
+              <span class="text-[10px] text-slate-400 ml-1">(${sizeKb} KB)</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div id="container-ocr-badge-${item.id}">${ocrBadgeHtml}</div>
+            <div id="container-upload-status-${item.id}">${uploadStatusHtml}</div>
+            <button type="button" onclick="eliminarItemLote('${item.id}')" title="Quitar este archivo de la cola" class="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Fila 2: Formulario de edición rápida por archivo -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-slate-100">
+          <div class="sm:col-span-5">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipo de Documento *</label>
+            <select id="select-tipo-${item.id}" class="input-select text-xs font-semibold text-slate-800 py-1.5 w-full" onchange="cambiarTipoItemLote('${item.id}', this.value)">
+              ${generarOpcionesActividades(item.actTipo)}
+            </select>
+          </div>
+          <div class="sm:col-span-3">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Fecha *</label>
+            <input type="date" id="input-fecha-${item.id}" class="input-text text-xs py-1.5 w-full font-semibold" value="${item.fecha}" onchange="cambiarFechaItemLote('${item.id}', this.value)">
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Detalle / Tema / Muestra</label>
+            <input type="text" id="input-detalle-${item.id}" class="input-text text-xs py-1.5 w-full" placeholder="Ej: Anual / Canilla cocina" value="${escapeHtml(item.detalle)}" oninput="cambiarDetalleItemLote('${item.id}', this.value)">
+          </div>
+        </div>
+
+        <!-- Fila 3: Preview de codificación oficial Drive -->
+        <div class="flex items-center justify-between text-[11px] bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+          <div class="flex items-center gap-1.5 text-slate-500 truncate">
+            <i class="fa-solid fa-tag text-[10px] text-blue-500"></i>
+            <span class="font-mono text-[11px] font-semibold text-blue-900 truncate" id="preview-item-${item.id}">
+              ${escapeHtml(codedName)}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function actualizarCardItemLote(item) {
+  const selectTipo = document.getElementById(`select-tipo-${item.id}`);
+  const inputFecha = document.getElementById(`input-fecha-${item.id}`);
+  const containerBadge = document.getElementById(`container-ocr-badge-${item.id}`);
+
+  if (selectTipo && item.actTipo) {
+    selectTipo.value = item.actTipo;
+  }
+  if (inputFecha && item.fecha) {
+    inputFecha.value = item.fecha;
+  }
+
+  if (containerBadge) {
+    let ocrBadgeHtml = '';
+    if (item.ocrStatus === 'processing') {
+      ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full"><i class="fa-solid fa-spinner fa-spin text-amber-600"></i> Analizando OCR...</span>`;
+    } else if (item.actDetectada || item.fechaDetectada) {
+      let desc = [];
+      if (item.actDetectada) desc.push(`${item.actDetectada}`);
+      if (item.fechaDetectada) {
+        const p = item.fechaDetectada.split('-');
+        desc.push(`${p[2]}/${p[1]}/${p[0]}`);
+      }
+      ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
+    } else {
+      ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Manual</span>`;
+    }
+    containerBadge.innerHTML = ocrBadgeHtml;
+  }
+
+  actualizarPreviewItemLote(item);
+}
+
+function cambiarTipoItemLote(itemId, newTipo) {
+  const item = fastBatchItems.find(it => it.id === itemId);
+  if (!item) return;
+  item.actTipo = newTipo;
+  actualizarPreviewItemLote(item);
+}
+window.cambiarTipoItemLote = cambiarTipoItemLote;
+
+function cambiarFechaItemLote(itemId, newFecha) {
+  const item = fastBatchItems.find(it => it.id === itemId);
+  if (!item) return;
+  item.fecha = newFecha;
+  actualizarPreviewItemLote(item);
+}
+window.cambiarFechaItemLote = cambiarFechaItemLote;
+
+function cambiarDetalleItemLote(itemId, newDetalle) {
+  const item = fastBatchItems.find(it => it.id === itemId);
+  if (!item) return;
+  item.detalle = newDetalle;
+  actualizarPreviewItemLote(item);
+}
+window.cambiarDetalleItemLote = cambiarDetalleItemLote;
+
+function actualizarPreviewItemLote(item) {
+  const est = AppState.establecimientos[fastEstIdActual];
+  const span = document.getElementById(`preview-item-${item.id}`);
+  if (!span) return;
+  if (!est) {
+    span.textContent = 'Seleccioná un establecimiento';
+    return;
+  }
+  const coded = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext);
+  span.textContent = coded;
+}
+
+function eliminarItemLote(itemId) {
+  fastBatchItems = fastBatchItems.filter(it => it.id !== itemId);
+  renderFastBatchList();
+}
+window.eliminarItemLote = eliminarItemLote;
+
+function limpiarLoteSubidaRapida() {
+  if (fastBatchItems.length === 0) return;
+  if (confirm('¿Deseás vaciar todos los archivos agregados a esta cola?')) {
+    fastBatchItems = [];
+    renderFastBatchList();
+  }
+}
+window.limpiarLoteSubidaRapida = limpiarLoteSubidaRapida;
+
+async function guardarLoteSubidaRapida() {
+  if (fastIsUploading) return;
+
+  const est = AppState.establecimientos[fastEstIdActual];
+  if (!est) {
+    alert('Por favor seleccioná un establecimiento de destino.');
+    return;
+  }
+
+  if (fastBatchItems.length === 0) {
+    alert('La cola está vacía. Por favor agregá al menos un archivo para subir.');
+    return;
+  }
+
+  // Validar que todos tengan fecha
+  for (let i = 0; i < fastBatchItems.length; i++) {
+    const it = fastBatchItems[i];
+    if (!it.fecha) {
+      alert(`El archivo "${it.originalName}" no tiene una fecha de realización válida.`);
+      return;
+    }
+  }
+
+  const preventorGlobal = document.getElementById('fast-preventor-batch')?.value.trim() || '';
+  if (preventorGlobal) localStorage.setItem('hys_ultimo_preventor', preventorGlobal);
+  const obsGlobal = document.getElementById('fast-obs-batch')?.value.trim() || '';
+
+  fastIsUploading = true;
+  const btnGuardar = document.getElementById('btn-fast-guardar-lote');
+  const progBox = document.getElementById('fast-upload-progress-box');
+  const progBar = document.getElementById('fast-upload-progress-bar');
+  const progLabel = document.getElementById('fast-upload-progress-label');
+  const progPct = document.getElementById('fast-upload-progress-pct');
+  const progSublabel = document.getElementById('fast-upload-progress-sublabel');
+
+  if (btnGuardar) btnGuardar.disabled = true;
+  if (progBox) progBox.classList.remove('hidden');
+
+  const total = fastBatchItems.length;
+  let exitosos = 0;
 
   if (!AppState.actividadesRegistradas[est.id]) {
     AppState.actividadesRegistradas[est.id] = [];
   }
 
-  const mInfo = parsearAnioMesCliente(fecha);
-  const mFUrl = monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+  for (let i = 0; i < total; i++) {
+    const item = fastBatchItems[i];
+    const pct = Math.round((i / total) * 100);
 
-  const nuevoRegistro = {
-    id: registroId,
-    tipoActividad: actTipo,
-    fechaActividad: fecha,
-    estadoActividad: 'Completado',
-    detalle: detalle,
-    preventor: preventor,
-    observaciones: observaciones,
-    fileName: codedFileName,
-    fileUrl: driveUrl,
-    fileId: driveFileId,
-    monthFolderUrl: mFUrl,
-    monthKey: monthKey || mInfo.key,
-    monthLabel: monthLabel || mInfo.label,
-    timestamp: new Date().toISOString()
-  };
+    if (progBar) progBar.style.width = `${pct}%`;
+    if (progPct) progPct.textContent = `${pct}%`;
+    if (progLabel) progLabel.textContent = `Subiendo documento ${i + 1} de ${total}...`;
+    if (progSublabel) progSublabel.textContent = `${item.originalName} (${item.actTipo})`;
 
-  AppState.actividadesRegistradas[est.id].push(nuevoRegistro);
+    item.uploadStatus = 'uploading';
+    const containerStatus = document.getElementById(`container-upload-status-${item.id}`);
+    if (containerStatus) {
+      containerStatus.innerHTML = `<span class="text-xs font-bold text-blue-600 flex items-center gap-1"><i class="fa-solid fa-spinner fa-spin"></i> Subiendo...</span>`;
+    }
+
+    // Asegurar base64
+    if (!item.base64) {
+      try {
+        const b64 = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = e => resolve(e.target.result);
+          r.onerror = reject;
+          r.readAsDataURL(item.file);
+        });
+        const commaIdx = b64.indexOf(',');
+        item.base64 = commaIdx !== -1 ? b64.substring(commaIdx + 1) : b64;
+      } catch(errB64) {
+        console.error('Error al leer base64:', errB64);
+      }
+    }
+
+    let cleanB64 = (item.base64 || '').replace(/^data:.*base64,/, '').replace(/\s+/g, '');
+    const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext);
+    const detalleFinal = item.detalle.trim() || 'Informe';
+    const preventorFinal = item.preventor || preventorGlobal;
+    const obsFinal = [obsGlobal, item.observaciones].filter(Boolean).join(' | ');
+
+    const payload = {
+      tipoOperacion: 'upload_actividad_documento',
+      tipoActividad: item.actTipo,
+      fechaActividad: item.fecha,
+      estadoActividad: 'Completado',
+      detalle: detalleFinal,
+      preventor: preventorFinal,
+      observaciones: obsFinal,
+      fileBase64: cleanB64,
+      originalFileName: item.originalName,
+      mimeType: item.type,
+      establecimiento: {
+        id: est.id,
+        organismo: est.organismo,
+        razonSocial: est.razonSocial || est.organismo,
+        nombreEstablecimiento: est.nombreEstablecimiento,
+        domicilio: est.domicilio,
+        localidad: est.localidad,
+        nroEstab: est.nroEstab,
+        cuit: est.cuit
+      }
+    };
+
+    let driveUrl = '';
+    let driveFileId = '';
+    let monthFolderUrl = '';
+    let monthFolderId = '';
+    let monthKey = '';
+    let monthLabel = '';
+    let registroId = 'ACT_' + Date.now() + '_' + i;
+
+    try {
+      const webhookUrl = getWebhookUrl();
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result && result.status === 'success') {
+        driveUrl = result.fileUrl || '';
+        driveFileId = result.fileId || '';
+        registroId = result.registroId || registroId;
+        monthFolderUrl = result.monthFolderUrl || '';
+        monthFolderId = result.monthFolderId || '';
+        monthKey = result.monthKey || '';
+        monthLabel = result.monthLabel || '';
+
+        if (monthFolderUrl && monthKey) {
+          AppState.carpetasMensuales[monthKey] = {
+            key: monthKey,
+            label: monthLabel || monthKey,
+            url: monthFolderUrl,
+            id: monthFolderId
+          };
+          if (result.parentMensualUrl) {
+            AppState.parentMensualUrl = result.parentMensualUrl;
+          }
+          guardarCarpetasMensualesLocal();
+        }
+      } else {
+        console.warn('Aviso servidor Google Apps Script en lote:', result);
+      }
+    } catch(errNet) {
+      console.warn('Error de red al subir item de lote a Drive:', errNet);
+    }
+
+    item.uploadStatus = 'success';
+    exitosos++;
+    if (containerStatus) {
+      containerStatus.innerHTML = `<span class="text-xs font-bold text-emerald-600 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Subido a Drive</span>`;
+    }
+
+    const mInfo = parsearAnioMesCliente(item.fecha);
+    const mFUrl = monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+
+    const nuevoRegistro = {
+      id: registroId,
+      tipoActividad: item.actTipo,
+      fechaActividad: item.fecha,
+      estadoActividad: 'Completado',
+      detalle: detalleFinal,
+      preventor: preventorFinal,
+      observaciones: obsFinal,
+      fileName: codedFileName,
+      fileUrl: driveUrl,
+      fileId: driveFileId,
+      monthFolderUrl: mFUrl,
+      monthKey: monthKey || mInfo.key,
+      monthLabel: monthLabel || mInfo.label,
+      timestamp: new Date().toISOString()
+    };
+
+    AppState.actividadesRegistradas[est.id].push(nuevoRegistro);
+  }
+
+  // Finalizar progreso
+  if (progBar) progBar.style.width = '100%';
+  if (progPct) progPct.textContent = '100%';
+  if (progLabel) progLabel.textContent = `¡Bloque completado! (${exitosos} de ${total} subidos)`;
+  if (progSublabel) progSublabel.textContent = 'Todos los documentos fueron registrados y codificados en Google Drive.';
+
+  // Guardar en almacenamiento local
   guardarLegajoLocal();
 
+  // Actualizar todas las vistas
+  renderMatrizAnual();
+  renderMatrizKPIs();
+  if (AppState.establecimientoSeleccionado && AppState.establecimientoSeleccionado.id === est.id) {
+    renderPanelActividades(est);
+  }
+  renderRepositorioGlobal(true);
+  renderDashboard();
+
+  fastIsUploading = false;
+  if (btnGuardar) btnGuardar.disabled = false;
+
+  mostrarToast(`🎉 ¡Bloque de ${exitosos} documento(s) subido con éxito a la sede ${est.nroEstab ? '#' + est.nroEstab : ''}!`);
+
   setTimeout(() => {
+    fastBatchItems = [];
+    if (progBox) progBox.classList.add('hidden');
     cerrarModal('modal-subida-rapida-general');
-    if (btnSubmit) btnSubmit.disabled = false;
-    seleccionarEstablecimiento(est.id);
-    renderRepositorioGlobal(true);
-    renderMatrizAnual();
-    renderDashboard();
-    if (driveUrl) {
-      mostrarToast(`✓ Subido a Google Drive: ${codedFileName}`);
-    } else {
-      mostrarToast(`✓ Guardado localmente en sede ${est.nroEstab ? '#' + est.nroEstab : ''}`);
-    }
-  }, 600);
+  }, 1600);
 }
-window.guardarSubidaRapidaYSubir = guardarSubidaRapidaYSubir;
+window.guardarLoteSubidaRapida = guardarLoteSubidaRapida;
+window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatibilidad
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
 

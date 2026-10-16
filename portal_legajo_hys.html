@@ -234,6 +234,11 @@
             <span>Carpetas Mensuales Drive</span>
           </button>
 
+          <button onclick="abrirModalSubidaRapida()" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition" title="Subida rápida de documentos por lote con OCR">
+            <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+            <span>Subida Rápida (OCR)</span>
+          </button>
+
           <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white flex items-center gap-2 shadow-sm transition">
             <i class="fa-solid fa-clipboard-list"></i>
             <span>Checklist RGRL (Dec 351)</span>
@@ -463,6 +468,10 @@
 
         <div class="flex items-center gap-3 shrink-0 pt-2 md:pt-0">
           <span id="matriz-contador" class="text-xs text-slate-500 font-medium"></span>
+          <button onclick="abrirModalSubidaRapida()" class="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap" title="Subida rápida por lote con OCR para cualquier sede">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Subida Rápida (OCR)</span>
+          </button>
           <button onclick="exportarMatrizCSV()" class="btn-primary text-xs flex items-center gap-2 shadow-sm whitespace-nowrap">
             <i class="fa-solid fa-file-excel text-emerald-300"></i>
             <span>Exportar a Excel (CSV)</span>
@@ -761,9 +770,9 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: SUBIDA RÁPIDA GENERAL POR ESTABLECIMIENTO ==================== -->
-  <div id="modal-subida-rapida-general" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+  <!-- ==================== MODAL: SUBIDA RÁPIDA POR LOTE (OCR) ==================== -->
+  <div id="modal-subida-rapida-general" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
       
       <!-- Header -->
       <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between shrink-0">
@@ -772,8 +781,8 @@
             <i class="fa-solid fa-cloud-arrow-up"></i>
           </div>
           <div>
-            <h3 class="font-bold text-base leading-tight">Subida Rápida de Documento</h3>
-            <div class="text-xs text-white/80">Carga acelerada con detección automática por OCR</div>
+            <h3 class="font-bold text-base leading-tight">Subida Rápida de Documentos (Lote con OCR)</h3>
+            <div class="text-xs text-white/80">Carga acelerada con detección automática de tipo y fecha por OCR</div>
           </div>
         </div>
         <button onclick="cerrarModal('modal-subida-rapida-general')" class="text-white/80 hover:text-white text-lg p-1">
@@ -782,147 +791,136 @@
       </div>
 
       <!-- Cuerpo del Modal -->
-      <div class="p-6 overflow-y-auto space-y-4 flex-1">
+      <div class="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
         
-        <!-- Sede Destino -->
-        <div class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5">
-            <span class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
-              <i class="fa-solid fa-building"></i>
-            </span>
-            <div>
-              <div class="text-[10px] uppercase font-bold text-blue-700 tracking-wider">Establecimiento Destino</div>
-              <div id="fast-estab-titulo" class="text-xs font-extrabold text-blue-950 truncate max-w-md">Seleccioná un establecimiento</div>
+        <!-- Sede Destino con Búsqueda Integrada -->
+        <div class="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                <i class="fa-solid fa-building"></i>
+              </span>
+              <span class="text-xs font-extrabold text-blue-950 uppercase tracking-wider">1. Seleccionar Establecimiento Destino *</span>
+            </div>
+            <span id="fast-estab-count-badge" class="text-[11px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">452 sedes</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <div class="md:col-span-5 relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="fast-buscar-estab" placeholder="Escribí para buscar (ej: 102, Escuela, CGE)..." 
+                     class="input-text text-xs pl-8 py-2 w-full" oninput="filtrarSelectEstablecimientosFast(this.value)">
+            </div>
+            <div class="md:col-span-7">
+              <select id="fast-select-estab" class="input-select text-xs font-semibold text-slate-800 bg-white py-2 w-full" 
+                      onchange="cambiarSedeEnSubidaRapida(this.value)">
+                <!-- Opciones cargadas dinámicamente -->
+              </select>
             </div>
           </div>
-          <div class="shrink-0">
-            <select id="fast-select-estab" class="input-select text-xs font-semibold text-slate-800 bg-white" onchange="cambiarSedeEnSubidaRapida(this.value)">
-              <!-- Rellenado dinámicamente con las sedes -->
-            </select>
+
+          <!-- Banner con datos del establecimiento seleccionado -->
+          <div id="fast-estab-info-strip" class="p-2.5 bg-white border border-blue-100 rounded-lg text-xs text-slate-700 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+            <div class="flex items-center gap-2 truncate">
+              <span class="font-bold text-blue-900 truncate" id="fast-info-nombre">Seleccioná un establecimiento</span>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-slate-500 shrink-0">
+              <span id="fast-info-cuit">CUIT: -</span>
+              <span>•</span>
+              <span id="fast-info-loc">Localidad: -</span>
+            </div>
           </div>
         </div>
 
-        <!-- 1. ZONA DE ARRASTRE Y SELECCIÓN DE ARCHIVO (PRIMER PASO) -->
+        <!-- 2. Zona de Carga / Arrastre Múltiple -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-            <span>1. Seleccioná o arrastrá el documento (PDF o Imagen) *</span>
-            <span class="text-[11px] font-normal text-slate-500">OCR activo para interior</span>
+            <span>2. Arrastrá o seleccioná uno o varios archivos (PDF o Fotos) *</span>
+            <span class="text-[11px] font-normal text-slate-500">OCR inteligente activado para el interior</span>
           </label>
 
           <div id="fast-dropzone" onclick="document.getElementById('fast-file-input').click()" 
                class="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50/70 rounded-xl p-5 text-center cursor-pointer transition flex flex-col items-center justify-center group">
-            <input type="file" id="fast-file-input" class="hidden" accept=".pdf,image/*" onchange="manejarArchivoSubidaRapida(this.files[0])">
-            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition">
+            <input type="file" id="fast-file-input" class="hidden" accept=".pdf,image/*" multiple onchange="manejarArchivosSubidaRapida(this.files)">
+            <div class="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-1.5 group-hover:scale-110 transition shadow-2xs">
               <i class="fa-solid fa-file-arrow-up"></i>
             </div>
-            <div id="fast-dropzone-txt" class="text-xs font-bold text-slate-800">
-              Hacé clic aquí o arrastrá tu documento
+            <div class="text-xs font-bold text-slate-800">
+              Hacé clic aquí o arrastrá tus archivos
             </div>
-            <div id="fast-dropzone-subtxt" class="text-[11px] text-slate-500 mt-0.5">
-              Admite PDF escaneados, informes digitales o fotos JPG/PNG
+            <div class="text-[11px] text-slate-500 mt-0.5">
+              Podés elegir múltiples PDF o fotos juntos, o ir sumándolos de a uno
             </div>
-          </div>
-
-          <!-- Badge: OCR en progreso -->
-          <div id="fast-ocr-loading-badge" class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2 hidden">
-            <i class="fa-solid fa-spinner fa-spin text-amber-600"></i>
-            <span id="fast-ocr-loading-txt">Analizando interior del documento con OCR...</span>
-          </div>
-
-          <!-- Badge: Sugerencia de Actividad por OCR -->
-          <div id="fast-act-sugerida-badge" class="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-900 flex items-center justify-between gap-1 hidden">
-            <div class="flex items-center gap-1.5">
-              <i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i>
-              <span id="fast-act-sugerida-txt">Actividad detectada por OCR</span>
-            </div>
-            <span class="text-[10px] font-bold bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">Sugerido</span>
-          </div>
-
-          <!-- Badge: Fecha Detectada -->
-          <div id="fast-fecha-detectada-badge" class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between gap-1 hidden">
-            <div class="flex items-center gap-1.5">
-              <i class="fa-solid fa-calendar-check text-emerald-600"></i>
-              <span id="fast-fecha-detectada-txt">Fecha detectada</span>
-            </div>
-            <button type="button" onclick="restablecerFechaHoyFast()" class="text-[11px] text-emerald-700 hover:text-emerald-900 underline font-semibold">
-              Usar hoy
-            </button>
           </div>
         </div>
 
-        <!-- 2. DATOS DE LA ACTIVIDAD (COMPLETADOS O AJUSTADOS POR EL USUARIO) -->
-        <div class="space-y-3 pt-2 border-t border-slate-100">
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <!-- Tipo de Actividad -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">2. Tipo de Actividad / Documento *</label>
-              <select id="fast-tipo-actividad" class="input-select font-semibold text-xs text-slate-800" onchange="actualizarPreviewNombreArchivoFast()">
-                <!-- Opciones cargadas dinámicamente -->
-              </select>
-            </div>
-
-            <!-- Fecha de la Actividad -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">3. Fecha de Realización *</label>
-              <input type="date" id="fast-fecha-actividad" class="input-text text-xs" onchange="actualizarPreviewNombreArchivoFast()">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <!-- Detalle / Tema / Puesto -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Detalle / Puesto / Muestra</label>
-              <input type="text" id="fast-detalle-actividad" class="input-text text-xs" placeholder="Ej: Relevamiento anual / Canilla cocina" oninput="actualizarPreviewNombreArchivoFast()">
-            </div>
-
-            <!-- Preventor Responsable -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Preventor Responsable</label>
-              <input type="text" id="fast-preventor-actividad" class="input-text text-xs" placeholder="Ej: Ing. Juan Pérez">
-            </div>
-          </div>
-
-          <!-- Observaciones opcionales -->
+        <!-- Preventor Global (Aplica a todo el bloque) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Observaciones / Dictamen (Opcional)</label>
-            <input type="text" id="fast-obs-actividad" class="input-text text-xs" placeholder="Anotaciones técnicas complementarias...">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Preventor Responsable (Aplica al bloque)</label>
+            <input type="text" id="fast-preventor-batch" class="input-text text-xs" placeholder="Ej: Ing. Juan Pérez">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Observaciones Generales (Opcional)</label>
+            <input type="text" id="fast-obs-batch" class="input-text text-xs" placeholder="Anotaciones para el lote...">
+          </div>
+        </div>
+
+        <!-- 3. Cola de Archivos en Bloque -->
+        <div class="pt-2 border-t border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                3. Bloque de Documentos a Subir (<span id="fast-batch-count" class="text-blue-700 font-black">0</span>)
+              </h4>
+              <span class="text-[10px] text-slate-400 font-normal">Revisá o editá el tipo y fecha antes de guardar</span>
+            </div>
+            <button type="button" onclick="limpiarLoteSubidaRapida()" class="text-[11px] text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i> Limpiar lista
+            </button>
           </div>
 
-          <!-- Preview Nombre Codificado Oficial -->
-          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center gap-1">
-              <i class="fa-solid fa-tag"></i>
-              <span>Nombre Codificado Oficial en Google Drive</span>
-            </div>
-            <div id="fast-preview-nombre" class="font-mono text-[11px] font-bold text-blue-900 truncate">
-              ORG_000_ACT_FECHA_Detalle.pdf
-            </div>
-          </div>
-
-          <!-- Barra de Progreso de Subida -->
-          <div id="fast-upload-progress-box" class="space-y-1 hidden">
-            <div class="flex justify-between text-[11px] font-semibold text-blue-900">
-              <span id="fast-upload-progress-label">Subiendo a Google Drive...</span>
-            </div>
-            <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-              <div id="fast-upload-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          <!-- Contenedor de la lista de items -->
+          <div id="fast-batch-list" class="space-y-2.5 max-h-[38vh] overflow-y-auto pr-1">
+            <!-- Rellenado dinámicamente con tarjetas de cada archivo -->
+            <div id="fast-batch-empty-placeholder" class="p-8 text-center text-slate-400 bg-slate-50/80 border border-dashed border-slate-200 rounded-xl">
+              <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
+              <p class="text-xs font-medium">Aún no agregaste documentos a este bloque.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Arrastrá archivos en la zona superior para comenzar.</p>
             </div>
           </div>
+        </div>
 
+        <!-- Barra de Progreso de Subida de Bloque -->
+        <div id="fast-upload-progress-box" class="space-y-1.5 p-3 bg-blue-50/70 border border-blue-200 rounded-xl hidden">
+          <div class="flex items-center justify-between text-xs font-bold text-blue-900">
+            <span id="fast-upload-progress-label">Subiendo bloque a Google Drive...</span>
+            <span id="fast-upload-progress-pct">0%</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div id="fast-upload-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div id="fast-upload-progress-sublabel" class="text-[11px] text-slate-600 truncate">Preparando transmisión...</div>
         </div>
 
       </div>
 
       <!-- Footer Modal -->
-      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
-        <button onclick="cerrarModal('modal-subida-rapida-general')" class="btn-secondary text-xs">
-          Cancelar
+      <div class="p-3.5 px-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+        <button type="button" onclick="document.getElementById('fast-file-input').click()" class="btn-secondary text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-plus text-blue-600"></i>
+          <span>Agregar más archivos</span>
         </button>
-        <button id="btn-fast-guardar" onclick="guardarSubidaRapidaYSubir()" class="btn-primary text-xs flex items-center gap-2">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Subir Documento a Drive</span>
-        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="cerrarModal('modal-subida-rapida-general')" class="btn-secondary text-xs">
+            Cancelar
+          </button>
+          <button type="button" id="btn-fast-guardar-lote" onclick="guardarLoteSubidaRapida()" class="btn-primary text-xs flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span id="btn-fast-guardar-lote-txt">Guardar y Subir Bloque (0)</span>
+          </button>
+        </div>
       </div>
 
     </div>
