@@ -2362,19 +2362,6 @@ function extraerFechaDeArchivo(file, base64Str) {
     }
   }
 
-  // 3. Fallback: Fecha de última modificación del archivo en el dispositivo
-  if (file && file.lastModified) {
-    const modDate = new Date(file.lastModified);
-    if (!isNaN(modDate.getTime())) {
-      const yyyy = modDate.getFullYear();
-      if (yyyy >= 2020 && yyyy <= 2030) {
-        const mm = String(modDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(modDate.getDate()).padStart(2, '0');
-        return { fecha: `${yyyy}-${mm}-${dd}`, origen: 'archivo (última modificación)' };
-      }
-    }
-  }
-
   return null;
 }
 
@@ -2436,37 +2423,55 @@ function buscarFechasEnTexto(fullText) {
     jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
   };
 
-  const clean = fullText.replace(/\r/g, ' ').replace(/\n+/g, ' ');
+  // Normalizar caracteres comunes en OCR de casilleros y formularios
+  let clean = fullText
+    .replace(/\r/g, ' ')
+    .replace(/\n+/g, ' ')
+    .replace(/[—_]/g, '-');
 
-  // 1. Patrón con palabras clave de fecha o localidad (alta probabilidad en actas e informes)
-  const regexConContexto = /(?:fecha|visita|relevamiento|acta|emisi[oó]n|d[ií]a|paran[aá]|concordia|gualeguaych[uú])[^\d]{0,25}([0-2]?[0-9]|3[01])\s*(?:[\/\-\.])\s*(0?[1-9]|1[0-2])\s*(?:[\/\-\.])\s*(202[0-9])/i;
+  // Separadores comunes entre casilleros: barra /, guión -, punto ., barra vertical |, o espacios
+  const sep = '(?:[\\/\\-\\.\\|\\s]+)';
+
+  // 1. Patrón con contexto (fecha, visita, relevamiento, acta, servicio, etc.)
+  // Detecta años de 4 dígitos (2020-2030) o 2 dígitos (24-30 -> 202X)
+  const regexConContexto = new RegExp(
+    '(?:fecha|visita|relevamiento|acta|emisi[oó]n|d[ií]a|servicio|recorrida|inspecci[oó]n)[^\\d]{0,35}' +
+    '([0-2]?[0-9]|3[01])' + sep + '(0?[1-9]|1[0-2])' + sep + '(202[0-9]|2[4-9])\\b',
+    'i'
+  );
   let match = clean.match(regexConContexto);
   if (match) {
     const d = match[1].padStart(2, '0');
     const m = match[2].padStart(2, '0');
-    const y = match[3];
+    let y = match[3];
+    if (y.length === 2) y = '20' + y;
     if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
       return `${y}-${m}-${d}`;
     }
   }
 
-  // 2. Patrón en letras: "14 de abril de 2026" o "a los 14 días del mes de abril de 2026"
-  const regexLetras = /([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del?\s+)?(?:a[ñn]o\s+)?(202[0-9])/i;
+  // 2. Patrón en letras: "15 de septiembre de 2026" o "15 de setiembre de 2026"
+  const regexLetras = /([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del?\s+)?(?:a[ñn]o\s+)?(202[0-9]|2[4-9])/i;
   match = clean.match(regexLetras);
   if (match && meses[match[2].toLowerCase()]) {
     const d = match[1].padStart(2, '0');
     const m = meses[match[2].toLowerCase()];
-    const y = match[3];
+    let y = match[3];
+    if (y.length === 2) y = '20' + y;
     return `${y}-${m}-${d}`;
   }
 
-  // 3. Patrón numérico general DD/MM/YYYY
-  const regexNum = /\b([0-2]?[0-9]|3[01])\s*(?:[\/\-\.])\s*(0?[1-9]|1[0-2])\s*(?:[\/\-\.])\s*(202[0-9])\b/;
+  // 3. Patrón numérico general DD/MM/AAAA en cualquier parte del texto
+  const regexNum = new RegExp(
+    '\\b([0-2]?[0-9]|3[01])' + sep + '(0?[1-9]|1[0-2])' + sep + '(202[0-9]|2[4-9])\\b',
+    'i'
+  );
   match = clean.match(regexNum);
   if (match) {
     const d = match[1].padStart(2, '0');
     const m = match[2].padStart(2, '0');
-    const y = match[3];
+    let y = match[3];
+    if (y.length === 2) y = '20' + y;
     if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
       return `${y}-${m}-${d}`;
     }
@@ -2523,7 +2528,7 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
           if (loadingTxt) loadingTxt.textContent = 'Escaneo detectado: Ejecutando OCR en el interior del PDF...';
 
           const page1 = await pdf.getPage(1);
-          const viewport = page1.getViewport({ scale: 1.5 });
+          const viewport = page1.getViewport({ scale: 2.0 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.width = viewport.width;
@@ -2829,47 +2834,47 @@ function detectarTipoActividadDeTexto(texto) {
   if (!texto) return null;
   const t = texto.toLowerCase();
 
-  // RGRL
-  if (t.includes('relevamiento general de riesgos') || t.includes('rgrl') || (t.includes('decreto 351') && t.includes('anexo i'))) {
+  // 1. Constancia de visita (prioridad alta para formularios de inspección y visita a sedes)
+  if (t.includes('constancia de visita') || t.includes('visita - seguridad e higiene') || t.includes('visita seguridad e higiene') || (t.includes('visita') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado'))) || t.includes('formulario de visita')) {
+    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)' };
+  }
+  // 2. RGRL
+  if (t.includes('relevamiento general de riesgos') || t.includes('rgrl') || (t.includes('decreto 351') && t.includes('anexo i')) || t.includes('resolucion 463') || t.includes('res. 463')) {
     return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)' };
   }
-  // RAR
+  // 3. RAR
   if (t.includes('relevamiento de agentes de riesgo') || t.includes('nómina de expuestos') || t.includes('nomina de expuestos') || (t.includes('agentes de riesgo') && t.includes('srt'))) {
     return { id: 'confeccion_rar', nombre: 'Confección de RAR (Nómina de expuestos)' };
   }
-  // Agua Bacteriológico o Fisicoquímico / Protocolo
-  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo'))) {
+  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo
+  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo')) || t.includes('analisis de agua')) {
     return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo de Laboratorio)' };
   }
-  // Muestra de agua
+  // 5. Muestra de agua
   if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión'))) {
     return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)' };
   }
-  // Puesta a tierra
+  // 6. Puesta a tierra
   if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas')) {
     return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT - Res. 900/15)' };
   }
-  // Ruido
+  // 7. Ruido
   if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || (t.includes('ruido') && t.includes('protocolo'))) {
     return { id: 'medicion_ruido', nombre: 'Medición de Ruido (Res. 85/12)' };
   }
-  // Iluminación
+  // 8. Iluminación
   if (t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || (t.includes('iluminaci') && t.includes('protocolo'))) {
     return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación (Res. 84/12)' };
   }
-  // Ergonomía
+  // 9. Ergonomía
   if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos')) {
     return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT' };
   }
-  // Constancia de visita
-  if (t.includes('constancia de visita') || (t.includes('visita') && t.includes('notificado')) || t.includes('formulario de visita')) {
-    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)' };
-  }
-  // Capacitaciones
+  // 10. Capacitaciones
   if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento')) {
     return { id: 'capacitaciones', nombre: 'Capacitaciones' };
   }
-  // Informe técnico
+  // 11. Informe técnico
   if (t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos')) {
     return { id: 'informe_tecnico', nombre: 'Informe Técnico' };
   }
@@ -3151,7 +3156,7 @@ async function procesarOcrItemLote(item) {
           // Si no hay texto digital o no se halló fecha, probar OCR sobre página 1 escaneada
           if ((!fechaEncontrada || extractedText.trim().length < 20) && window.Tesseract) {
             const page1 = await pdf.getPage(1);
-            const viewport = page1.getViewport({ scale: 1.5 });
+            const viewport = page1.getViewport({ scale: 2.0 });
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.width = viewport.width;
