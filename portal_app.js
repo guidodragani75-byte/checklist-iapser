@@ -1840,12 +1840,14 @@ function resetUploaderUI() {
   const progressBox = document.getElementById('upload-progress-box');
   const btnSubmit = document.getElementById('btn-guardar-actividad');
   const badgeFecha = document.getElementById('act-fecha-detectada-badge');
+  const badgeOcr = document.getElementById('act-ocr-loading-badge');
 
   if (fileInput) fileInput.value = '';
   if (infoBox) infoBox.classList.add('hidden');
   if (progressBox) progressBox.classList.add('hidden');
   if (dropzone) dropzone.classList.remove('hidden');
   if (badgeFecha) badgeFecha.classList.add('hidden');
+  if (badgeOcr) badgeOcr.classList.add('hidden');
   if (btnSubmit) {
     btnSubmit.disabled = false;
     btnSubmit.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>Guardar y Subir a Google Drive';
@@ -2012,7 +2014,7 @@ function procesarArchivoSeleccionado(file) {
   };
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     const result = e.target.result;
     const commaIndex = result.indexOf(',');
     archivoSeleccionadoBase64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
@@ -2020,8 +2022,19 @@ function procesarArchivoSeleccionado(file) {
     mostrarArchivoSeleccionadoUI(file);
     actualizarPreviewNombreArchivo();
 
-    // Analizar el archivo para extraer automáticamente la fecha del documento
+    // 1. Análisis preliminar por nombre y cabeceras
     analizarYCargarFechaArchivo(file, archivoSeleccionadoBase64);
+
+    // 2. Análisis profundo por OCR / texto en el interior del documento
+    try {
+      let arrayBuffer = null;
+      if (typeof file.arrayBuffer === 'function') {
+        arrayBuffer = await file.arrayBuffer();
+      }
+      await procesarOcrYTextoDeArchivo(file, arrayBuffer);
+    } catch (errOcr) {
+      console.warn('Aviso OCR:', errOcr);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -2222,14 +2235,189 @@ function analizarYCargarFechaArchivo(file, base64Str) {
 function restablecerFechaHoy() {
   const inputFecha = document.getElementById('act-fecha');
   const badge = document.getElementById('act-fecha-detectada-badge');
+  const ocrBadge = document.getElementById('act-ocr-loading-badge');
   if (inputFecha) {
     inputFecha.value = new Date().toISOString().slice(0, 10);
     actualizarPreviewNombreArchivo();
   }
   if (badge) badge.classList.add('hidden');
+  if (ocrBadge) ocrBadge.classList.add('hidden');
   mostrarToast('📅 Fecha restablecida a hoy.');
 }
 window.restablecerFechaHoy = restablecerFechaHoy;
+
+/**
+ * Busca fechas técnicas válidas dentro de un texto extraído por OCR o capa digital de PDF
+ */
+function buscarFechasEnTexto(fullText) {
+  if (!fullText) return null;
+
+  const meses = {
+    enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+    julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+    noviembre: '11', diciembre: '12',
+    ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
+    jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
+  };
+
+  const clean = fullText.replace(/\r/g, ' ').replace(/\n+/g, ' ');
+
+  // 1. Patrón con palabras clave de fecha o localidad (alta probabilidad en actas e informes)
+  const regexConContexto = /(?:fecha|visita|relevamiento|acta|emisi[oó]n|d[ií]a|paran[aá]|concordia|gualeguaych[uú])[^\d]{0,25}([0-2]?[0-9]|3[01])\s*(?:[\/\-\.])\s*(0?[1-9]|1[0-2])\s*(?:[\/\-\.])\s*(202[0-9])/i;
+  let match = clean.match(regexConContexto);
+  if (match) {
+    const d = match[1].padStart(2, '0');
+    const m = match[2].padStart(2, '0');
+    const y = match[3];
+    if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  // 2. Patrón en letras: "14 de abril de 2026" o "a los 14 días del mes de abril de 2026"
+  const regexLetras = /([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del?\s+)?(?:a[ñn]o\s+)?(202[0-9])/i;
+  match = clean.match(regexLetras);
+  if (match && meses[match[2].toLowerCase()]) {
+    const d = match[1].padStart(2, '0');
+    const m = meses[match[2].toLowerCase()];
+    const y = match[3];
+    return `${y}-${m}-${d}`;
+  }
+
+  // 3. Patrón numérico general DD/MM/YYYY
+  const regexNum = /\b([0-2]?[0-9]|3[01])\s*(?:[\/\-\.])\s*(0?[1-9]|1[0-2])\s*(?:[\/\-\.])\s*(202[0-9])\b/;
+  match = clean.match(regexNum);
+  if (match) {
+    const d = match[1].padStart(2, '0');
+    const m = match[2].padStart(2, '0');
+    const y = match[3];
+    if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Procesa el interior del documento (PDF o Imagen) mediante extracción de texto digital y OCR (Tesseract.js)
+ */
+async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
+  const loadingBadge = document.getElementById('act-ocr-loading-badge');
+  const loadingTxt = document.getElementById('act-ocr-loading-txt');
+  const badge = document.getElementById('act-fecha-detectada-badge');
+  const badgeTxt = document.getElementById('act-fecha-detectada-txt');
+  const inputFecha = document.getElementById('act-fecha');
+
+  let fechaEncontrada = null;
+  let origenOcr = '';
+
+  try {
+    const isPdf = (file.type === 'application/pdf') || (file.name && file.name.toLowerCase().endsWith('.pdf'));
+    const isImage = (file.type && file.type.startsWith('image/')) || (file.name && /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name));
+
+    // A. Si es PDF, intentar lectura de texto digital con PDF.js
+    if (isPdf && arrayBuffer && window.pdfjsLib) {
+      try {
+        if (loadingBadge) loadingBadge.classList.remove('hidden');
+        if (loadingTxt) loadingTxt.textContent = 'Analizando texto en el interior del PDF...';
+
+        const typedArray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        const maxPags = Math.min(pdf.numPages, 3);
+        let extractedText = '';
+
+        for (let p = 1; p <= maxPags; p++) {
+          const page = await pdf.getPage(p);
+          const textContent = await page.getTextContent();
+          const pText = textContent.items.map(it => it.str).join(' ');
+          extractedText += pText + ' ';
+        }
+
+        if (extractedText.trim().length > 30) {
+          const f = buscarFechasEnTexto(extractedText);
+          if (f) {
+            fechaEncontrada = f;
+            origenOcr = 'interior del PDF (texto digital)';
+          }
+        }
+
+        // B. Si el PDF no tiene capa de texto digital (es un escaneo), ejecutar OCR sobre la Página 1
+        if (!fechaEncontrada && window.Tesseract) {
+          if (loadingTxt) loadingTxt.textContent = 'Escaneo detectado: Ejecutando OCR en el interior del PDF...';
+
+          const page1 = await pdf.getPage(1);
+          const viewport = page1.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page1.render({ canvasContext: context, viewport: viewport }).promise;
+
+          const ocrResult = await Tesseract.recognize(canvas, 'spa', {
+            logger: m => {
+              if (m.status === 'recognizing text' && loadingTxt) {
+                loadingTxt.textContent = `OCR en progreso: ${Math.round((m.progress || 0) * 100)}%`;
+              }
+            }
+          });
+
+          if (ocrResult && ocrResult.data && ocrResult.data.text) {
+            const fOcr = buscarFechasEnTexto(ocrResult.data.text);
+            if (fOcr) {
+              fechaEncontrada = fOcr;
+              origenOcr = 'OCR en el interior del documento escaneado';
+            }
+          }
+        }
+      } catch (errPdf) {
+        console.warn('Aviso en análisis de PDF:', errPdf);
+      }
+    }
+
+    // C. Si es una imagen directa (JPG, PNG), ejecutar OCR con Tesseract.js
+    if (!fechaEncontrada && isImage && window.Tesseract) {
+      if (loadingBadge) loadingBadge.classList.remove('hidden');
+      if (loadingTxt) loadingTxt.textContent = 'Ejecutando OCR sobre la imagen...';
+
+      const ocrResult = await Tesseract.recognize(file, 'spa', {
+        logger: m => {
+          if (m.status === 'recognizing text' && loadingTxt) {
+            loadingTxt.textContent = `OCR en progreso: ${Math.round((m.progress || 0) * 100)}%`;
+          }
+        }
+      });
+
+      if (ocrResult && ocrResult.data && ocrResult.data.text) {
+        const fImg = buscarFechasEnTexto(ocrResult.data.text);
+        if (fImg) {
+          fechaEncontrada = fImg;
+          origenOcr = 'OCR en el interior de la imagen';
+        }
+      }
+    }
+  } catch (errGlobal) {
+    console.warn('Aviso en proceso OCR:', errGlobal);
+  } finally {
+    if (loadingBadge) loadingBadge.classList.add('hidden');
+  }
+
+  // Si encontramos la fecha en el interior del documento, actualizar UI
+  if (fechaEncontrada && inputFecha) {
+    inputFecha.value = fechaEncontrada;
+    actualizarPreviewNombreArchivo();
+
+    if (badge && badgeTxt) {
+      const partes = fechaEncontrada.split('-');
+      const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
+      badgeTxt.innerHTML = `✨ Fecha detectada por <strong>OCR</strong> (${origenOcr}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
+      badge.classList.remove('hidden');
+    }
+    mostrarToast(`✨ Fecha detectada por OCR: ${fechaEncontrada}`);
+  }
+}
 
 // ==================== ENVÍO Y GUARDADO A GOOGLE DRIVE / APPS SCRIPT ====================
 

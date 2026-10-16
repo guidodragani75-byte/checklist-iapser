@@ -16,6 +16,17 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- PDF.js para lectura de documentos PDF en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <!-- Tesseract.js para Reconocimiento Óptico de Caracteres (OCR) en documentos escaneados -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <style>
     :root {
       --iapser-blue: #0b3d63;
@@ -591,6 +602,10 @@
               <button type="button" onclick="restablecerFechaHoy()" class="text-[10px] text-emerald-700 hover:text-emerald-950 underline shrink-0 font-bold" title="Volver a la fecha de hoy">
                 Hoy
               </button>
+            </div>
+            <div id="act-ocr-loading-badge" class="hidden mt-1.5 p-1.5 px-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 flex items-center gap-2 transition animate-pulse">
+              <i class="fa-solid fa-spinner fa-spin text-amber-600 shrink-0"></i>
+              <span id="act-ocr-loading-txt" class="truncate">Analizando interior del documento con OCR...</span>
             </div>
           </div>
           <div>
