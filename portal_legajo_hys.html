@@ -213,6 +213,11 @@
             <span>Métricas Provinciales</span>
           </button>
 
+          <button onclick="abrirModalCarpetasMensuales()" class="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-bold flex items-center gap-2 shadow-sm transition" title="Abrir Carpetas Mensuales en Google Drive (Archivos agrupados sin subcarpetas)">
+            <i class="fa-solid fa-folder-open text-slate-900"></i>
+            <span>Carpetas Mensuales Drive</span>
+          </button>
+
           <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white flex items-center gap-2 shadow-sm transition">
             <i class="fa-solid fa-clipboard-list"></i>
             <span>Checklist RGRL (Dec 351)</span>
@@ -487,13 +492,25 @@
               <option value="">Todas las Actividades</option>
             </select>
           </div>
+
+          <!-- Filtro Mes -->
+          <div class="w-48">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Filtrar por Mes</label>
+            <select id="repo-filtro-mes" class="input-select text-xs">
+              <option value="">Todos los Meses</option>
+            </select>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3 pt-2 md:pt-0 shrink-0">
-          <span id="repo-contador" class="text-xs text-slate-500 font-semibold"></span>
-          <button onclick="sincronizarConSheets()" class="btn-secondary text-xs flex items-center gap-2">
+        <div class="flex items-center gap-2 pt-2 md:pt-0 shrink-0">
+          <span id="repo-contador" class="text-xs text-slate-500 font-semibold mr-1"></span>
+          <button id="btn-abrir-carpeta-mes-repo" onclick="abrirCarpetaMensualSeleccionada()" class="btn-primary text-xs flex items-center gap-2 shadow-sm bg-blue-700 hover:bg-blue-800" title="Abrir carpeta mensual de Drive (archivos agrupados sin subcarpetas)">
+            <i class="fa-solid fa-folder-open text-amber-300"></i>
+            <span id="label-abrir-carpeta-mes-repo">Carpeta Mensual en Drive</span>
+          </button>
+          <button onclick="sincronizarConSheets()" class="btn-secondary text-xs flex items-center gap-2" title="Sincronizar historial con Google Sheets y Drive">
             <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Sincronizar con Drive</span>
+            <span>Sincronizar</span>
           </button>
         </div>
 
@@ -512,6 +529,7 @@
                 <th class="py-3 px-3">Detalle / Puesto</th>
                 <th class="py-3 px-3">Archivo Codificado</th>
                 <th class="py-3 px-3">Google Drive</th>
+                <th class="py-3 px-3">Carpeta Mensual</th>
                 <th class="py-3 px-3 text-right">Acción</th>
               </tr>
             </thead>
@@ -735,6 +753,65 @@
       </div>
     </div>
   </div>
+
+  <!-- ==================== MODAL: CARPETAS MENSUALES EN DRIVE ==================== -->
+  <div id="modal-carpetas-mensuales" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-900 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-folder-open"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Carpetas Mensuales en Google Drive</h3>
+            <p class="text-[11px] text-white/80">Archivos organizados por mes, directos y sin subcarpetas</p>
+          </div>
+        </div>
+        <button onclick="cerrarModal('modal-carpetas-mensuales')" class="text-white/80 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 text-xs">
+        <!-- Banner informativo -->
+        <div class="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl flex items-start gap-3">
+          <i class="fa-solid fa-circle-info text-amber-600 text-base mt-0.5"></i>
+          <div>
+            <p class="font-semibold text-xs">Organización Mensual Plana (Sin Subcarpetas)</p>
+            <p class="text-[11px] text-amber-800 mt-0.5">
+              Cada mes agrupa todos los informes y comprobantes técnicos directamente en su interior, ideal para auditorías mensuales o descargas en lote.
+            </p>
+          </div>
+        </div>
+
+        <!-- Botón para ver la carpeta contenedora en Drive -->
+        <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <div>
+            <div class="font-bold text-slate-800">Carpeta Principal: Carpetas_Mensuales</div>
+            <div class="text-[11px] text-slate-500">Contenedor de todos los meses en Google Drive</div>
+          </div>
+          <button id="btn-abrir-parent-mensual-drive" onclick="abrirCarpetaParentMensualDrive()" class="btn-primary text-xs flex items-center gap-2">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>Abrir en Drive</span>
+          </button>
+        </div>
+
+        <!-- Listado dinámico de meses -->
+        <div>
+          <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider mb-2">Meses Registrados</h4>
+          <div id="lista-carpetas-mensuales-modal" class="space-y-2">
+            <!-- Rellenado dinámicamente con las tarjetas de cada mes -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <span class="text-[11px] text-slate-500 font-medium">IAPSER ART — Gestión Digital</span>
+        <button onclick="cerrarModal('modal-carpetas-mensuales')" class="btn-secondary text-xs">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Carga de datos de catálogo (452 establecimientos) y lógica -->
   <script src="datos_precargados.js"></script>

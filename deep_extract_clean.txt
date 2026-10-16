@@ -1,0 +1,1248 @@
+﻿
+======================================================================
+[FILE 1] 30681122334_MINISTERIO DE GOBIERNO Y TRABAJO DE LA PROV. E.R._FEDERAL_25_Abr2026_INFORME TECNICO.pdf
+--- Page 16 ---
+Ministerio de Gobierno y Trabajo de la Provincia de Entre R├¡os 
+Delegaci├│n Federal 
+ESTABLECIMIENTO N┬░25 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+16 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica.  
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Durante el relevamiento se realiz├│ la medici├│n de la resistencia de puesta a tierra, obteni├®ndose 
+un valor de 0,89 ohm. 
+El valor registrado se encuentra dentro de par├ímetros adecuados, indicando una correcta 
+disipaci├│n de corrientes de falla y condiciones seguras del sistema de puesta a tierra. 
+No obstante, se recomienda mantener controles peri├│dicos del sistema, a fin de verificar la 
+continuidad de estas condiciones en el tiempo. 
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN: 
+ANEXO 6 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas del establecimiento. 
+ANEXO 7 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua desde 
+un punto de consumo del establecimiento (canilla de la cocina), alimentado por el tanque de 
+almacenamiento, con el objetivo de evaluar sus condiciones de potabilidad. 
+La muestra fue remitida a laboratorio homologado para su an├ílisis bacteriol├│gico y 
+fisicoqu├¡mico, cuyos resultados se incorporan en el ANEXO 9. 
+De acuerdo a los resultados obtenidos, el an├ílisis fisicoqu├¡mico no presenta valores fuera de los 
+par├ímetros establecidos, resultando el agua apta en t├®rminos fisicoqu├¡micos. No obstante, el 
+an├ílisis bacteriol├│gico indica que el agua no cumple con las condiciones de potabilidad, debido 
+a la presencia de recuentos elevados de microorganismos aerobios mes├│filos, superando los 
+valores m├íximos admitidos por la normativa vigente. 
+Si bien no se detecta presencia de coliformes totales, coliformes fecales ni Pseudomonas 
+aeruginosa, lo que descarta contaminaci├│n de origen cloacal, el resultado evidencia una carga
+--- Protocol Page 32 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 0.89 SI SI SI DD SI
+--- Agua Conclusion Page 50 ---
+Ministerio de Gobierno y Trabajo de la Provincia de Entre R├¡os 
+Delegaci├│n Federal 
+ESTABLECIMIENTO N┬░25 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+50 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 2] 30707558691_UADER_TECNICATURA EN ACUICULTURA FCY_16_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 17 ---
+Universidad Aut├│noma de Entre R├¡os 
+Tecnicatura en Acuicultura FCYT 
+ESTABLECIMIENTO N┬░16 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+17 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se realizaron mediciones de ruido, en funci├│n de no evidenciarse exposici├│n significativa 
+durante el relevamiento. 
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Durante el relevamiento se realiz├│ la medici├│n de resistencia de puesta a tierra sobre las 
+jabalinas identificadas en el establecimiento, ubicadas en el sector del tablero el├®ctrico principal. 
+Los valores obtenidos se encuentran dentro de par├ímetros adecuados, evidenciando una 
+correcta disipaci├│n de corrientes a tierra. 
+Se deja constancia de que las mediciones fueron realizadas con instrumental adecuado, y que 
+los resultados detallados, junto con el registro fotogr├ífico y la certificaci├│n del equipo utilizado, 
+se incorporan en el Anexo correspondiente. 
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+ANEXO 6 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A continuaci├│n se desarrollan criterios t├®cnicos generales aplicables a las instalaciones 
+el├®ctricas, en funci├│n de las condiciones observadas durante el relevamiento realizado en el 
+establecimiento. 
+ANEXO 7 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua para su 
+correspondiente an├ílisis, a fin de evaluar las condiciones de potabilidad. 
+La muestra fue tomada desde un punto de consumo del establecimiento y enviada a laboratorio 
+para su an├ílisis, cuyos resultados se incorporar├ín en el anexo correspondiente. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA. 
+ 
+Se tom├│ muestra de agua de la canilla de la cocina, que proviene de la red. Se lleva a analizar 
+en laboratorio homologado.  
+ANEXO 9. RESULTADOS DE ANALISIS DE AGUA.
+--- Protocol Page 33 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 0.28 SI SI SI DD SI
+--- Protocol Page 34 snippet ---
+   realizada en el establecimiento arroj├│ un valor
+   de 0,28 ohm, correspondiente a la jabalina
+   Dicho valor se encuentra dentro de par├ímetros
+   Si bien los valores obtenidos resultan satisfactorios,
+--- Agua Conclusion Page 52 ---
+Universidad Aut├│noma de Entre R├¡os 
+Tecnicatura en Acuicultura FCYT 
+ESTABLECIMIENTO N┬░16 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+52 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 3] 30707558691_UNIVERSIDADAUTONOMADEENTRERIOS_32_CRESPOESCTECNICA35_abr26_INFORMETECNICO.pdf
+--- Page 14 ---
+Universidad Aut├│noma de Entre R├¡os.  
+CRESPO. ESCUELA TECNICA N.3 -ESTABLECIMIENTO N┬░32 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+14 
+MEDICI├ôN DE NIVELES DE RUIDO 
+ANEXO 5 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Se accedi├│ a jabalina de uno de los sectores internos y pudo realizarse la medici├│n de puesta a tierra, 
+cuyo resultado est├í dentro de las recomendaciones legales.  
+ANEXO 6 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+Se realizaron mediciones de iluminaci├│n en 3 sectores.  
+ANEXO 7 
+ 
+INSTALACIONES EL├ëCTRICAS 
+Al momento del relevamiento, se observaron tableros nuevos que poseen todas las protecciones 
+adecuadas y otros m├ís antiguos que deben ser actualizados. Nos informan que se est├ín realizando 
+mejoras a las instalaciones el├®ctricas.  
+Se recomienda acondicionar cableados y colocar protecciones para contactos directos e indirectos; 
+revisar peri├│dicamente el funcionamiento de disyuntores. Registrar dicha prueba en planilla.  
+ANEXO 8 
+ 
+CALIDAD DEL AGUA 
+´é¿ Es de suma importancia mantener la calidad del agua, el empleador debe proveer agua potable a sus 
+empleados. El Decreto 351/79 (Reglamento de Higiene y Seguridad en el Trabajo) establece que todo 
+establecimiento debe contar con provisi├│n y reserva de agua para consumo humano, higiene y aseo, 
+garantizando su calidad. 
+ 
+ANEXO 9. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA.  
+´é¿ Se tom├│ muestra de agua de la canilla de la cocina, que proviene del tanque de reserva. Se lleva a 
+analizar en laboratorio homologado.  
+ 
+ANEXO 10. RESULTADOS DE ANALISIS DE AGUA.
+--- Protocol Page 38 snippet ---
+   Valor
+   en ohm
+   Cumple
+   del transformador TT 1.14 SI SI SI DD SI
+--- Agua Conclusion Page 58 ---
+Universidad Aut├│noma de Entre R├¡os.  
+CRESPO. ESCUELA TECNICA N.3 -ESTABLECIMIENTO N┬░32 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+58 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO 9 
+RESULTADOS DE ANALISIS DE AGUA
+--- Agua Conclusion Page 61 ---
+Universidad Aut├│noma de Entre R├¡os.  
+CRESPO. ESCUELA TECNICA N.3 -ESTABLECIMIENTO N┬░32 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+61 
+CONCLUSION ANALISIS DE AGUA FISICOQUIMICO Y BACTERIOLOGICO: 
+En funci├│n de los resultados obtenidos en el an├ílisis bacteriol├│gico del agua, no se detecta la presencia 
+de contaminaci├│n microbiol├│gica, evidenci├índose condiciones acordes a los par├ímetros establecidos 
+para consumo humano. 
+ 
+Por otro lado, de acuerdo a los resultados del an├ílisis fisicoqu├¡mico, se observa que la concentraci├│n de 
+ars├®nico se encuentra por encima del valor de referencia establecido por la normativa vigente (0,01 
+mg/l), habi├®ndose registrado un valor de 0,04 mg/l en la muestra analizada. 
+Cabe mencionar que la presencia de ars├®nico en concentraciones elevadas puede representar un riesgo 
+potencial para la salud, asoci├índose su exposici├│n prolongada a efectos adverso
+
+======================================================================
+[FILE 4] 30707558691_UNIVERSIDADAUTONOMADEENTRERIOS_33_ESC.JJSANMARTIN_abr26_INFORMETECNICO.pdf
+--- Page 13 ---
+Universidad Aut├│noma de Entre R├¡os.  
+ESCUELA NIVEL MEDIO Y SUPERIOR GENERAL DON JOSE 
+DE SAN MARTIN -ESTABLECIMIENTO N┬░33 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+13 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica durante la visita.  
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Se accedi├│ a jabalina del tablero general y pudo realizarse la medici├│n de puesta a tierra, cuyo resultado 
+est├í dentro de las recomendaciones legales.  
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+Se realizaron mediciones de iluminaci├│n en 3 sectores.  
+ANEXO 6 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS 
+Al momento del relevamiento, se observaron tableros nuevos que poseen todas las protecciones 
+adecuadas y otros m├ís antiguos que deben ser actualizados. Nos informan que se realiza gesti├│n a la 
+hora de resolver las cuestiones que se van presentando respecto a las instalaciones el├®ctricas.  
+Se recomienda acondicionar cableados y colocar protecciones para contactos directos e indirectos; 
+revisar peri├│dicamente el funcionamiento de disyuntores. Registrar dicha prueba en planilla.  
+ANEXO 7 
+ 
+CALIDAD DEL AGUA 
+´é¿ Es de suma importancia mantener la calidad del agua, el empleador debe proveer agua potable a 
+sus empleados. El Decreto 351/79 (Reglamento de Higiene y Seguridad en el Trabajo) establece 
+que todo establecimiento debe contar con provisi├│n y reserva de agua para consumo humano, 
+higiene y aseo, garantizando su calidad. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA.  
+ 
+´é¿ Se tom├│ muestra de agua de la canilla de la cocina, que proviene del tanque de reserva. Se lleva 
+a analizar en laboratorio homologado.  
+ANEXO 9. RESULTADOS DE ANALISIS DE AGUA.
+--- Protocol Page 28 snippet ---
+   Valor
+   en ohm
+   Cumple
+   del transformador TT 1.1 SI SI SI DD SI
+--- Agua Conclusion Page 48 ---
+Universidad Aut├│noma de Entre R├¡os.  
+ESCUELA NIVEL MEDIO Y SUPERIOR GENERAL DON JOSE 
+DE SAN MARTIN -ESTABLECIMIENTO N┬░33 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+48 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO 9 
+RESULTADOS DE ANALISIS DE AGUA
+--- Agua Conclusion Page 52 ---
+Universidad Aut├│noma de Entre R├¡os.  
+ESCUELA NIVEL MEDIO Y SUPERIOR GENERAL DON JOSE 
+DE SAN MARTIN -ESTABLECIMIENTO N┬░33 
+Fecha: ABRIL / 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+52 
+CONCLUSION ANALISIS DE AGUA FISICOQUIMICO Y BACTERIOLOGICO: 
+En funci├│n de los resultados obtenidos en el an├ílisis bacteriol├│gico del agua, se detecta la presencia de 
+contaminaci├│n microbiol├│gica, evidenci├índose condiciones por encima de los par├ímetros establecidos 
+para consumo humano. Se recomienda realizar limpieza de tanques de agua y volver a medir.  
+ 
+Por otro lado, de acuerdo a los resultados del an├ílisis fisicoqu├¡mico, se observa que la concentraci├│n de 
+ars├®nico se encuentra por encima del valor de referencia establecido por la normativa vigente (0,01 
+mg/l), habi├®ndose registrado un valor de 0,04 mg/l en la muestra analizada. 
+Cabe mencionar que la presencia de ars├®nico en concentraciones elevadas pu
+
+======================================================================
+[FILE 5] 30712147829_ADMINISTRADORATRIBUTARIAER_CAPITAL FEDERAL_76_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 14 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Ciudad Aut├│noma de Buenos Aires 
+ESTABLECIMIENTO N┬░76 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+14 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se realizaron mediciones de ruido, no resultando necesario en funci├│n del tipo de actividad. 
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Durante el relevamiento no fue posible efectuar la medici├│n de resistencia de puesta a tierra, 
+debido a la imposibilidad de localizar y acceder al sistema correspondiente dentro del 
+establecimiento. 
+En funci├│n de ello, no se cuenta con valores que permitan verificar el cumplimiento de las 
+condiciones exigidas por la normativa vigente. 
+Se recomienda realizar la medici├│n mediante instrumental espec├¡fico por personal competente, 
+a fin de determinar el valor de resistencia del sistema de puesta a tierra y garantizar 
+condiciones seguras en las instalaciones el├®ctricas.  
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+ANEXO 5 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas. 
+ANEXO 6 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua desde 
+un punto de consumo del establecimiento, la cual fue remitida a laboratorio habilitado para la 
+realizaci├│n de an├ílisis f├¡sico-qu├¡micos y bacteriol├│gicos, a fin de evaluar las condiciones de 
+potabilidad. 
+La muestra analizada corresponde al suministro de agua utilizado en el establecimiento, cuyos 
+resultados se incorporan en el ANEXO 9. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA. 
+ANEXO 9. RESULTADOS DE AN├üLISIS DE AGUA.
+--- Agua Conclusion Page 43 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Ciudad Aut├│noma de Buenos Aires 
+ESTABLECIMIENTO N┬░76 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+43 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 6] 30712147829_ADMINISTRADORATRIBUTARIAER_CRESPO_38_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 15 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Crespo 
+ESTABLECIMIENTO N┬░38 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+15 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se realizaron mediciones de ruido, en funci├│n de no evidenciarse exposici├│n significativa 
+durante el relevamiento. 
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Se realiz├│ la medici├│n de la resistencia de puesta a tierra sobre la instalaci├│n general del 
+edificio, la cual es compartida por los distintos organismos que funcionan en el mismo. 
+La medici├│n se efectu├│ en el punto accesible correspondiente a la jabalina principal, 
+obteni├®ndose un valor bajo, considerado adecuado para este tipo de instalaciones. 
+Cabe mencionar que el valor obtenido puede verse influenciado por las condiciones del terreno 
+al momento de la medici├│n, particularmente por la presencia de humedad. 
+El detalle de la medici├│n, junto con el registro fotogr├ífico y la certificaci├│n del equipo utilizado, 
+se presenta en el anexo correspondiente. 
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+ANEXO 6 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas. 
+ANEXO 7 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua desde la 
+canilla de la cocina del establecimiento, la cual se abastece de la red p├║blica mediante un 
+sistema de almacenamiento en tanque de reserva. 
+La muestra fue enviada a laboratorio homologado para su an├ílisis fisicoqu├¡mico y 
+bacteriol├│gico, cuyos resultados se incorporan en el ANEXO 9. 
+De acuerdo a los resultados obtenidos, el an├ílisis fisicoqu├¡mico indica que el agua cumple con 
+los par├ímetros de potabilidad establecidos por la normativa vigente. 
+No obstante, el an├ílisis bacteriol├│gico evidencia la presencia de coliformes totales y fecales, 
+determinando que el agua no resulta apta para consumo humano.
+--- Protocol Page 31 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 1.8 SI SI SI DD SI
+--- Protocol Page 32 snippet ---
+   El valor de resistencia de puesta a tierra
+   obtenido (1.8 ohm) se considera adecuado,
+   en el valor obtenido.
+   los valores se conserven dentro de los par├ímetros
+--- Agua Conclusion Page 50 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Crespo 
+ESTABLECIMIENTO N┬░38 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+50 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 7] 30712147829_ADMINISTRADORATRIBUTARIAER_DIAMANTE_16_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 16 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Diamante 
+ESTABLECIMIENTO N┬░16 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+16 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica.  
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Durante el relevamiento no se pudo efectuar la medici├│n de la resistencia de puesta a tierra de 
+la instalaci├│n el├®ctrica, debido a que no fue posible identificar ni acceder de manera clara al 
+sistema de puesta a tierra (jabalina), ni contar con condiciones adecuadas para realizar dicha 
+medici├│n. Asimismo, se observ├│ que el tablero el├®ctrico presenta caracter├¡sticas antiguas, lo 
+cual dificulta la verificaci├│n completa del sistema. En funci├│n de lo expuesto, se recomienda 
+realizar la medici├│n correspondiente mediante personal t├®cnico especializado, a fin de 
+determinar el valor de resistencia y verificar el cumplimiento de la normativa vigente. 
+ 
+ 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN: 
+ANEXO 5
+--- Page 17 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Diamante 
+ESTABLECIMIENTO N┬░16 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+17 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas del establecimiento. 
+ANEXO 6 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua para su 
+correspondiente an├ílisis, a fin de evaluar las condiciones de potabilidad. 
+La muestra fue tomada desde un punto de consumo del establecimiento y enviada a laboratorio 
+para su an├ílisis, cuyos resultados se incorporar├ín en el anexo correspondiente. 
+ANEXO 7. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA. 
+ 
+ 
+Se tom├│ muestra de agua de la canilla de la cocina, que proviene de la red. Se lleva a analizar 
+en laboratorio homologado.  
+ANEXO 8. RESULTADOS DE ANALISIS DE AGUA.  
+ 
+ 
+CONCLUSI├ôN DE LOS RESULTADOS DE ANALISIS DE AGUA 
+Del an├ílisis integral del agua, considerando tanto los par├ímetros f├¡sico-qu├¡micos como 
+bacteriol├│gicos, se concluye que la misma no resulta apta para consumo humano. 
+Desde el punto de vista f├¡sico-qu├¡mico, la mayor├¡a de los par├ímetros analizados se encuentran 
+dentro de los valores establecidos por la normativa vigente, evidenciando condiciones generales 
+aceptables. No obstante, se detecta la presencia de ars├®nico en una concentraci├│n superior al 
+l├¡mite m├íximo permitido por el C├│digo Alimentario Argentino, lo cual representa una desviaci├│n 
+relevante en t├®rminos de calidad. 
+Por otra parte, el an├ílisis bacteriol├│gico evidencia contaminaci├│n microbiol├│gica significativa, 
+registr├índose valores elevados de coliformes totales y presencia de coliformes termotolerantes, 
+superando ampliamente los l├¡mites admisibles, lo que confirma la existencia de contaminaci├│n 
+de origen fecal. En funci├│n de estos resultados, el laboratorio concluye que el agua es no 
+potable. 
+En este contexto, la condici├│n de no aptitud para consumo humano se encuentra 
+principalmente determinada por la calidad bacteriol├│gica, constituyendo un riesgo sanitario 
+inmediato.
+--- Agua Conclusion Page 45 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Diamante 
+ESTABLECIMIENTO N┬░16 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+45 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 8] 30712147829_ADMINISTRADORATRIBUTARIAER_FEDERAL_18_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 18 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Federal 
+ESTABLECIMIENTO N┬░18 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+18 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica.  
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN: 
+ANEXO 6 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas del establecimiento. 
+ANEXO 7 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua desde 
+un punto de consumo interno del establecimiento, espec├¡ficamente desde la canilla del sector 
+cocina, con el objetivo de evaluar sus condiciones de potabilidad. 
+Cabe destacar que el suministro de agua proviene de un tanque general correspondiente al 
+edificio del centro c├¡vico, desde el cual se distribuye a las distintas dependencias. 
+La muestra fue remitida a laboratorio habilitado para la realizaci├│n de an├ílisis f├¡sico-qu├¡mico y 
+bacteriol├│gico, cuyos resultados se incorporan en el anexo correspondiente. 
+ANEXO 9. RESULTADOS DE AN├üLISIS DE AGUA. 
+Asimismo, se incorpora un anexo con recomendaciones generales para el adecuado 
+mantenimiento, limpieza y desinfecci├│n de los tanques de almacenamiento de agua. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA. 
+ 
+RESULTADOS Y CONSIDERACIONES: 
+Del an├ílisis f├¡sico-qu├¡mico se desprende que los par├ímetros evaluados se encuentran dentro de 
+los valores aceptados por la normativa vigente para agua de consumo. 
+No obstante, el an├ílisis bacteriol├│gico evidencia la presencia de microorganismos aerobios 
+mes├│filos en valores superiores a los admitidos, determinando que el agua analizada no resulta 
+apta para consumo humano.
+--- Protocol Page 34 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 1.14 SI SI SI DD SI
+--- Agua Conclusion Page 53 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Federal 
+ESTABLECIMIENTO N┬░18 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+53 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA
+
+======================================================================
+[FILE 9] 30712147829_ADMINISTRADORATRIBUTARIAER_GUALEGUAY_71_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 11 ---
+Administradora Tributaria de Entre R├¡os. 
+Gualeguay 
+ESTABLECIMIENTO N┬░ 71 
+Fecha: 16/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+11 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica durante la visita.  
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Se verific├│ la existencia de sistema de puesta a tierra. Se recomienda mantener controles peri├│dicos a 
+fin de asegurar su correcto funcionamiento. 
+ANEXO 5 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+Se realizaron mediciones de iluminaci├│n en 3 sectores.  
+ANEXO 6 
+ 
+INSTALACIONES EL├ëCTRICAS.  
+Las instalaciones el├®ctricas no presentan anomal├¡as visibles que impliquen un riesgo inmediato. Sin 
+embargo, se observa la ausencia de se├▒alizaci├│n de riesgo el├®ctrico en el tablero, lo cual deber├¡a 
+regularizarse. Este tipo de se├▒alizaci├│n resulta importante para advertir posibles riesgos, especialmente 
+para personal que no cuenta con formaci├│n t├®cnica .Se recomienda realizar controles peri├│dicos del 
+funcionamiento de interruptores diferenciales y registrar dichas verificaciones en planillas 
+correspondientes. 
+ANEXO 7 
+ 
+CALIDAD DEL AGUA 
+´é¿ Es de suma importancia mantener la calidad del agua, el empleador debe proveer agua potable a 
+sus empleados. El Decreto 351/79 (Reglamento de Higiene y Seguridad en el Trabajo) establece 
+que todo establecimiento debe contar con provisi├│n y reserva de agua para consumo humano, 
+higiene y aseo, garantizando su calidad. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA.  
+ 
+´é¿ Se tom├│ muestra de agua de la canilla de la cocina, que proviene del tanque de reserva. Se lleva 
+a analizar en laboratorio homologado.  
+ANEXO 9. RESULTADOS DE ANALISIS DE AGUA.
+--- Protocol Page 27 snippet ---
+   Valor
+   en ohm
+   Cumple
+--- Agua Conclusion Page 51 ---
+Administradora Tributaria de Entre R├¡os. 
+Gualeguay 
+ESTABLECIMIENTO N┬░ 71 
+Fecha: 16/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+51 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO 9 
+RESULTADOS DE ANALISIS DE AGUA
+--- Agua Conclusion Page 54 ---
+Administradora Tributaria de Entre R├¡os. 
+Gualeguay 
+ESTABLECIMIENTO N┬░ 71 
+Fecha: 16/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+54 
+CONCLUSION ANALISIS DE AGUA FISICOQUIMICO Y BACTERIOLOGICO: 
+ 
+En funci├│n de los resultados obtenidos en el an├ílisis bacteriol├│gico del agua, se informa que la muestra 
+no cumple con los par├ímetros establecidos para consumo humano, evidenci├índose la presencia  de 
+contaminaci├│n microbiol├│gica. Asimismo, en el an├ílisis fisicoqu├¡mico se observa que los par├ímetros 
+evaluados se encuentran dentro de los valores de referencia establecidos por la normativa vigente, 
+presentando condiciones compatibles con los est├índares  para consumo humano desde este punto de 
+vista. 
+Desde el enfoque preventivo, el consumo de agua con contaminaci├│n microbiol├│gica puede implicar 
+riesgos para la salud, pudiendo dar lugar a enfermedades de origen h├¡drico tales como gastroenteritis, 
+diarreas, inf
+
+======================================================================
+[FILE 10] 30712147829_ADMINISTRADORATRIBUTARIAER_SAUCEDELUNA_6_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 12 ---
+Administradora Tributaria de Entre Rios. 
+Sauce de Luna 
+ESTABLECIMIENTO N┬░ 6 
+Fecha: 04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+12 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se realiza medici├│n ac├║stica, dado que durante el relevamiento se perciben niveles muy bajos de 
+ruido, por lo que se considera riesgo bajo de contaminaci├│n sonora. 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+No se realiz├│ medici├│n de la resistencia de puesta a tierra, debido a la imposibilidad de acceso al terreno 
+al momento del relevamiento. 
+Se recomienda efectuar dicha medici├│n cuando se disponga de acceso adecuado, a fin de verificar el 
+correcto funcionamiento del sistema y asegurar condiciones de seguridad el├®ctrica. 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+Se realizaron mediciones de niveles de iluminaci├│n en distintos sectores del establecimiento, cuyos 
+resultados se detallan en el apartado correspondiente. 
+Los valores obtenidos evidencian la necesidad de mejorar la iluminaci├│n en sectores espec├¡ficos, 
+particularmente en el ├írea de atenci├│n al p├║blico. 
+ANEXO 5 
+ 
+INSTALACIONES EL├ëCTRICAS.  
+Durante el relevamiento se realiz├│ una inspecci├│n visual de las instalaciones el├®ctricas, no observ├índose, 
+a simple vista, condiciones que representen riesgo el├®ctrico inmediato. Las mismas se presentan en 
+condiciones acordes al tipo de actividad desarrollada. 
+No obstante, no se realiz├│ medici├│n del sistema de puesta a tierra, debido a la imposibilidad de acceso 
+al terreno, por lo que se recomienda efectuar dicha verificaci├│n a fin de asegurar condiciones adecuadas 
+de seguridad el├®ctrica. 
+ANEXO 6 
+ 
+CALIDAD DEL AGUA 
+´é¿ Es de suma importancia mantener la calidad del agua, el empleador debe proveer agua potable a 
+sus empleados. El Decreto 351/79 (Reglamento de Higiene y Seguridad en el Trabajo) establece 
+que todo establecimiento debe contar con provisi├│n y reserva de agua para consumo humano, 
+higiene y aseo, garantizando su calidad. 
+ANEXO 7. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA.  
+ 
+´é¿ Se tom├│ muestra de agua de la canilla de la cocina, que proviene del tanque de reserva. Se lleva 
+a analizar en laboratorio homologado.  
+ANEXO 8. RESULTADOS DE ANALISIS DE AGUA.
+--- Agua Conclusion Page 44 ---
+Administradora Tributaria de Entre Rios. 
+Sauce de Luna 
+ESTABLECIMIENTO N┬░ 6 
+Fecha: 04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+44 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO 8 
+RESULTADOS DE ANALISIS DE AGUA
+--- Agua Conclusion Page 47 ---
+Administradora Tributaria de Entre Rios. 
+Sauce de Luna 
+ESTABLECIMIENTO N┬░ 6 
+Fecha: 04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+47 
+CONCLUSION ANALISIS DE AGUA FISICOQUIMICO Y BACTERIOLOGICO:  
+ 
+En funci├│n de los resultados obtenidos en el an├ílisis bacteriol├│gico del agua, se informa que la 
+muestra no cumple con los par├ímetros establecidos para consumo humano, evidenci├índose la 
+presencia de contaminaci├│n microbiol├│gica. Por otro lado, en el an├ílisis fisicoqu├¡mico se registra 
+un valor de residuo a 105 ┬░C de 1710 mg/l, superior al valor de referencia establecido por la 
+normativa vigente de 1500 mg/l. Desde el punto de vista preventivo, valores elevados de 
+residuo total indican una mayor concentraci├│n de s├│lidos disueltos, lo que puede afectar las 
+caracter├¡sticas organol├®pticas del agua y generar efectos adversos en el organismo ante 
+exposiciones prolongadas, tales como trastornos gastrointestinale
+
+======================================================================
+[FILE 11] 30712147829_ADMINSITRADORATRIBUTARIAER_BOVRIL_9_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 10 ---
+Administradora Tributaria de Entre Rios. 
+Bovril 
+ESTABLECIMIENTO N┬░ 9 
+Fecha: 01/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+10 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica durante la visita.  
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Durante el relevamiento se realiz├│ la medici├│n de la resistencia de puesta a tierra, obteni├®ndose un valor 
+de 0,26 ohm. 
+Dicho valor se encuentra dentro de los par├ímetros establecidos por la normativa vigente, indicando que 
+el sistema de puesta a tierra presenta condiciones adecuadas de funcionamiento. 
+ANEXO 5 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN 
+Se realizaron mediciones de iluminaci├│n en 3 sectores.  
+ANEXO 6 
+ 
+INSTALACIONES EL├ëCTRICAS.  
+Las instalaciones el├®ctricas del establecimiento se encuentran en buen estado general de 
+funcionamiento, sin evidenciarse riesgos el├®ctricos al momento de la inspecci├│n. 
+Se recomienda realizar controles peri├│dicos del funcionamiento de interruptores diferenciales y registrar 
+dichas verificaciones en planillas correspondientes. 
+ANEXO 7 
+ 
+CALIDAD DEL AGUA 
+´é¿ Es de suma importancia mantener la calidad del agua, el empleador debe proveer agua potable a 
+sus empleados. El Decreto 351/79 (Reglamento de Higiene y Seguridad en el Trabajo) establece 
+que todo establecimiento debe contar con provisi├│n y reserva de agua para consumo humano, 
+higiene y aseo, garantizando su calidad. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA.  
+ 
+´é¿ Se tom├│ muestra de agua de la canilla de la cocina, que proviene del tanque de reserva. Se lleva 
+a analizar en laboratorio homologado.  
+ANEXO 9. RESULTADOS DE ANALISIS DE AGUA.
+--- Protocol Page 25 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 0,26 SI X SI DISYUNTOR X
+--- Agua Conclusion Page 49 ---
+Administradora Tributaria de Entre Rios. 
+Bovril 
+ESTABLECIMIENTO N┬░ 9 
+Fecha: 01/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+49 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO 9 
+RESULTADOS DE ANALISIS DE AGUA
+--- Agua Conclusion Page 52 ---
+Administradora Tributaria de Entre Rios. 
+Bovril 
+ESTABLECIMIENTO N┬░ 9 
+Fecha: 01/04/2026. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional:  Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono: 343 4738648 
+  
+52 
+CONCLUSION ANALISIS DE AGUA FISICOQUIMICO Y BACTERIOLOGICO: 
+ 
+ En funci├│n de los resultados obtenidos en el an├ílisis bacteriol├│gico del agua, no se detecta la 
+presencia de contaminaci├│n microbiol├│gica, evidenci├índose condiciones acordes a los 
+par├ímetros establecidos para consumo humano. Por otro lado, de acuerdo a los resultados del 
+an├ílisis fisicoqu├¡mico, se observa que la concentraci├│n de ars├®nico se encuentra por encima del 
+valor de referencia establecido por la normativa vigente (0,01 mg/l), habi├®ndose registrado un 
+valor de 0,025 mg/l en la muestra analizada. Cabe mencionar que la presencia de ars├®nico en 
+concentraciones elevadas puede representar un riesgo potencial para la salud, asoci├índose su 
+exposici├│n prolongada a efectos adversos tales como alteraciones derm
+
+======================================================================
+[FILE 12] 30712147829_ADMINSITRADORATRIBUTARIAER_RAMIREZ_49_ABRIL.2026_INFORME TECNICO.pdf
+--- Page 15 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Ram├¡rez 
+ESTABLECIMIENTO N┬░49 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+15 
+MEDICI├ôN DE NIVELES DE RUIDO 
+No se detecta contaminaci├│n ac├║stica.  
+ 
+ 
+MEDICI├ôN DE RESISTENCIA DE PUESTA A TIERRA 
+Se pudo realizar la medici├│n de la resistencia de puesta a tierra sobre la jabalina ubicada en el 
+interior del establecimiento, la cual forma parte de las reformas y mejoras incorporadas en una 
+edificaci├│n de caracter├¡sticas antiguas. 
+La medici├│n fue efectuada utilizando equipamiento debidamente habilitado, obteni├®ndose los 
+valores correspondientes en condiciones normales de operaci├│n. 
+ANEXO 5 
+ 
+ 
+MEDICI├ôN DE NIVELES DE ILUMINACI├ôN: 
+ANEXO 6 
+ 
+ 
+ 
+INSTALACIONES EL├ëCTRICAS:  
+A fin de complementar lo relevado, se presenta en el anexo correspondiente el desarrollo 
+t├®cnico y consideraciones espec├¡ficas sobre las instalaciones el├®ctricas del establecimiento. 
+ANEXO 7 
+ 
+ 
+CALIDAD DEL AGUA: 
+En el marco del relevamiento realizado, se procedi├│ a la toma de una muestra de agua desde 
+un punto de consumo del establecimiento, espec├¡ficamente desde la canilla del sector cocina, la 
+cual proviene de la red p├║blica, a fin de evaluar sus condiciones de potabilidad. 
+La muestra fue remitida a laboratorio homologado para la realizaci├│n de an├ílisis f├¡sico-qu├¡mico y 
+bacteriol├│gico, cuyos resultados se incorporan en el ANEXO 9 del presente informe. 
+ANEXO 8. RECOMENDACIONES DE MANTENIMIENTO DE TANQUES DE AGUA. 
+ANEXO 9. RESULTADOS DE AN├üLISIS DE AGUA. 
+ 
+CONCLUSI├ôN DE LOS RESULTADOS DE AN├üLISIS DE AGUA 
+De acuerdo a los resultados obtenidos en los an├ílisis f├¡sico-qu├¡mico y bacteriol├│gico realizados 
+sobre la muestra de agua, se concluye que la misma cumple con los par├ímetros establecidos 
+por la normativa vigente en materia de calidad de agua para consumo humano.
+--- Page 16 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Ram├¡rez 
+ESTABLECIMIENTO N┬░49 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+16 
+Desde el punto de vista f├¡sico-qu├¡mico, los valores analizados se encuentran dentro de los 
+l├¡mites admitidos, no detect├índose presencia de sustancias que alteren su potabilidad. 
+En cuanto al an├ílisis bacteriol├│gico, no se registra presencia de microorganismos indicadores de 
+contaminaci├│n, tales como coliformes totales, Escherichia coli ni otros microorganismos 
+pat├│genos, cumpliendo con los criterios establecidos para agua segura. 
+En funci├│n de lo expuesto, el agua del establecimiento se considera APTA PARA CONSUMO 
+HUMANO. 
+No obstante, se recomienda mantener controles peri├│dicos de la calidad del agua, as├¡ como 
+realizar tareas de mantenimiento preventivo del sistema de almacenamiento y distribuci├│n 
+(tanque de reserva, en caso de corresponder), a fin de garantizar la conservaci├│n de las 
+condiciones de potabilidad en el tiempo, conforme a lo establecido en el Art. 982 del C├│digo 
+Alimentario Argentino.
+--- Protocol Page 31 snippet ---
+   Valor
+   en ohm
+   Cumple
+   TT 0.34 SI SI SI DD SI
+--- Protocol Page 32 snippet ---
+   El valor de resistencia de puesta a
+   tierra obtenido (0,34 ohm) se considera
+   puesta a tierra, a fin de verificar que los valores se
+--- Agua Conclusion Page 50 ---
+Administradora Tributaria de la Provincia de Entre R├¡os 
+Ram├¡rez 
+ESTABLECIMIENTO N┬░49 
+Fecha: Abril 2026 
+               
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Profesional: Lic.  Delfina C├íceres 
+Mat. N┬░ L0189 Col. Hig. y Seg.  ER. 
+Tel├®fono 343-4738648 
+  
+50 
+ 
+ 
+ 
+RESULTADOS DE ANALISIS DE AGUA

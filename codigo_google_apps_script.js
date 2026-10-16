@@ -51,6 +51,70 @@ function getOrCreateSubfolder(parentFolder, name) {
   return parentFolder.createFolder(cleanName);
 }
 
+var MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function parsearAnioMes(fecha) {
+  var now = new Date();
+  var anio = now.getFullYear();
+  var mes = now.getMonth() + 1; // 1-12
+  
+  if (fecha) {
+    var s = String(fecha).trim();
+    if (s.includes("-")) {
+      var p = s.split("-");
+      if (p.length >= 2) {
+        var y = parseInt(p[0], 10);
+        var m = parseInt(p[1], 10);
+        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) {
+          anio = y; mes = m;
+        }
+      }
+    } else if (s.includes("/")) {
+      var p2 = s.split("/");
+      if (p2.length >= 3) {
+        var y2 = parseInt(p2[2], 10);
+        var m2 = parseInt(p2[1], 10);
+        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) {
+          anio = y2; mes = m2;
+        }
+      }
+    }
+  }
+  var mesStr = (mes < 10 ? "0" : "") + mes;
+  var mesNombre = MESES_NOMBRES[mes - 1] || "Mes";
+  return {
+    anio: anio,
+    mes: mes,
+    mesStr: mesStr,
+    key: anio + "-" + mesStr,
+    label: anio + "-" + mesStr + " (" + mesNombre + ")"
+  };
+}
+
+function getOrCreateMonthlyFolder(rootFolder, fecha) {
+  var mInfo = parsearAnioMes(fecha);
+  var parentMensual = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
+  try {
+    parentMensual.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(e) {}
+  
+  var monthFolder = getOrCreateSubfolder(parentMensual, mInfo.label);
+  try {
+    monthFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(e2) {}
+
+  return {
+    folder: monthFolder,
+    url: monthFolder.getUrl(),
+    id: monthFolder.getId(),
+    key: mInfo.key,
+    label: mInfo.label,
+    parentUrl: parentMensual.getUrl(),
+    parentId: parentMensual.getId()
+  };
+}
+
+
 function sanitizeText(text) {
   if (!text) return "";
   return text.toString()
@@ -223,6 +287,31 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3b. Obtener Listado de Carpetas Mensuales en Google Drive
+    if (action === "get_carpetas_mensuales") {
+      var rootF = getOrCreateRootFolder();
+      var parentM = getOrCreateSubfolder(rootF, "Carpetas_Mensuales");
+      try {
+        parentM.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch(eShare) {}
+      var subs = parentM.getFolders();
+      var listCarpetas = [];
+      while (subs.hasNext()) {
+        var sub = subs.next();
+        listCarpetas.push({
+          name: sub.getName(),
+          id: sub.getId(),
+          url: sub.getUrl()
+        });
+      }
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: "success", 
+        parentMensualUrl: parentM.getUrl(), 
+        carpetas: listCarpetas 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+
     // 4. Por defecto: Listado maestro de Establecimientos
     var sheet = ss.getSheetByName("Establecimientos");
     if (!sheet) {
@@ -327,6 +416,25 @@ function doPost(e) {
 
         driveUrl = createdFile.getUrl();
         driveFileId = createdFile.getId();
+
+        // 1.b. Guardar además en la Carpeta Mensual correspondiente (SIN SUBCARPETAS)
+        try {
+          var mFolderData = getOrCreateMonthlyFolder(rootFolder, fechaAct);
+          var monthFolderUrl = mFolderData.url;
+          var monthFolderId = mFolderData.id;
+
+          try {
+            mFolderData.folder.addFile(createdFile);
+          } catch(addErr) {
+            try {
+              mFolderData.folder.createShortcut(createdFile.getId());
+            } catch(scErr) {
+              createdFile.makeCopy(codedFileName, mFolderData.folder);
+            }
+          }
+        } catch(monthErr) {
+          Logger.log("Error al guardar en carpeta mensual: " + monthErr.toString());
+        }
       }
 
       // 2. Registrar en la hoja 'Legajo_Actividades_Archivos'
@@ -337,7 +445,7 @@ function doPost(e) {
           "ID Registro", "Timestamp", "Fecha Actividad", "Organismo", "N° Estab",
           "Nombre Establecimiento", "Localidad", "Tipo Actividad", "Estado",
           "Detalle / Puesto / Tema", "Nombre Archivo", "URL Google Drive",
-          "ID Drive", "Preventor Responsable", "Observaciones"
+          "ID Drive", "Preventor Responsable", "Observaciones", "URL Carpeta Mensual"
         ];
         sheetLegajo.appendRow(headersLeg);
         var rHead = sheetLegajo.getRange(1, 1, 1, headersLeg.length);
@@ -345,6 +453,12 @@ function doPost(e) {
         rHead.setFontColor("#ffffff");
         rHead.setFontWeight("bold");
         sheetLegajo.setFrozenRows(1);
+      } else {
+        // Asegurar que exista la cabecera de URL Carpeta Mensual si la hoja es previa
+        var curHeaders = sheetLegajo.getRange(1, 1, 1, Math.max(16, sheetLegajo.getLastColumn())).getValues()[0];
+        if (!curHeaders[15] || curHeaders[15] === "") {
+          sheetLegajo.getRange(1, 16).setValue("URL Carpeta Mensual").setBackground("#0b3d63").setFontColor("#ffffff").setFontWeight("bold");
+        }
       }
 
       var regId = "ACT_" + new Date().getTime();
@@ -363,7 +477,8 @@ function doPost(e) {
         driveUrl,
         driveFileId,
         preventor,
-        observaciones
+        observaciones,
+        monthFolderUrl || ""
       ]);
 
       // 3. Sincronizar en la 'Matriz_Control_Gestion'
@@ -371,13 +486,19 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Actividad y documento registrados exitosamente.",
+        message: "Actividad y documento registrados exitosamente (en sede y en carpeta mensual sin subcarpetas).",
         registroId: regId,
         fileName: codedFileName,
         fileUrl: driveUrl,
-        fileId: driveFileId
+        fileId: driveFileId,
+        monthFolderUrl: monthFolderUrl || "",
+        monthFolderId: monthFolderId || "",
+        monthKey: mFolderData ? mFolderData.key : "",
+        monthLabel: mFolderData ? mFolderData.label : "",
+        parentMensualUrl: mFolderData ? mFolderData.parentUrl : ""
       })).setMimeType(ContentService.MimeType.JSON);
     }
+
 
     // ========================================================
     // CASO 2: CONTROL DE EXTINTORES (Móvil Offline)

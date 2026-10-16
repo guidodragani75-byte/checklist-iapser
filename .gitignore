@@ -4,3 +4,6 @@ Thumbs.db
 *.log
 temp_measure.html
 reporte_measure.html
+__pycache__/
+*.pyc
+

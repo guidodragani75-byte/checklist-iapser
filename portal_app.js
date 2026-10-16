@@ -16,7 +16,9 @@ const STORAGE_KEYS = {
   DRIVE_ROOT_ID: 'iapser_drive_root_id',
   CURRENT_EST_ID: 'hys_current_est_id',
   CUSTOM_ACTIVITIES: 'iapser_custom_activities_v1',
-  MODULO_ACTIVO: 'iapser_modulo_activo_v1'
+  MODULO_ACTIVO: 'iapser_modulo_activo_v1',
+  CARPETAS_MENSUALES: 'iapser_carpetas_mensuales_v1',
+  PARENT_MENSUAL_URL: 'iapser_parent_mensual_url'
 };
 
 // Catálogo maestro de actividades
@@ -131,6 +133,8 @@ const AppState = {
   establecimientos: {},
   establecimientoSeleccionado: null,
   actividadesRegistradas: {}, // estId -> array de actividades
+  carpetasMensuales: {}, // key -> { key: "2026-10", label: "2026-10 (Octubre)", url: "...", id: "..." }
+  parentMensualUrl: '',
   
   // Filtros Vista 1 (Ficha)
   filtroTexto: '',
@@ -146,15 +150,73 @@ const AppState = {
   // Filtros Vista 3 (Repositorio)
   repoFiltroOrg: '',
   repoFiltroAct: '',
+  repoFiltroMes: '',
   repoFiltroTexto: '',
 
   customActivities: [],
   estaSincronizando: false
 };
 
+const MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function parsearAnioMesCliente(fecha) {
+  const now = new Date();
+  let anio = now.getFullYear();
+  let mes = now.getMonth() + 1;
+  if (fecha) {
+    const s = String(fecha).trim();
+    if (s.includes('-')) {
+      const p = s.split('-');
+      if (p.length >= 2) {
+        const y = parseInt(p[0], 10);
+        const m = parseInt(p[1], 10);
+        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) {
+          anio = y; mes = m;
+        }
+      }
+    } else if (s.includes('/')) {
+      const p2 = s.split('/');
+      if (p2.length >= 3) {
+        const y2 = parseInt(p2[2], 10);
+        const m2 = parseInt(p2[1], 10);
+        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) {
+          anio = y2; mes = m2;
+        }
+      }
+    }
+  }
+  const mesStr = (mes < 10 ? '0' : '') + mes;
+  const mesNombre = MESES_NOMBRES[mes - 1] || 'Mes';
+  return {
+    key: `${anio}-${mesStr}`,
+    label: `${anio}-${mesStr} (${mesNombre})`,
+    anio: anio,
+    mes: mes
+  };
+}
+
+function guardarCarpetasMensualesLocal() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CARPETAS_MENSUALES, JSON.stringify(AppState.carpetasMensuales));
+    if (AppState.parentMensualUrl) {
+      localStorage.setItem(STORAGE_KEYS.PARENT_MENSUAL_URL, AppState.parentMensualUrl);
+    }
+  } catch(e) {}
+}
+
+function cargarCarpetasMensualesLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CARPETAS_MENSUALES);
+    if (raw) AppState.carpetasMensuales = JSON.parse(raw);
+    const pUrl = localStorage.getItem(STORAGE_KEYS.PARENT_MENSUAL_URL);
+    if (pUrl) AppState.parentMensualUrl = pUrl;
+  } catch(e) {}
+}
+
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', () => {
   initStorage();
+  cargarCarpetasMensualesLocal();
   cargarEstablecimientos();
   cargarLegajoLocal();
   renderFiltrosOrganismos();
@@ -181,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setupEventListeners();
+  consultarCarpetasMensualesDrive();
 });
 
 function initStorage() {
@@ -510,6 +573,10 @@ function renderFichaEstablecimiento(est) {
         <button onclick="abrirChecklistRGRL('${est.id}')" class="btn-primary text-xs flex items-center gap-2 shadow-sm">
           <i class="fa-solid fa-clipboard-check"></i>
           <span>Abrir Checklist RGRL (Dec. 351/79)</span>
+        </button>
+        <button onclick="abrirModalCarpetasMensuales()" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition" title="Ver carpetas mensuales en Drive">
+          <i class="fa-solid fa-folder-open text-amber-700"></i>
+          <span>Carpetas Mensuales</span>
         </button>
         <button onclick="sincronizarConSheets()" class="btn-secondary text-xs flex items-center gap-2" title="Sincronizar historial con Google Sheets">
           <i class="fa-solid fa-arrows-rotate ${AppState.estaSincronizando ? 'fa-spin' : ''}"></i>
@@ -970,13 +1037,14 @@ function renderFiltrosRepositorio() {
   }
 }
 
-function renderRepositorioGlobal() {
+function renderRepositorioGlobal(rebuildMonthFilter = true) {
   const tbody = document.getElementById('repo-tabla-body');
   const counterSpan = document.getElementById('repo-contador');
   if (!tbody) return;
 
   const orgFiltro = AppState.repoFiltroOrg;
   const actFiltro = AppState.repoFiltroAct;
+  const mesFiltro = AppState.repoFiltroMes;
   const textFiltro = AppState.repoFiltroTexto.toLowerCase().trim();
 
   // Aplanar todos los registros de todos los establecimientos
@@ -986,16 +1054,28 @@ function renderRepositorioGlobal() {
     if (!est) return;
     const acts = AppState.actividadesRegistradas[estId] || [];
     acts.forEach(a => {
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
       todosLosRegistros.push({
         ...a,
         estId: estId,
         organismo: est.organismo,
         nombreEstablecimiento: est.nombreEstablecimiento,
         nroEstab: est.nroEstab,
-        localidad: est.localidad
+        localidad: est.localidad,
+        monthKey: a.monthKey || mInfo.key,
+        monthLabel: a.monthLabel || mInfo.label,
+        monthFolderUrl: a.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '')
       });
     });
   });
+
+  // Reconstruir selector de meses si es necesario
+  if (rebuildMonthFilter) {
+    actualizarSelectorMesesRepositorio(todosLosRegistros);
+  }
+
+  // Actualizar etiqueta del botón de carpeta mensual
+  actualizarBotonCarpetaMes();
 
   // Ordenar cronológicamente descendente (más recientes primero)
   todosLosRegistros.sort((a, b) => {
@@ -1008,13 +1088,15 @@ function renderRepositorioGlobal() {
   const filtrados = todosLosRegistros.filter(r => {
     if (orgFiltro && r.organismo !== orgFiltro) return false;
     if (actFiltro && r.tipoActividad !== actFiltro) return false;
+    if (mesFiltro && r.monthKey !== mesFiltro) return false;
     if (textFiltro) {
       const match = (r.organismo && r.organismo.toLowerCase().includes(textFiltro)) ||
                     (r.nombreEstablecimiento && r.nombreEstablecimiento.toLowerCase().includes(textFiltro)) ||
                     (r.fileName && r.fileName.toLowerCase().includes(textFiltro)) ||
                     (r.detalle && r.detalle.toLowerCase().includes(textFiltro)) ||
                     (r.preventor && r.preventor.toLowerCase().includes(textFiltro)) ||
-                    (r.nroEstab && r.nroEstab.toString().includes(textFiltro));
+                    (r.nroEstab && r.nroEstab.toString().includes(textFiltro)) ||
+                    (r.monthLabel && r.monthLabel.toLowerCase().includes(textFiltro));
       if (!match) return false;
     }
     return true;
@@ -1029,7 +1111,7 @@ function renderRepositorioGlobal() {
   if (filtrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center py-10 text-slate-400 text-xs">
+        <td colspan="9" class="text-center py-10 text-slate-400 text-xs">
           <i class="fa-regular fa-folder-open text-3xl mb-2 block text-slate-300"></i>
           No se encontraron documentos o registros que coincidan con los filtros aplicados.
         </td>
@@ -1040,6 +1122,9 @@ function renderRepositorioGlobal() {
 
   filtrados.forEach((r, idx) => {
     const cat = CATALOGO_ACTIVIDADES[r.tipoActividad] || { nombre: r.tipoActividad, icono: '📌', codigo: 'ACT' };
+    const mInfo = parsearAnioMesCliente(r.fechaActividad);
+    const mFolderUrl = r.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 border-b border-slate-100 text-xs text-slate-700 transition';
 
@@ -1074,9 +1159,20 @@ function renderRepositorioGlobal() {
       <td class="py-2.5 px-3 whitespace-nowrap">
         ${r.fileUrl ? `
           <a href="${r.fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-semibold underline text-xs">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver en Drive
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Archivo
           </a>
         ` : (r.fileName ? `<span class="text-amber-600 text-[10px] font-semibold"><i class="fa-solid fa-clock"></i> Guardado Local</span>` : '-')}
+      </td>
+      <td class="py-2.5 px-3 whitespace-nowrap">
+        ${mFolderUrl ? `
+          <a href="${mFolderUrl}" target="_blank" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded text-[10px] font-bold transition" title="Abrir Carpeta Mensual en Drive (sin subcarpetas)">
+            <i class="fa-solid fa-folder-open text-amber-700"></i> ${escapeHtml(mInfo.key)}
+          </a>
+        ` : `
+          <button onclick="abrirCarpetaMensualParaClave('${mInfo.key}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1 rounded text-[10px] font-semibold transition" title="Ver en carpetas mensuales">
+            <i class="fa-solid fa-folder text-slate-400"></i> ${escapeHtml(mInfo.key)}
+          </button>
+        `}
       </td>
       <td class="py-2.5 px-3 text-right whitespace-nowrap">
         <button onclick="irAFichaEstablecimiento('${r.estId}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1.5 hover:bg-blue-50 rounded" title="Ver ficha completa">
@@ -1086,6 +1182,64 @@ function renderRepositorioGlobal() {
     `;
     tbody.appendChild(tr);
   });
+}
+
+function actualizarSelectorMesesRepositorio(todosLosRegistros) {
+  const selectMes = document.getElementById('repo-filtro-mes');
+  if (!selectMes) return;
+
+  const currentVal = AppState.repoFiltroMes;
+
+  // Recopilar meses únicos
+  const monthMap = {};
+  todosLosRegistros.forEach(r => {
+    if (r.monthKey) {
+      if (!monthMap[r.monthKey]) {
+        monthMap[r.monthKey] = { label: r.monthLabel || r.monthKey, count: 0 };
+      }
+      monthMap[r.monthKey].count++;
+    }
+  });
+
+  // Agregar también meses registrados en AppState.carpetasMensuales
+  Object.keys(AppState.carpetasMensuales).forEach(k => {
+    if (!monthMap[k]) {
+      monthMap[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0 };
+    }
+  });
+
+  // Si no hay meses todavía, agregar mes actual por defecto
+  const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
+  if (!monthMap[mActual.key]) {
+    monthMap[mActual.key] = { label: mActual.label, count: 0 };
+  }
+
+  const sortedKeys = Object.keys(monthMap).sort().reverse();
+
+  selectMes.innerHTML = `<option value="">Todos los Meses (${todosLosRegistros.length})</option>`;
+  sortedKeys.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = `${monthMap[k].label} (${monthMap[k].count})`;
+    if (k === currentVal) opt.selected = true;
+    selectMes.appendChild(opt);
+  });
+}
+
+function actualizarBotonCarpetaMes() {
+  const btn = document.getElementById('btn-abrir-carpeta-mes-repo');
+  const label = document.getElementById('label-abrir-carpeta-mes-repo');
+  if (!btn || !label) return;
+
+  if (AppState.repoFiltroMes) {
+    const data = AppState.carpetasMensuales[AppState.repoFiltroMes];
+    const lbl = data ? data.label : AppState.repoFiltroMes;
+    label.textContent = `Abrir Carpeta ${lbl} en Drive`;
+    btn.title = `Abrir carpeta mensual ${lbl} en Google Drive (sin subcarpetas)`;
+  } else {
+    label.textContent = `Carpetas Mensuales en Drive`;
+    btn.title = `Ver y abrir carpetas mensuales en Google Drive`;
+  }
 }
 
 // ==================== MODALES Y CARGA DE DOCUMENTOS ====================
@@ -1417,9 +1571,19 @@ function setupEventListeners() {
   if (repoAct) {
     repoAct.addEventListener('change', (e) => {
       AppState.repoFiltroAct = e.target.value;
-      renderRepositorioGlobal();
+      renderRepositorioGlobal(false);
     });
   }
+
+  const repoMes = document.getElementById('repo-filtro-mes');
+  if (repoMes) {
+    repoMes.addEventListener('change', (e) => {
+      AppState.repoFiltroMes = e.target.value;
+      renderRepositorioGlobal(false);
+      actualizarBotonCarpetaMes();
+    });
+  }
+
 
   // Uploader Drag and Drop
   const dropzone = document.getElementById('dropzone');
@@ -1577,6 +1741,10 @@ async function guardarActividadYSubir() {
 
   let driveUrl = '';
   let driveFileId = '';
+  let monthFolderUrl = '';
+  let monthFolderId = '';
+  let monthKey = '';
+  let monthLabel = '';
   let registroId = 'ACT_' + Date.now();
 
   try {
@@ -1594,6 +1762,23 @@ async function guardarActividadYSubir() {
       driveUrl = result.fileUrl || '';
       driveFileId = result.fileId || '';
       registroId = result.registroId || registroId;
+      monthFolderUrl = result.monthFolderUrl || '';
+      monthFolderId = result.monthFolderId || '';
+      monthKey = result.monthKey || '';
+      monthLabel = result.monthLabel || '';
+
+      if (monthFolderUrl && monthKey) {
+        AppState.carpetasMensuales[monthKey] = {
+          key: monthKey,
+          label: monthLabel || monthKey,
+          url: monthFolderUrl,
+          id: monthFolderId
+        };
+        if (result.parentMensualUrl) {
+          AppState.parentMensualUrl = result.parentMensualUrl;
+        }
+        guardarCarpetasMensualesLocal();
+      }
     } else {
       console.warn('Respuesta no exitosa de Apps Script:', result);
     }
@@ -1607,6 +1792,9 @@ async function guardarActividadYSubir() {
     AppState.actividadesRegistradas[est.id] = [];
   }
 
+  const mInfo = parsearAnioMesCliente(fecha);
+  const mFUrl = monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+
   const nuevoRegistro = {
     id: registroId,
     tipoActividad: currentActividadModal,
@@ -1618,6 +1806,9 @@ async function guardarActividadYSubir() {
     fileName: codedFileName,
     fileUrl: driveUrl,
     fileId: driveFileId,
+    monthFolderUrl: mFUrl,
+    monthKey: monthKey || mInfo.key,
+    monthLabel: monthLabel || mInfo.label,
     timestamp: new Date().toISOString()
   };
 
@@ -1627,7 +1818,8 @@ async function guardarActividadYSubir() {
   setTimeout(() => {
     cerrarModal('modal-registro-actividad');
     seleccionarEstablecimiento(est.id);
-    mostrarToast('Actividad y documento guardados exitosamente.');
+    renderRepositorioGlobal(true);
+    mostrarToast(`✓ Guardado en sede y en carpeta mensual: ${mInfo.label}`);
   }, 600);
 }
 
@@ -1652,26 +1844,45 @@ async function sincronizarConSheets() {
 
     if (json && json.status === 'success' && Array.isArray(json.actividades)) {
       if (json.actividades.length > 0) {
-        const mapped = json.actividades.map(row => ({
-          id: row['ID Registro'] || ('ACT_' + Date.now()),
-          tipoActividad: normalizarActividadDesdeSheet(row['Tipo Actividad']),
-          fechaActividad: row['Fecha Actividad'] || '',
-          estadoActividad: row['Estado'] || 'Completado',
-          detalle: row['Detalle / Puesto / Tema'] || '',
-          fileName: row['Nombre Archivo'] || '',
-          fileUrl: row['URL Google Drive'] || '',
-          fileId: row['ID Drive'] || '',
-          preventor: row['Preventor Responsable'] || '',
-          observaciones: row['Observaciones'] || ''
-        }));
+        const mapped = json.actividades.map(row => {
+          const fAct = row['Fecha Actividad'] || '';
+          const mInfo = parsearAnioMesCliente(fAct);
+          const mUrl = row['URL Carpeta Mensual'] || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
+          if (mUrl && mInfo.key) {
+            AppState.carpetasMensuales[mInfo.key] = {
+              key: mInfo.key,
+              label: mInfo.label,
+              url: mUrl,
+              id: ''
+            };
+          }
+          return {
+            id: row['ID Registro'] || ('ACT_' + Date.now()),
+            tipoActividad: normalizarActividadDesdeSheet(row['Tipo Actividad']),
+            fechaActividad: fAct,
+            estadoActividad: row['Estado'] || 'Completado',
+            detalle: row['Detalle / Puesto / Tema'] || '',
+            fileName: row['Nombre Archivo'] || '',
+            fileUrl: row['URL Google Drive'] || '',
+            fileId: row['ID Drive'] || '',
+            preventor: row['Preventor Responsable'] || '',
+            observaciones: row['Observaciones'] || '',
+            monthFolderUrl: mUrl,
+            monthKey: mInfo.key,
+            monthLabel: mInfo.label
+          };
+        });
 
+        guardarCarpetasMensualesLocal();
         AppState.actividadesRegistradas[est.id] = mapped;
         guardarLegajoLocal();
+        renderRepositorioGlobal(true);
         mostrarToast(`Sincronizados ${mapped.length} registros desde Google Drive/Sheets.`);
       } else {
         mostrarToast('No se encontraron registros previos en Google Sheets para esta sede.');
       }
     }
+
   } catch (err) {
     console.warn('Error sincronizando con Sheets:', err);
     mostrarToast('No se pudo conectar con Google Sheets. Mostrando datos locales.');
@@ -1785,6 +1996,150 @@ function abrirModalTableroGeneral() {
   }
 
   modal.classList.remove('hidden');
+}
+
+// ==================== GESTIÓN DE CARPETAS MENSUALES DRIVE ====================
+
+
+function abrirModalCarpetasMensuales() {
+  const modal = document.getElementById('modal-carpetas-mensuales');
+  const container = document.getElementById('lista-carpetas-mensuales-modal');
+  if (!modal || !container) return;
+
+  container.innerHTML = '';
+
+  // Contar documentos por mes a partir de todas las actividades cargadas
+  const conteoMeses = {};
+  Object.values(AppState.actividadesRegistradas).forEach(acts => {
+    acts.forEach(a => {
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (!conteoMeses[mInfo.key]) {
+        conteoMeses[mInfo.key] = { label: mInfo.label, count: 0, docsConUrl: 0 };
+      }
+      conteoMeses[mInfo.key].count++;
+      if (a.fileUrl) conteoMeses[mInfo.key].docsConUrl++;
+    });
+  });
+
+  // Asegurar que los meses presentes en AppState.carpetasMensuales aparezcan
+  Object.keys(AppState.carpetasMensuales).forEach(k => {
+    if (!conteoMeses[k]) {
+      conteoMeses[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0, docsConUrl: 0 };
+    }
+  });
+
+  // Si no hay meses aún, incluir el mes actual
+  const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
+  if (!conteoMeses[mActual.key]) {
+    conteoMeses[mActual.key] = { label: mActual.label, count: 0, docsConUrl: 0 };
+  }
+
+  const sortedKeys = Object.keys(conteoMeses).sort().reverse();
+
+  sortedKeys.forEach(k => {
+    const info = conteoMeses[k];
+    const folderData = AppState.carpetasMensuales[k] || {};
+    const url = folderData.url || '';
+
+    const card = document.createElement('div');
+    card.className = 'flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition shadow-sm';
+    card.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm">
+          <i class="fa-solid fa-folder-open"></i>
+        </div>
+        <div>
+          <div class="font-bold text-slate-800 text-xs">${escapeHtml(info.label)}</div>
+          <div class="text-[11px] text-slate-500">
+            ${info.count} informe(s) relevados • ${info.docsConUrl} con archivo directo
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${url ? `
+          <a href="${url}" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>Abrir en Drive</span>
+          </a>
+        ` : `
+          <button onclick="abrirCarpetaMensualParaClave('${k}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-semibold text-xs flex items-center gap-1.5 transition">
+            <i class="fa-brands fa-google-drive text-blue-600"></i>
+            <span>Ver en Drive</span>
+          </button>
+        `}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  modal.classList.remove('hidden');
+}
+
+function abrirCarpetaMensualSeleccionada() {
+  const mesSeleccionado = AppState.repoFiltroMes;
+  if (mesSeleccionado && AppState.carpetasMensuales[mesSeleccionado] && AppState.carpetasMensuales[mesSeleccionado].url) {
+    window.open(AppState.carpetasMensuales[mesSeleccionado].url, '_blank');
+  } else if (mesSeleccionado) {
+    abrirCarpetaMensualParaClave(mesSeleccionado);
+  } else {
+    if (AppState.parentMensualUrl) {
+      window.open(AppState.parentMensualUrl, '_blank');
+    } else {
+      abrirModalCarpetasMensuales();
+    }
+  }
+}
+
+function abrirCarpetaMensualParaClave(monthKey) {
+  const data = AppState.carpetasMensuales[monthKey];
+  if (data && data.url) {
+    window.open(data.url, '_blank');
+    return;
+  }
+  if (AppState.parentMensualUrl) {
+    window.open(AppState.parentMensualUrl, '_blank');
+  } else {
+    abrirModalCarpetasMensuales();
+    mostrarToast(`La carpeta para el mes ${monthKey} se generará automáticamente en Google Drive al subir el primer archivo.`);
+  }
+}
+
+function abrirCarpetaParentMensualDrive() {
+  if (AppState.parentMensualUrl) {
+    window.open(AppState.parentMensualUrl, '_blank');
+  } else {
+    window.open('https://drive.google.com/drive/search?q=Carpetas_Mensuales', '_blank');
+  }
+}
+
+async function consultarCarpetasMensualesDrive() {
+  try {
+    const url = `${getWebhookUrl()}?action=get_carpetas_mensuales`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.status === 'success') {
+      if (json.parentMensualUrl) {
+        AppState.parentMensualUrl = json.parentMensualUrl;
+      }
+      if (Array.isArray(json.carpetas)) {
+        json.carpetas.forEach(c => {
+          const match = c.name.match(/^(\d{4}-\d{2})/);
+          const key = match ? match[1] : c.name;
+          AppState.carpetasMensuales[key] = {
+            key: key,
+            label: c.name,
+            url: c.url,
+            id: c.id
+          };
+        });
+        guardarCarpetasMensualesLocal();
+        actualizarBotonCarpetaMes();
+        renderRepositorioGlobal(false);
+      }
+    }
+  } catch(e) {
+    // Silencioso si no hay red
+  }
 }
 
 // ==================== CONFIGURACIÓN ====================
