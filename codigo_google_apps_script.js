@@ -439,7 +439,8 @@ function doPost(e) {
 
         codedFileName = generarNombreArchivoCodificado(orgNom, nroEstabVal, actTipo, fechaAct, detalle, ext);
 
-        var fileBytes = Utilities.base64Decode(fileBase64);
+        var cleanBase64 = String(fileBase64 || "").replace(/^data:.*base64,/, "").replace(/\s+/g, "");
+        var fileBytes = Utilities.base64Decode(cleanBase64);
         var blob = Utilities.newBlob(fileBytes, mimeType, codedFileName);
         var createdFile = estabFolder.createFile(blob);
         

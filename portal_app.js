@@ -265,13 +265,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initStorage() {
-  if (!localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL)) {
+  const current = (localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || '').trim();
+  if (!current || !current.startsWith('https://script.google.com/macros/s/') || !current.includes('/exec')) {
     localStorage.setItem(STORAGE_KEYS.WEBHOOK_URL, DEFAULT_SHEETS_WEBHOOK_URL);
   }
 }
 
 function getWebhookUrl() {
-  return localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || DEFAULT_SHEETS_WEBHOOK_URL;
+  const custom = (localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || '').trim();
+  if (custom && custom.startsWith('https://script.google.com/macros/s/') && custom.includes('/exec')) {
+    return custom;
+  }
+  // Si en localStorage había un Script ID o una URL incompleta, restablecer a la oficial
+  try {
+    localStorage.setItem(STORAGE_KEYS.WEBHOOK_URL, DEFAULT_SHEETS_WEBHOOK_URL);
+  } catch(e) {}
+  return DEFAULT_SHEETS_WEBHOOK_URL;
 }
 
 // ==================== CONTROLADOR DE MÓDULOS (TABS) ====================
@@ -438,6 +447,84 @@ function extraerAnioDeFecha(fechaStr) {
   }
   const match = s.match(/(20\d\d)/);
   return match ? match[1] : '';
+}
+
+function normalizarTipoActividad(str) {
+  if (!str) return 'confeccion_rgrl';
+  const s = String(str).toLowerCase().trim();
+
+  // RGRL
+  if (s === 'rgrl' || s === 'confeccion_rgrl' || s.includes('rgrl') || s.includes('relevamiento general')) {
+    return 'confeccion_rgrl';
+  }
+  // RAR
+  if (s === 'rar' || s === 'confeccion_rar' || s.includes('rar') || s.includes('agentes de riesgo')) {
+    return 'confeccion_rar';
+  }
+  // Constancia de Visita
+  if (s === 'cv' || s === 'constancia_visita' || s.includes('constancia') || s.includes('visita')) {
+    return 'constancia_visita';
+  }
+  // Informe Técnico
+  if (s === 'informe' || s === 'informe_tecnico' || s.includes('informe')) {
+    return 'informe_tecnico';
+  }
+  // Muestra de Agua (Toma)
+  if (s === 'muestra_agua' || s === 'agua_toma' || s === 'toma_muestra' || (s.includes('agua') && (s.includes('toma') || s.includes('muestra')))) {
+    return 'muestra_agua';
+  }
+  // Análisis de Agua (Protocolo)
+  if (s === 'analisis_agua' || s === 'agua_protocolo' || s === 'agua_lab' || s === 'protocolo_lab' || (s.includes('agua') && (s.includes('protocolo') || s.includes('analisis') || s.includes('laboratorio')))) {
+    return 'analisis_agua';
+  }
+  // PAT
+  if (s === 'medicion_pat' || s === 'pat' || s.includes('puesta a tierra') || s.includes('pat')) {
+    return 'medicion_pat';
+  }
+  // Ruido
+  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('ruido')) {
+    return 'medicion_ruido';
+  }
+  // Iluminación
+  if (s === 'medicion_iluminacion' || s === 'ilum' || s.includes('iluminaci')) {
+    return 'medicion_iluminacion';
+  }
+  // Ergonomía
+  if (s === 'res_886' || s === 'ergonomia' || s.includes('886') || s.includes('ergonom')) {
+    return 'res_886';
+  }
+  // Capacitaciones
+  if (s === 'capacitaciones' || s === 'capacitacion' || s.includes('capacita')) {
+    return 'capacitaciones';
+  }
+
+  // Coincidencia con clave directa o catálogo
+  if (CATALOGO_ACTIVIDADES[s]) return s;
+  for (const [key, val] of Object.entries(CATALOGO_ACTIVIDADES)) {
+    if (s.includes(key) || s.includes(val.codigo.toLowerCase()) || s.includes(val.nombre.toLowerCase())) {
+      return key;
+    }
+  }
+
+  return s;
+}
+
+function obtenerEstablecimientoDesdeChecklistDB(id, nroEstab) {
+  try {
+    if (!window._cachedEstablecimientosDB) {
+      const raw = localStorage.getItem('hys_establecimientos_db');
+      window._cachedEstablecimientosDB = raw ? JSON.parse(raw) : {};
+    }
+    const db = window._cachedEstablecimientosDB;
+    if (id && db[id]) return db[id];
+    if (nroEstab) {
+      const cleanNro = String(nroEstab).trim();
+      for (const key of Object.keys(db)) {
+        if (db[key] && String(db[key].nroEstab).trim() === cleanNro) return db[key];
+      }
+    }
+  } catch(e) {}
+  return null;
 }
 
 // ==================== VISTA 1: FICHA & CARGA POR SEDE ====================
@@ -674,7 +761,10 @@ function renderPanelActividades(est) {
 }
 
 function crearTarjetaActividad(cat, est, actsEst) {
-  const registros = actsEst.filter(a => a.tipoActividad === cat.id);
+  const registros = actsEst.filter(a => {
+    const actNorm = normalizarTipoActividad(a.tipoActividad);
+    return actNorm === cat.id || a.tipoActividad === cat.id;
+  });
   const tieneRegistros = registros.length > 0;
   const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
   const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
@@ -685,7 +775,7 @@ function crearTarjetaActividad(cat, est, actsEst) {
 
   if (tieneRegistros) {
     if (cat.id === 'muestra_agua') {
-      const tieneAnalisis = actsEst.some(a => a.tipoActividad === 'analisis_agua');
+      const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
       if (tieneAnalisis) {
         estadoTexto = 'Muestra + Lab. Completo';
         estadoClase = 'badge-completo';
@@ -698,6 +788,18 @@ function crearTarjetaActividad(cat, est, actsEst) {
       estadoClase = 'badge-alerta';
     } else {
       estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
+      estadoClase = 'badge-completo';
+    }
+  } else if (cat.id === 'confeccion_rgrl') {
+    // Si no tiene registros en actividades, verificar si está realizado en el checklist
+    let rgrlHecho = (est.rgrl === 'Realizado' || est.rgrlRealizado || est.rgrl_completado);
+    if (!rgrlHecho && est.data && (est.data.checklist || est.data.preguntas)) rgrlHecho = true;
+    if (!rgrlHecho) {
+      const estDb = obtenerEstablecimientoDesdeChecklistDB(est.id, est.nroEstab);
+      if (estDb && (estDb.rgrl === 'Realizado' || estDb.data || estDb.fecha)) rgrlHecho = true;
+    }
+    if (rgrlHecho) {
+      estadoTexto = 'Completado (Checklist)';
       estadoClase = 'badge-completo';
     }
   }
@@ -756,6 +858,10 @@ function crearTarjetaActividad(cat, est, actsEst) {
                       <span>Abrir</span>
                     </a>
                   ` : `
+                    <button onclick="event.stopPropagation(); abrirModalSubirArchivoParaRegistro('${ultimoRegistro.id}', '${est.id}', '${cat.id}')" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 transition shadow-2xs" title="Subir archivo a Google Drive">
+                      <i class="fa-solid fa-cloud-arrow-up text-[9px]"></i>
+                      <span>Subir a Drive</span>
+                    </button>
                     <button onclick="event.stopPropagation(); abrirModalDocumentosActividad('${cat.id}')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 shrink-0 transition" title="Ver detalles del documento">
                       <i class="fa-solid fa-circle-info text-[9px]"></i>
                       <span>Ver</span>
@@ -1133,20 +1239,56 @@ function renderMatrizAnual() {
       return anioAct === anio;
     });
 
-    let totalSedePeriodo = actsPeriodo.length;
-    if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
-    totalActividadesPeriodo += totalSedePeriodo;
-
     // Conteo por cada actividad técnica
     const conteoSede = {};
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
 
     actsPeriodo.forEach(a => {
-      if (conteoSede[a.tipoActividad] !== undefined) {
+      const actNorm = normalizarTipoActividad(a.tipoActividad);
+      if (conteoSede[actNorm] !== undefined) {
+        conteoSede[actNorm]++;
+      } else if (conteoSede[a.tipoActividad] !== undefined) {
         conteoSede[a.tipoActividad]++;
-        conteoPorColumna[a.tipoActividad]++;
       }
     });
+
+    // Verificación RGRL: Si no tiene actividad registrada explícita, verificar en datos de Checklist
+    if (conteoSede['confeccion_rgrl'] === 0) {
+      let rgrlHecho = false;
+      let rgrlFecha = '';
+
+      if (e.rgrl === 'Realizado' || e.rgrlRealizado || e.rgrl_completado) {
+        rgrlHecho = true;
+        rgrlFecha = e.fecha || e.fechaRgrl || '';
+      } else if (e.data && (e.data.checklist || e.data.preguntas || (e.data.establecimiento && e.data.establecimiento.fecha))) {
+        rgrlHecho = true;
+        rgrlFecha = (e.data.establecimiento && e.data.establecimiento.fecha) || e.fecha || '';
+      } else {
+        const estDb = obtenerEstablecimientoDesdeChecklistDB(e.id, e.nroEstab);
+        if (estDb && (estDb.rgrl === 'Realizado' || estDb.data || estDb.fecha)) {
+          rgrlHecho = true;
+          rgrlFecha = estDb.fecha || (estDb.data && estDb.data.establecimiento && estDb.data.establecimiento.fecha) || '';
+        }
+      }
+
+      if (rgrlHecho) {
+        const anioRgrl = extraerAnioDeFecha(rgrlFecha);
+        if (anio === 'todos' || !anioRgrl || anioRgrl === anio) {
+          conteoSede['confeccion_rgrl'] = 1;
+        }
+      }
+    }
+
+    // Calcular total de actividades de la sede en el período y sumar a columnas
+    let totalSedePeriodo = 0;
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+      const cant = conteoSede[k] || 0;
+      totalSedePeriodo += cant;
+      conteoPorColumna[k] += cant;
+    });
+
+    if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
+    totalActividadesPeriodo += totalSedePeriodo;
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer';
@@ -1359,7 +1501,7 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
   // Aplicar filtros
   const filtrados = todosLosRegistros.filter(r => {
     if (orgFiltro && r.organismo !== orgFiltro) return false;
-    if (actFiltro && r.tipoActividad !== actFiltro) return false;
+    if (actFiltro && normalizarTipoActividad(r.tipoActividad) !== normalizarTipoActividad(actFiltro)) return false;
     if (mesFiltro && r.monthKey !== mesFiltro) return false;
     if (textFiltro) {
       const match = (r.organismo && r.organismo.toLowerCase().includes(textFiltro)) ||
@@ -1393,7 +1535,8 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
   }
 
   filtrados.forEach((r, idx) => {
-    const cat = CATALOGO_ACTIVIDADES[r.tipoActividad] || { nombre: r.tipoActividad, icono: '📌', codigo: 'ACT' };
+    const actNorm = normalizarTipoActividad(r.tipoActividad);
+    const cat = CATALOGO_ACTIVIDADES[actNorm] || CATALOGO_ACTIVIDADES[r.tipoActividad] || { nombre: r.tipoActividad, icono: '📌', codigo: 'ACT' };
     const mInfo = parsearAnioMesCliente(r.fechaActividad);
     const mFolderUrl = r.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
 
@@ -1433,7 +1576,16 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
           <a href="${r.fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-semibold underline text-xs">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Archivo
           </a>
-        ` : (r.fileName ? `<span class="text-amber-600 text-[10px] font-semibold"><i class="fa-solid fa-clock"></i> Guardado Local</span>` : '-')}
+        ` : (r.fileName ? `
+          <div class="inline-flex items-center gap-1.5">
+            <span class="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold" title="Documento registrado localmente.">
+              <i class="fa-solid fa-clock"></i> Guardado Local
+            </span>
+            <button onclick="abrirModalSubirArchivoParaRegistro('${r.id}', '${r.estId}', '${r.tipoActividad}')" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] inline-flex items-center gap-1 shadow-2xs transition" title="Subir archivo a Google Drive">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Subir a Drive
+            </button>
+          </div>
+        ` : '-')}
       </td>
       <td class="py-2.5 px-3 whitespace-nowrap">
         ${mFolderUrl ? `
@@ -2480,6 +2632,12 @@ async function guardarActividadYSubir() {
 
   animarProgreso(progressBar, progressLabel, 15, 'Preparando metadatos y codificación...');
 
+  let cleanB64 = (archivoSeleccionadoBase64 || '').trim();
+  if (cleanB64.includes(',')) {
+    cleanB64 = cleanB64.substring(cleanB64.indexOf(',') + 1);
+  }
+  cleanB64 = cleanB64.replace(/\s+/g, '');
+
   const payload = {
     tipoOperacion: 'upload_actividad_documento',
     tipoActividad: currentActividadModal,
@@ -2488,7 +2646,7 @@ async function guardarActividadYSubir() {
     detalle: detalle,
     preventor: preventor,
     observaciones: obsFinal,
-    fileBase64: archivoSeleccionadoBase64 || '',
+    fileBase64: cleanB64,
     originalFileName: archivoSeleccionadoMeta ? archivoSeleccionadoMeta.originalName : '',
     mimeType: archivoSeleccionadoMeta ? archivoSeleccionadoMeta.type : 'application/pdf',
     establecimiento: {
@@ -2547,9 +2705,11 @@ async function guardarActividadYSubir() {
       }
     } else {
       console.warn('Respuesta no exitosa de Apps Script:', result);
+      mostrarToast('⚠️ Aviso del servidor: ' + ((result && result.message) || 'Guardado local'));
     }
   } catch (err) {
     console.warn('No se pudo conectar inmediatamente con Google Apps Script (se guardará localmente):', err);
+    mostrarToast('⚠️ Conexión no disponible. Se guardó copia local.');
   }
 
   animarProgreso(progressBar, progressLabel, 100, '¡Guardado completado!');
@@ -2585,10 +2745,54 @@ async function guardarActividadYSubir() {
     cerrarModal('modal-registro-actividad');
     seleccionarEstablecimiento(est.id);
     renderRepositorioGlobal(true);
-    mostrarToast(`✓ Guardado en sede y en carpeta mensual: ${mInfo.label}`);
+    renderMatrizAnual();
+    renderDashboard();
+    if (driveUrl) {
+      mostrarToast(`✓ Subido a Google Drive y carpeta mensual: ${mInfo.label}`);
+    } else {
+      mostrarToast(`✓ Guardado localmente en sede ${est.nroEstab ? '#' + est.nroEstab : ''}`);
+    }
   }, 600);
 }
 window.guardarActividadYSubir = guardarActividadYSubir;
+
+function abrirModalSubirArchivoParaRegistro(registroId, estId, tipoActividad) {
+  seleccionarEstablecimiento(estId);
+  const actNorm = normalizarTipoActividad(tipoActividad);
+  abrirModalRegistrarActividad(actNorm);
+
+  const acts = AppState.actividadesRegistradas[estId] || [];
+  const reg = acts.find(a => a.id === registroId || a.fileName === registroId);
+  if (reg && reg.fechaActividad) {
+    const inputFecha = document.getElementById('act-fecha');
+    if (inputFecha) {
+      inputFecha.value = reg.fechaActividad;
+      actualizarPreviewNombreArchivo();
+    }
+  }
+  mostrarToast('📂 Selecciona el archivo para subirlo a Google Drive.');
+}
+window.abrirModalSubirArchivoParaRegistro = abrirModalSubirArchivoParaRegistro;
+
+function renderDashboard() {
+  if (AppState.moduloActivo === 'matriz') {
+    renderMatrizAnual();
+  }
+}
+window.renderDashboard = renderDashboard;
+
+function actualizarIndicadorLegajo(targetEstId) {
+  const est = AppState.establecimientos[targetEstId];
+  if (est && AppState.moduloActivo === 'ficha') {
+    renderFichaEstablecimiento(est);
+  }
+}
+window.actualizarIndicadorLegajo = actualizarIndicadorLegajo;
+
+function actualizarProgresoGeneral() {
+  // No-op de seguridad
+}
+window.actualizarProgresoGeneral = actualizarProgresoGeneral;
 
 function animarProgreso(bar, label, targetPercent, text) {
   if (bar) bar.style.width = targetPercent + '%';
