@@ -422,7 +422,24 @@ function generarCodigoArchivo(org, nroEstab, actividadId, fecha, detalle, ext) {
   const actInfo = CATALOGO_ACTIVIDADES[actividadId];
   const actCode = actInfo ? actInfo.codigo : sanitizeText(actividadId).toUpperCase();
 
-  let fechaStr = (fecha || '').replace(/[^0-9]/g, '');
+  let fechaStr = '';
+  if (fecha) {
+    const s = String(fecha).trim();
+    if (s.includes('/')) {
+      const p = s.split('/');
+      if (p.length >= 3) {
+        fechaStr = `${p[2]}${p[1].padStart(2, '0')}${p[0].padStart(2, '0')}`;
+      }
+    } else if (s.includes('-')) {
+      const p = s.split('-');
+      if (p.length >= 3) {
+        fechaStr = `${p[0]}${p[1].padStart(2, '0')}${p[2].padStart(2, '0')}`;
+      }
+    } else {
+      fechaStr = s.replace(/[^0-9]/g, '');
+    }
+  }
+
   if (!fechaStr || fechaStr.length < 8) {
     const d = new Date();
     fechaStr = d.toISOString().slice(0, 10).replace(/-/g, '');
@@ -434,10 +451,46 @@ function generarCodigoArchivo(org, nroEstab, actividadId, fecha, detalle, ext) {
   return `${orgAbbr}_${cleanNro}_${actCode}_${fechaStr}_${cleanDet}.${cleanExt}`;
 }
 
-// Extraer año de una cadena de fecha YYYY-MM-DD o DD/MM/YYYY
+// Formatear cualquier fecha a DD/MM/AAAA
+function formatearFechaDdmmaaa(fechaStr) {
+  if (!fechaStr) return 'S/F';
+  const s = String(fechaStr).trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const p = s.split('/');
+    return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+  }
+  const mIso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (mIso) {
+    return `${mIso[3].padStart(2, '0')}/${mIso[2].padStart(2, '0')}/${mIso[1]}`;
+  }
+  const m8 = s.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (m8) {
+    return `${m8[1]}/${m8[2]}/${m8[3]}`;
+  }
+  return s;
+}
+window.formatearFechaDdmmaaa = formatearFechaDdmmaaa;
+
+// Convertir fecha DD/MM/AAAA a formato ISO YYYY-MM-DD
+function convertirDdmmaaaAIso(fechaStr) {
+  if (!fechaStr) return '';
+  const s = String(fechaStr).trim();
+  const mIso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (mIso) return `${mIso[1]}-${mIso[2].padStart(2, '0')}-${mIso[3].padStart(2, '0')}`;
+  const mDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (mDmy) return `${mDmy[3]}-${mDmy[2].padStart(2, '0')}-${mDmy[1].padStart(2, '0')}`;
+  const m8 = s.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (m8) return `${m8[3]}-${m8[2].padStart(2, '0')}-${m8[1].padStart(2, '0')}`;
+  return s;
+}
+window.convertirDdmmaaaAIso = convertirDdmmaaaAIso;
+
+// Extraer año de cualquier cadena de fecha
 function extraerAnioDeFecha(fechaStr) {
   if (!fechaStr) return '';
   const s = String(fechaStr).trim();
+  const m4 = s.match(/\b(202[0-9]|203[0-9])\b/);
+  if (m4) return m4[1];
   if (s.includes('-')) {
     const parts = s.split('-');
     if (parts[0].length === 4) return parts[0];
@@ -721,8 +774,12 @@ function obtenerUltimaFechaVisita(acts) {
   if (!acts || acts.length === 0) return 'Sin registros';
   const dates = acts.map(a => a.fechaActividad).filter(f => !!f);
   if (dates.length === 0) return 'Sin fecha';
-  dates.sort().reverse();
-  return dates[0];
+  dates.sort((a, b) => {
+    const isoA = convertirDdmmaaaAIso(a);
+    const isoB = convertirDdmmaaaAIso(b);
+    return isoB.localeCompare(isoA);
+  });
+  return formatearFechaDdmmaaa(dates[0]);
 }
 
 function renderPanelActividades(est) {
@@ -834,7 +891,7 @@ function crearTarjetaActividad(cat, est, actsEst) {
         <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 text-xs text-slate-700 space-y-1 mb-3">
           <div class="flex justify-between items-center text-[11px]">
             <span class="text-slate-500"><i class="fa-regular fa-calendar mr-1"></i>Última fecha:</span>
-            <strong class="text-slate-900">${ultimoRegistro.fechaActividad || 'S/F'}</strong>
+            <strong class="text-slate-900">${formatearFechaDdmmaaa(ultimoRegistro.fechaActividad)}</strong>
           </div>
           ${ultimoRegistro.detalle ? `
             <div class="text-[11px] text-slate-600 truncate" title="${escapeHtml(ultimoRegistro.detalle)}">
@@ -995,7 +1052,7 @@ function abrirModalDocumentosActividad(catId) {
               ${escapeHtml(act.estadoActividad || 'Completado')}
             </span>
             <span class="text-xs font-semibold text-slate-900">
-              <i class="fa-regular fa-calendar text-slate-400 mr-1"></i>${fAct}
+              <i class="fa-regular fa-calendar text-slate-400 mr-1"></i>${formatearFechaDdmmaaa(fAct)}
             </span>
             ${act.preventor ? `<span class="text-[11px] text-slate-500 truncate"><i class="fa-solid fa-user-shield text-[10px] text-slate-400 mr-1"></i>${escapeHtml(act.preventor)}</span>` : ''}
           </div>
@@ -1184,6 +1241,36 @@ function renderFiltrosMatriz() {
   }
 }
 
+function cambiarFiltroAnioMatriz(val) {
+  AppState.matrizAnio = val;
+  renderMatrizAnual();
+}
+window.cambiarFiltroAnioMatriz = cambiarFiltroAnioMatriz;
+
+function cambiarFiltroOrgMatriz(val) {
+  AppState.matrizFiltroOrg = val;
+  renderMatrizAnual();
+}
+window.cambiarFiltroOrgMatriz = cambiarFiltroOrgMatriz;
+
+function cambiarFiltroLocMatriz(val) {
+  AppState.matrizFiltroLoc = val;
+  renderMatrizAnual();
+}
+window.cambiarFiltroLocMatriz = cambiarFiltroLocMatriz;
+
+function cambiarFiltroDocsMatriz(val) {
+  AppState.matrizFiltroDocs = val;
+  renderMatrizAnual();
+}
+window.cambiarFiltroDocsMatriz = cambiarFiltroDocsMatriz;
+
+function cambiarFiltroTextoMatriz(val) {
+  AppState.matrizFiltroTexto = val;
+  renderMatrizAnual();
+}
+window.cambiarFiltroTextoMatriz = cambiarFiltroTextoMatriz;
+
 function renderMatrizAnual() {
   const tbody = document.getElementById('matriz-tabla-body');
   const counterSpan = document.getElementById('matriz-contador');
@@ -1258,16 +1345,25 @@ function renderMatrizAnual() {
     });
 
     // Calcular total de actividades de la sede en el período
-    let totalSedePeriodo = 0;
+    let totalSedePeriodo = actsPeriodo.length;
+    let sumaActividadesCatalogo = 0;
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
-      const cant = conteoSede[k] || 0;
-      totalSedePeriodo += cant;
+      sumaActividadesCatalogo += (conteoSede[k] || 0);
     });
+    if (sumaActividadesCatalogo > totalSedePeriodo) {
+      totalSedePeriodo = sumaActividadesCatalogo;
+    }
 
     // Filtro por Estado / Documentos específicos solicitado por el usuario
-    const docsFiltro = AppState.matrizFiltroDocs || '';
-    if (docsFiltro === 'con_docs' && totalSedePeriodo === 0) return;
-    if (docsFiltro === 'sin_docs' && totalSedePeriodo > 0) return;
+    const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
+    if (docsFiltro === 'con_docs') {
+      const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
+      if (!tiene) return;
+    }
+    if (docsFiltro === 'sin_docs') {
+      const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
+      if (tiene) return;
+    }
     if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
       if ((conteoSede[actTarget] || 0) === 0) return;
@@ -1561,7 +1657,7 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
 
     tr.innerHTML = `
       <td class="py-2.5 px-3 font-semibold text-slate-900 whitespace-nowrap">
-        ${r.fechaActividad || 'S/F'}
+        ${formatearFechaDdmmaaa(r.fechaActividad)}
       </td>
       <td class="py-2.5 px-3">
         <div class="font-bold text-blue-900">
@@ -3077,7 +3173,8 @@ async function manejarArchivosSubidaRapida(files) {
     // Intento preliminar de fecha en nombre
     const fechaPreliminar = extraerFechaDeArchivo(file, null);
     const hoyIso = new Date().toISOString().slice(0, 10);
-    const fechaFinal = (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : hoyIso;
+    const fechaIso = (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : hoyIso;
+    const fechaDdmmaaa = formatearFechaDdmmaaa(fechaIso);
 
     // Intento preliminar de tipo en nombre
     const tipoPreliminar = detectarTipoActividadDeTexto(file.name);
@@ -3090,8 +3187,9 @@ async function manejarArchivosSubidaRapida(files) {
       ext: ext,
       type: file.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg'),
       base64: null,
-      fecha: fechaFinal,
-      fechaDetectada: (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : null,
+      fecha: fechaIso,
+      fechaDdmmaaa: fechaDdmmaaa,
+      fechaDetectada: (fechaPreliminar && fechaPreliminar.fecha) ? fechaDdmmaaa : null,
       origenFecha: (fechaPreliminar && fechaPreliminar.origen) ? fechaPreliminar.origen : null,
       actTipo: tipoPreliminar ? tipoPreliminar.id : 'confeccion_rgrl',
       actDetectada: tipoPreliminar ? tipoPreliminar.nombre : null,
@@ -3186,10 +3284,11 @@ async function procesarOcrItemLote(item) {
         console.warn('Aviso en OCR para', item.originalName, errOcr);
       }
 
-      // Si se halló fecha en el interior, actualizar item
+      // Si se halló fecha en el interior, actualizar item con formato DD/MM/AAAA
       if (fechaEncontrada) {
-        item.fecha = fechaEncontrada;
-        item.fechaDetectada = fechaEncontrada;
+        item.fecha = convertirDdmmaaaAIso(fechaEncontrada);
+        item.fechaDdmmaaa = formatearFechaDdmmaaa(fechaEncontrada);
+        item.fechaDetectada = item.fechaDdmmaaa;
         item.origenFecha = origenFecha;
       }
 
@@ -3243,7 +3342,7 @@ function renderFastBatchList() {
     const iconClass = isPdf ? 'fa-solid fa-file-pdf text-red-600' : 'fa-solid fa-file-image text-emerald-600';
     const sizeKb = Math.round(item.size / 1024);
 
-    const codedName = est ? generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext) : 'Seleccioná establecimiento';
+    const codedName = est ? generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, 'Informe', item.ext) : 'Seleccioná establecimiento';
 
     let ocrBadgeHtml = '';
     if (item.ocrStatus === 'processing') {
@@ -3252,8 +3351,7 @@ function renderFastBatchList() {
       let desc = [];
       if (item.actDetectada) desc.push(`${item.actDetectada}`);
       if (item.fechaDetectada) {
-        const p = item.fechaDetectada.split('-');
-        desc.push(`${p[2]}/${p[1]}/${p[0]}`);
+        desc.push(`${formatearFechaDdmmaaa(item.fechaDetectada)}`);
       }
       ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
     } else {
@@ -3269,9 +3367,11 @@ function renderFastBatchList() {
       uploadStatusHtml = `<span class="text-xs font-bold text-rose-600 flex items-center gap-1"><i class="fa-solid fa-circle-xmark"></i> Error</span>`;
     }
 
+    const fechaValor = item.fechaDdmmaaa || formatearFechaDdmmaaa(item.fecha);
+
     html += `
       <div id="item-card-${item.id}" class="p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl space-y-2 shadow-2xs transition">
-        <!-- Fila 1: Cabecera del archivo -->
+        <!-- Fila 1: Cabecera del archivo con nombre, peso, estado OCR y botón eliminar -->
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2 truncate flex-1 min-w-0">
             <span class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-sm shrink-0">
@@ -3291,21 +3391,20 @@ function renderFastBatchList() {
           </div>
         </div>
 
-        <!-- Fila 2: Formulario de edición rápida por archivo -->
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-slate-100">
-          <div class="sm:col-span-5">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Tipo de Documento *</label>
+        <!-- Fila 2: Formulario limpio sin campos extras: Tipo de Documento + Fecha (DD/MM/AAAA) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5 tracking-wider">Tipo de Documento *</label>
             <select id="select-tipo-${item.id}" class="input-select text-xs font-semibold text-slate-800 py-1.5 w-full" onchange="cambiarTipoItemLote('${item.id}', this.value)">
               ${generarOpcionesActividades(item.actTipo)}
             </select>
           </div>
-          <div class="sm:col-span-3">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Fecha *</label>
-            <input type="date" id="input-fecha-${item.id}" class="input-text text-xs py-1.5 w-full font-semibold" value="${item.fecha}" onchange="cambiarFechaItemLote('${item.id}', this.value)">
-          </div>
-          <div class="sm:col-span-4">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Detalle / Tema / Muestra</label>
-            <input type="text" id="input-detalle-${item.id}" class="input-text text-xs py-1.5 w-full" placeholder="Ej: Anual / Canilla cocina" value="${escapeHtml(item.detalle)}" oninput="cambiarDetalleItemLote('${item.id}', this.value)">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5 tracking-wider">Fecha (DD/MM/AAAA) *</label>
+            <div class="relative">
+              <input type="text" id="input-fecha-${item.id}" class="input-text text-xs py-1.5 w-full font-mono font-bold tracking-wide text-slate-900 pr-8" placeholder="DD/MM/AAAA" maxlength="10" value="${fechaValor}" oninput="formatearFechaInputLote('${item.id}', this)" onblur="validarFechaInputLote('${item.id}', this)">
+              <span class="absolute right-2.5 top-2 text-xs text-slate-400 pointer-events-none"><i class="fa-regular fa-calendar"></i></span>
+            </div>
           </div>
         </div>
 
@@ -3333,8 +3432,8 @@ function actualizarCardItemLote(item) {
   if (selectTipo && item.actTipo) {
     selectTipo.value = item.actTipo;
   }
-  if (inputFecha && item.fecha) {
-    inputFecha.value = item.fecha;
+  if (inputFecha) {
+    inputFecha.value = item.fechaDdmmaaa || formatearFechaDdmmaaa(item.fecha);
   }
 
   if (containerBadge) {
@@ -3345,8 +3444,7 @@ function actualizarCardItemLote(item) {
       let desc = [];
       if (item.actDetectada) desc.push(`${item.actDetectada}`);
       if (item.fechaDetectada) {
-        const p = item.fechaDetectada.split('-');
-        desc.push(`${p[2]}/${p[1]}/${p[0]}`);
+        desc.push(`${formatearFechaDdmmaaa(item.fechaDetectada)}`);
       }
       ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
     } else {
@@ -3357,6 +3455,46 @@ function actualizarCardItemLote(item) {
 
   actualizarPreviewItemLote(item);
 }
+
+function formatearFechaInputLote(itemId, input) {
+  let val = input.value.replace(/\D/g, '');
+  if (val.length > 8) val = val.substring(0, 8);
+  let formatted = '';
+  if (val.length > 4) {
+    formatted = `${val.substring(0, 2)}/${val.substring(2, 4)}/${val.substring(4)}`;
+  } else if (val.length > 2) {
+    formatted = `${val.substring(0, 2)}/${val.substring(2)}`;
+  } else {
+    formatted = val;
+  }
+  input.value = formatted;
+
+  const item = fastBatchItems.find(it => it.id === itemId);
+  if (item) {
+    item.fechaDdmmaaa = formatted;
+    if (formatted.length === 10) {
+      item.fecha = convertirDdmmaaaAIso(formatted);
+      actualizarPreviewItemLote(item);
+    }
+  }
+}
+window.formatearFechaInputLote = formatearFechaInputLote;
+
+function validarFechaInputLote(itemId, input) {
+  const item = fastBatchItems.find(it => it.id === itemId);
+  if (!item) return;
+  const val = input.value.trim();
+  const iso = convertirDdmmaaaAIso(val);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    item.fecha = iso;
+    item.fechaDdmmaaa = formatearFechaDdmmaaa(iso);
+    input.value = item.fechaDdmmaaa;
+    actualizarPreviewItemLote(item);
+  } else if (val.length > 0) {
+    mostrarToast('⚠️ Formato de fecha esperado: DD/MM/AAAA (ej. 15/09/2026)');
+  }
+}
+window.validarFechaInputLote = validarFechaInputLote;
 
 function cambiarTipoItemLote(itemId, newTipo) {
   const item = fastBatchItems.find(it => it.id === itemId);
@@ -3370,17 +3508,10 @@ function cambiarFechaItemLote(itemId, newFecha) {
   const item = fastBatchItems.find(it => it.id === itemId);
   if (!item) return;
   item.fecha = newFecha;
+  item.fechaDdmmaaa = formatearFechaDdmmaaa(newFecha);
   actualizarPreviewItemLote(item);
 }
 window.cambiarFechaItemLote = cambiarFechaItemLote;
-
-function cambiarDetalleItemLote(itemId, newDetalle) {
-  const item = fastBatchItems.find(it => it.id === itemId);
-  if (!item) return;
-  item.detalle = newDetalle;
-  actualizarPreviewItemLote(item);
-}
-window.cambiarDetalleItemLote = cambiarDetalleItemLote;
 
 function actualizarPreviewItemLote(item) {
   const est = AppState.establecimientos[fastEstIdActual];
@@ -3390,7 +3521,7 @@ function actualizarPreviewItemLote(item) {
     span.textContent = 'Seleccioná un establecimiento';
     return;
   }
-  const coded = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext);
+  const coded = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle || 'Informe', item.ext);
   span.textContent = coded;
 }
 
@@ -3423,18 +3554,22 @@ async function guardarLoteSubidaRapida() {
     return;
   }
 
-  // Validar que todos tengan fecha
+  // Validar que todos tengan fecha válida
   for (let i = 0; i < fastBatchItems.length; i++) {
     const it = fastBatchItems[i];
-    if (!it.fecha) {
-      alert(`El archivo "${it.originalName}" no tiene una fecha de realización válida.`);
+    let iso = it.fecha;
+    if (it.fechaDdmmaaa) {
+      iso = convertirDdmmaaaAIso(it.fechaDdmmaaa);
+    }
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      alert(`El archivo "${it.originalName}" no tiene una fecha válida (formato requerido: DD/MM/AAAA, ej: 15/09/2026).`);
       return;
     }
+    it.fecha = iso;
+    it.fechaDdmmaaa = formatearFechaDdmmaaa(iso);
   }
 
-  const preventorGlobal = document.getElementById('fast-preventor-batch')?.value.trim() || '';
-  if (preventorGlobal) localStorage.setItem('hys_ultimo_preventor', preventorGlobal);
-  const obsGlobal = document.getElementById('fast-obs-batch')?.value.trim() || '';
+  const preventorGlobal = localStorage.getItem('hys_ultimo_preventor') || '';
 
   fastIsUploading = true;
   const btnGuardar = document.getElementById('btn-fast-guardar-lote');
@@ -3486,10 +3621,10 @@ async function guardarLoteSubidaRapida() {
     }
 
     let cleanB64 = (item.base64 || '').replace(/^data:.*base64,/, '').replace(/\s+/g, '');
-    const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, item.detalle, item.ext);
-    const detalleFinal = item.detalle.trim() || 'Informe';
+    const detalleFinal = (item.detalle || '').trim() || 'Informe';
+    const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, item.actTipo, item.fecha, detalleFinal, item.ext);
     const preventorFinal = item.preventor || preventorGlobal;
-    const obsFinal = [obsGlobal, item.observaciones].filter(Boolean).join(' | ');
+    const obsFinal = item.observaciones || '';
 
     const payload = {
       tipoOperacion: 'upload_actividad_documento',

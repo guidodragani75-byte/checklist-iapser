@@ -395,14 +395,19 @@
         </div>
       </div>
 
-      <!-- Barra de Filtros y Exportación -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <!-- Barra de Filtros y Acciones de la Matriz (Perfectamente Alineados) -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         
-        <div class="flex flex-wrap items-center gap-2 flex-1">
-          <!-- Filtro de Año -->
-          <div class="w-36">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Año a Evaluar</label>
-            <select id="matriz-filtro-anio" class="input-select font-bold text-blue-900">
+        <!-- Fila de Filtros en Grid Uniforme de 5 Columnas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+          
+          <!-- Filtro 1: Año a Evaluar -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar text-blue-600 text-xs"></i>
+              <span>Año a Evaluar</span>
+            </label>
+            <select id="matriz-filtro-anio" class="input-select font-bold text-blue-900 w-full py-2 text-xs" onchange="cambiarFiltroAnioMatriz(this.value)">
               <option value="2026" selected>Año 2026</option>
               <option value="2027">Año 2027</option>
               <option value="2025">Año 2025</option>
@@ -410,26 +415,35 @@
             </select>
           </div>
 
-          <!-- Filtro Organismo -->
-          <div class="w-56">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Organismo</label>
-            <select id="matriz-filtro-org" class="input-select">
+          <!-- Filtro 2: Organismo -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-landmark text-blue-600 text-xs"></i>
+              <span>Organismo</span>
+            </label>
+            <select id="matriz-filtro-org" class="input-select w-full py-2 text-xs" onchange="cambiarFiltroOrgMatriz(this.value)">
               <option value="">Todos los Organismos</option>
             </select>
           </div>
 
-          <!-- Filtro Localidad -->
-          <div class="w-48">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Localidad</label>
-            <select id="matriz-filtro-loc" class="input-select">
+          <!-- Filtro 3: Localidad -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-location-dot text-blue-600 text-xs"></i>
+              <span>Localidad</span>
+            </label>
+            <select id="matriz-filtro-loc" class="input-select w-full py-2 text-xs" onchange="cambiarFiltroLocMatriz(this.value)">
               <option value="">Todas las Localidades</option>
             </select>
           </div>
 
-          <!-- Filtro de Estado / Documentos -->
-          <div class="w-56">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Estado / Documentos</label>
-            <select id="matriz-filtro-docs" class="input-select font-semibold text-slate-800">
+          <!-- Filtro 4: Estado / Documentos -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-filter text-blue-600 text-xs"></i>
+              <span>Estado / Documentos</span>
+            </label>
+            <select id="matriz-filtro-docs" class="input-select font-semibold text-slate-800 w-full py-2 text-xs" onchange="cambiarFiltroDocsMatriz(this.value)">
               <option value="">Todas las Sedes (452)</option>
               <optgroup label="Estado General">
                 <option value="con_docs">✅ Con Actividades Cargadas (≥ 1)</option>
@@ -437,9 +451,9 @@
               </optgroup>
               <optgroup label="Tienen Documento Específico">
                 <option value="con_confeccion_rgrl">📋 Con RGRL (Dec. 351/79)</option>
+                <option value="con_constancia_visita">📝 Con Constancia de Visita</option>
                 <option value="con_analisis_agua">🔬 Con Análisis de Agua Potable</option>
                 <option value="con_muestra_agua">💧 Con Muestra de Agua</option>
-                <option value="con_constancia_visita">📝 Con Constancia de Visita</option>
                 <option value="con_informe_tecnico">📄 Con Informe Técnico</option>
                 <option value="con_medicion_pat">⚡ Con Puesta a Tierra (PAT)</option>
                 <option value="con_medicion_ruido">🔊 Con Medición de Ruido</option>
@@ -449,33 +463,42 @@
               </optgroup>
               <optgroup label="Falta Documento (Pendientes)">
                 <option value="sin_confeccion_rgrl">⚠️ Sin RGRL</option>
-                <option value="sin_analisis_agua">⚠️ Sin Análisis de Agua</option>
                 <option value="sin_constancia_visita">⚠️ Sin Constancia de Visita</option>
+                <option value="sin_analisis_agua">⚠️ Sin Análisis de Agua</option>
                 <option value="sin_medicion_pat">⚠️ Sin Puesta a Tierra</option>
               </optgroup>
             </select>
           </div>
 
-          <!-- Búsqueda rápida por texto -->
-          <div class="w-64">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Buscar Sede</label>
+          <!-- Filtro 5: Buscar Sede -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-magnifying-glass text-blue-600 text-xs"></i>
+              <span>Buscar Sede</span>
+            </label>
             <div class="relative">
-              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
-              <input type="text" id="matriz-buscar-texto" class="input-text pl-7" placeholder="Nombre, calle o N°...">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="matriz-buscar-texto" class="input-text pl-8 py-2 w-full text-xs" placeholder="Nombre, calle o N°..." oninput="cambiarFiltroTextoMatriz(this.value)">
             </div>
           </div>
+
         </div>
 
-        <div class="flex items-center gap-3 shrink-0 pt-2 md:pt-0">
-          <span id="matriz-contador" class="text-xs text-slate-500 font-medium"></span>
-          <button onclick="abrirModalSubidaRapida()" class="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap" title="Subida rápida por lote con OCR para cualquier sede">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <span>Subida Rápida (OCR)</span>
-          </button>
-          <button onclick="exportarMatrizCSV()" class="btn-primary text-xs flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <i class="fa-solid fa-file-excel text-emerald-300"></i>
-            <span>Exportar a Excel (CSV)</span>
-          </button>
+        <!-- Fila de Acciones y Contador -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-slate-100">
+          <div class="flex items-center gap-2">
+            <span id="matriz-contador" class="text-xs font-bold text-blue-900 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full"></span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="abrirModalSubidaRapida()" class="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap" title="Subida rápida por lote con OCR para cualquier sede">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>Subida Rápida (Carga Libre)</span>
+            </button>
+            <button onclick="exportarMatrizCSV()" class="btn-primary text-xs flex items-center gap-2 shadow-sm whitespace-nowrap">
+              <i class="fa-solid fa-file-excel text-emerald-300"></i>
+              <span>Exportar a Excel (CSV)</span>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -781,8 +804,8 @@
             <i class="fa-solid fa-cloud-arrow-up"></i>
           </div>
           <div>
-            <h3 class="font-bold text-base leading-tight">Subida Rápida de Documentos (Lote con OCR)</h3>
-            <div class="text-xs text-white/80">Carga acelerada con detección automática de tipo y fecha por OCR</div>
+            <h3 class="font-bold text-base leading-tight">Carga Libre por Establecimiento (Lote con OCR)</h3>
+            <div class="text-xs text-white/80">Subí tus documentos: el OCR detecta el tipo de formulario y la fecha (DD/MM/AAAA)</div>
           </div>
         </div>
         <button onclick="cerrarModal('modal-subida-rapida-general')" class="text-white/80 hover:text-white text-lg p-1">
@@ -800,7 +823,7 @@
               <span class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
                 <i class="fa-solid fa-building"></i>
               </span>
-              <span class="text-xs font-extrabold text-blue-950 uppercase tracking-wider">1. Seleccionar Establecimiento Destino *</span>
+              <span class="text-xs font-extrabold text-blue-950 uppercase tracking-wider">1. Seleccionar Establecimiento *</span>
             </div>
             <span id="fast-estab-count-badge" class="text-[11px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">452 sedes</span>
           </div>
@@ -835,8 +858,8 @@
         <!-- 2. Zona de Carga / Arrastre Múltiple -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-            <span>2. Arrastrá o seleccioná uno o varios archivos (PDF o Fotos) *</span>
-            <span class="text-[11px] font-normal text-slate-500">OCR inteligente activado para el interior</span>
+            <span>2. Subir Archivos (Arrastrá o seleccioná uno o varios) *</span>
+            <span class="text-[11px] font-normal text-slate-500">OCR activo para interior</span>
           </label>
 
           <div id="fast-dropzone" onclick="document.getElementById('fast-file-input').click()" 
@@ -849,20 +872,8 @@
               Hacé clic aquí o arrastrá tus archivos
             </div>
             <div class="text-[11px] text-slate-500 mt-0.5">
-              Podés elegir múltiples PDF o fotos juntos, o ir sumándolos de a uno
+              Podés elegir múltiples archivos juntos o ir sumándolos sucesivamente
             </div>
-          </div>
-        </div>
-
-        <!-- Preventor Global (Aplica a todo el bloque) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Preventor Responsable (Aplica al bloque)</label>
-            <input type="text" id="fast-preventor-batch" class="input-text text-xs" placeholder="Ej: Ing. Juan Pérez">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Observaciones Generales (Opcional)</label>
-            <input type="text" id="fast-obs-batch" class="input-text text-xs" placeholder="Anotaciones para el lote...">
           </div>
         </div>
 
