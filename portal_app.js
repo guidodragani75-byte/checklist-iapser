@@ -804,18 +804,6 @@ function crearTarjetaActividad(cat, est, actsEst) {
       estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
       estadoClase = 'badge-completo';
     }
-  } else if (cat.id === 'confeccion_rgrl') {
-    // Si no tiene registros en actividades, verificar si está realizado en el checklist
-    let rgrlHecho = (est.rgrl === 'Realizado' || est.rgrlRealizado || est.rgrl_completado);
-    if (!rgrlHecho && est.data && (est.data.checklist || est.data.preguntas)) rgrlHecho = true;
-    if (!rgrlHecho) {
-      const estDb = obtenerEstablecimientoDesdeChecklistDB(est.id, est.nroEstab);
-      if (estDb && (estDb.rgrl === 'Realizado' || estDb.data || estDb.fecha)) rgrlHecho = true;
-    }
-    if (rgrlHecho) {
-      estadoTexto = 'Completado (Checklist)';
-      estadoClase = 'badge-completo';
-    }
   }
 
   const card = document.createElement('div');
@@ -1100,7 +1088,9 @@ async function eliminarDocumentoActividad(regId, estId) {
   }
 
   // 2. Limpiar el registro del estado local y persistir
-  AppState.actividadesRegistradas[targetEstId] = (AppState.actividadesRegistradas[targetEstId] || []).filter(a => a !== targetItem);
+  AppState.actividadesRegistradas[targetEstId] = (AppState.actividadesRegistradas[targetEstId] || []).filter(a => 
+    a !== targetItem && a.id !== regId && (!targetItem.id || a.id !== targetItem.id)
+  );
   guardarLegajoLocal();
 
   // 3. Actualizar vistas locales de inmediato
@@ -1267,33 +1257,6 @@ function renderMatrizAnual() {
       }
     });
 
-    // Verificación RGRL: Si no tiene actividad registrada explícita, verificar en datos de Checklist
-    if (conteoSede['confeccion_rgrl'] === 0) {
-      let rgrlHecho = false;
-      let rgrlFecha = '';
-
-      if (e.rgrl === 'Realizado' || e.rgrlRealizado || e.rgrl_completado) {
-        rgrlHecho = true;
-        rgrlFecha = e.fecha || e.fechaRgrl || '';
-      } else if (e.data && (e.data.checklist || e.data.preguntas || (e.data.establecimiento && e.data.establecimiento.fecha))) {
-        rgrlHecho = true;
-        rgrlFecha = (e.data.establecimiento && e.data.establecimiento.fecha) || e.fecha || '';
-      } else {
-        const estDb = obtenerEstablecimientoDesdeChecklistDB(e.id, e.nroEstab);
-        if (estDb && (estDb.rgrl === 'Realizado' || estDb.data || estDb.fecha)) {
-          rgrlHecho = true;
-          rgrlFecha = estDb.fecha || (estDb.data && estDb.data.establecimiento && estDb.data.establecimiento.fecha) || '';
-        }
-      }
-
-      if (rgrlHecho) {
-        const anioRgrl = extraerAnioDeFecha(rgrlFecha);
-        if (anio === 'todos' || !anioRgrl || anioRgrl === anio) {
-          conteoSede['confeccion_rgrl'] = 1;
-        }
-      }
-    }
-
     // Calcular total de actividades de la sede en el período
     let totalSedePeriodo = 0;
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
@@ -1440,7 +1403,12 @@ function exportarMatrizCSV() {
     const conteoSede = {};
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
     actsPeriodo.forEach(a => {
-      if (conteoSede[a.tipoActividad] !== undefined) conteoSede[a.tipoActividad]++;
+      const actNorm = normalizarTipoActividad(a.tipoActividad);
+      if (conteoSede[actNorm] !== undefined) {
+        conteoSede[actNorm]++;
+      } else if (conteoSede[a.tipoActividad] !== undefined) {
+        conteoSede[a.tipoActividad]++;
+      }
     });
 
     const row = [
