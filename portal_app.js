@@ -263,6 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupEventListeners();
   consultarCarpetasMensualesDrive();
+
+  // Sincronización automática con Google Sheets en segundo plano al iniciar
+  setTimeout(() => {
+    sincronizarConSheets(true).catch(e => console.warn('Aviso sincronización automática Sheets:', e));
+  }, 1200);
 });
 
 function initStorage() {
@@ -369,6 +374,57 @@ function cargarLegajoLocal() {
   } catch (e) {
     console.error('Error cargando legajo local:', e);
     AppState.actividadesRegistradas = {};
+  }
+
+  // Pre-cargar actividades técnicas desde PRELOADED_SURVEYS si no existen aún en el legajo
+  if (typeof PRELOADED_SURVEYS !== 'undefined') {
+    Object.keys(PRELOADED_SURVEYS).forEach(estKey => {
+      const surv = PRELOADED_SURVEYS[estKey];
+      if (!surv) return;
+
+      if (!AppState.actividadesRegistradas[estKey]) {
+        AppState.actividadesRegistradas[estKey] = [];
+      }
+
+      const fechaIso = surv.fecha ? (convertirDdmmaaaAIso(surv.fecha) || '2026-05-15') : '2026-05-15';
+      const prevNom = (surv.data && surv.data.profesionales && surv.data.profesionales.hysNombre) || (surv.relevadoPor || 'Lic. Milva Trossero Luzzi');
+      const orgAbbr = obtenerAbreviaturaOrganismo(surv.organismo || 'POL');
+      const nroE = (surv.nroEstab || '0').toString().padStart(3, '0');
+
+      // 1. Informe Técnico precargado
+      const yaTieneInforme = AppState.actividadesRegistradas[estKey].some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico');
+      if (!yaTieneInforme) {
+        AppState.actividadesRegistradas[estKey].push({
+          id: 'ACT_PRE_' + estKey + '_INF',
+          tipoActividad: 'informe_tecnico',
+          fechaActividad: fechaIso,
+          estadoActividad: 'Completado',
+          detalle: 'Relevamiento Inicial HyS (Informe Técnico)',
+          preventor: prevNom,
+          observaciones: 'Relevamiento técnico inicial de condiciones edilicias, riesgos y mejoras.',
+          fileName: `${orgAbbr}_${nroE}_INFORME_20260515_Informe.pdf`,
+          fileUrl: '',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 2. RGRL precargado
+      const yaTieneRgrl = AppState.actividadesRegistradas[estKey].some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl');
+      if (!yaTieneRgrl) {
+        AppState.actividadesRegistradas[estKey].push({
+          id: 'ACT_PRE_' + estKey + '_RGRL',
+          tipoActividad: 'confeccion_rgrl',
+          fechaActividad: fechaIso,
+          estadoActividad: 'Completado',
+          detalle: 'RGRL Inicial Dec. 351/79',
+          preventor: prevNom,
+          observaciones: 'Relevamiento General de Riesgos Laborales inicial.',
+          fileName: `${orgAbbr}_${nroE}_RGRL_20260515_Informe.pdf`,
+          fileUrl: '',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
   }
 
   try {
@@ -504,16 +560,16 @@ function extraerAnioDeFecha(fechaStr) {
 }
 
 function normalizarTipoActividad(str) {
-  if (!str) return 'confeccion_rgrl';
+  if (!str) return '';
   const s = String(str).toLowerCase().trim();
 
-  // RGRL
-  if (s === 'rgrl' || s === 'confeccion_rgrl' || s.includes('rgrl') || s.includes('relevamiento general')) {
-    return 'confeccion_rgrl';
-  }
-  // RAR
-  if (s === 'rar' || s === 'confeccion_rar' || s.includes('rar') || s.includes('agentes de riesgo')) {
+  // 1. RAR (Evaluar antes de RGRL para no confundir por Res. 463)
+  if (s === 'rar' || s === 'confeccion_rar' || /\b(?:confeccion_)?rar\b/i.test(s) || s.includes('agentes de riesgo') || s.includes('expuestos') || s.includes('relevamiento de agentes')) {
     return 'confeccion_rar';
+  }
+  // 2. RGRL
+  if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
+    return 'confeccion_rgrl';
   }
   // Constancia de Visita
   if (s === 'cv' || s === 'constancia_visita' || s.includes('constancia') || s.includes('visita')) {
@@ -562,6 +618,53 @@ function normalizarTipoActividad(str) {
 
   return s;
 }
+
+/**
+ * Obtiene todas las actividades pertenecientes a un establecimiento,
+ * buscando por ID de sede, número de establecimiento o metadatos de sede.
+ */
+function obtenerActividadesDeSede(e) {
+  if (!e) return [];
+  // 1. Por ID directo de la sede
+  let acts = AppState.actividadesRegistradas[e.id] || [];
+  if (acts.length > 0) return acts;
+
+  // 2. Por número de establecimiento
+  if (e.nroEstab) {
+    const n = String(e.nroEstab).trim();
+    if (AppState.actividadesRegistradas[n] && AppState.actividadesRegistradas[n].length > 0) {
+      return AppState.actividadesRegistradas[n];
+    }
+    if (AppState.actividadesRegistradas['est_' + n] && AppState.actividadesRegistradas['est_' + n].length > 0) {
+      return AppState.actividadesRegistradas['est_' + n];
+    }
+  }
+
+  // 3. Por coincidencia en todas las listas registradas
+  const matchActs = [];
+  const eNro = e.nroEstab ? String(e.nroEstab).trim() : '';
+  const eNom = e.nombreEstablecimiento ? e.nombreEstablecimiento.trim().toLowerCase() : '';
+
+  Object.values(AppState.actividadesRegistradas).forEach(list => {
+    if (Array.isArray(list)) {
+      list.forEach(a => {
+        if (!a) return;
+        if (a.establecimiento && a.establecimiento.id === e.id) {
+          matchActs.push(a);
+        } else if (eNro && a.establecimiento && String(a.establecimiento.nroEstab).trim() === eNro) {
+          matchActs.push(a);
+        } else if (eNro && a.nroEstab && String(a.nroEstab).trim() === eNro) {
+          matchActs.push(a);
+        } else if (eNom && a.nombreEstablecimiento && a.nombreEstablecimiento.trim().toLowerCase() === eNom) {
+          matchActs.push(a);
+        }
+      });
+    }
+  });
+
+  return matchActs;
+}
+window.obtenerActividadesDeSede = obtenerActividadesDeSede;
 
 function obtenerEstablecimientoDesdeChecklistDB(id, nroEstab) {
   try {
@@ -1280,6 +1383,7 @@ function renderMatrizAnual() {
   const orgFiltro = AppState.matrizFiltroOrg;
   const locFiltro = AppState.matrizFiltroLoc;
   const textFiltro = AppState.matrizFiltroTexto.toLowerCase().trim();
+  const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
 
   // Filtrar establecimientos
   const establecimientosFiltrados = Object.values(AppState.establecimientos).filter(e => {
@@ -1295,10 +1399,6 @@ function renderMatrizAnual() {
     }
     return true;
   });
-
-  if (counterSpan) {
-    counterSpan.textContent = `Mostrando ${establecimientosFiltrados.length} de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
-  }
 
   // Métricas del resumen en cabecera
   let totalActividadesPeriodo = 0;
@@ -1317,12 +1417,15 @@ function renderMatrizAnual() {
         </td>
       </tr>
     `;
+    if (counterSpan) {
+      counterSpan.textContent = `Mostrando 0 de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
+    }
     actualizarKPIsMatriz(0, 0, 0);
     return;
   }
 
   establecimientosFiltrados.forEach(e => {
-    const acts = AppState.actividadesRegistradas[e.id] || [];
+    const acts = obtenerActividadesDeSede(e);
     
     // Filtrar actividades correspondientes al año seleccionado
     const actsPeriodo = acts.filter(a => {
@@ -1355,7 +1458,6 @@ function renderMatrizAnual() {
     }
 
     // Filtro por Estado / Documentos específicos solicitado por el usuario
-    const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
     if (docsFiltro === 'con_docs') {
       const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
       if (!tiene) return;
@@ -1366,11 +1468,15 @@ function renderMatrizAnual() {
     }
     if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
-      if ((conteoSede[actTarget] || 0) === 0) return;
+      const countPeriodo = conteoSede[actTarget] || 0;
+      const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
+      if (countPeriodo === 0 && countHistorico === 0) return;
     }
     if (docsFiltro.startsWith('sin_')) {
       const actTarget = docsFiltro.replace('sin_', '');
-      if ((conteoSede[actTarget] || 0) > 0) return;
+      const countPeriodo = conteoSede[actTarget] || 0;
+      const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
+      if (countPeriodo > 0 || countHistorico > 0) return;
     }
 
     sedesMostradas++;
@@ -2934,13 +3040,24 @@ function detectarTipoActividadDeTexto(texto) {
   if (t.includes('constancia de visita') || t.includes('visita - seguridad e higiene') || t.includes('visita seguridad e higiene') || (t.includes('visita') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado'))) || t.includes('formulario de visita')) {
     return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)' };
   }
-  // 2. RGRL
-  if (t.includes('relevamiento general de riesgos') || t.includes('rgrl') || (t.includes('decreto 351') && t.includes('anexo i')) || t.includes('resolucion 463') || t.includes('res. 463')) {
-    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)' };
-  }
-  // 3. RAR
-  if (t.includes('relevamiento de agentes de riesgo') || t.includes('nómina de expuestos') || t.includes('nomina de expuestos') || (t.includes('agentes de riesgo') && t.includes('srt'))) {
+  // 2. RAR (Relevamiento de Agentes de Riesgo - Prioridad antes de RGRL para no confundir por Res. 463)
+  if (/\b(?:confeccion_)?rar\b/i.test(texto) ||
+      t.includes('relevamiento de agentes de riesgo') ||
+      t.includes('agentes de riesgo') ||
+      t.includes('nómina de expuestos') ||
+      t.includes('nomina de expuestos') ||
+      t.includes('planilla de expuestos') ||
+      t.includes('formulario rar') ||
+      t.includes('relevamiento rar')) {
     return { id: 'confeccion_rar', nombre: 'Confección de RAR (Nómina de expuestos)' };
+  }
+  // 3. RGRL (Relevamiento General de Riesgos Laborales)
+  if (/\b(?:confeccion_)?rgrl\b/i.test(texto) ||
+      t.includes('relevamiento general de riesgos') ||
+      t.includes('relevamiento general') ||
+      (t.includes('decreto 351') && t.includes('anexo i')) ||
+      (t.includes('463') && (t.includes('general') || t.includes('anexo i')))) {
+    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)' };
   }
   // 4. Agua Bacteriológico o Fisicoquímico / Protocolo
   if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo')) || t.includes('analisis de agua')) {
@@ -3788,29 +3905,30 @@ function mapearFilaActividad(row) {
 }
 
 function encontrarEstablecimiento(nro, nom, org) {
+  const estList = Object.values(AppState.establecimientos || {});
   const sNro = nro ? String(nro).trim().toLowerCase() : '';
   const sNom = nom ? String(nom).trim().toLowerCase() : '';
   const sOrg = org ? String(org).trim().toLowerCase() : '';
 
   if (sNro) {
-    const found = AppState.establecimientos.find(e => e.nroEstab && String(e.nroEstab).trim().toLowerCase() === sNro);
+    const found = estList.find(e => e.nroEstab && String(e.nroEstab).trim().toLowerCase() === sNro);
     if (found) return found;
   }
   if (sNom) {
-    const found = AppState.establecimientos.find(e => {
+    const found = estList.find(e => {
       const eNom = String(e.nombreEstablecimiento || '').trim().toLowerCase();
       return eNom === sNom || (sNom.length > 5 && eNom.includes(sNom)) || (eNom.length > 5 && sNom.includes(eNom));
     });
     if (found) return found;
   }
   if (sOrg) {
-    const found = AppState.establecimientos.find(e => String(e.organismo || '').trim().toLowerCase() === sOrg);
+    const found = estList.find(e => String(e.organismo || '').trim().toLowerCase() === sOrg);
     if (found) return found;
   }
   return null;
 }
 
-async function sincronizarConSheets() {
+async function sincronizarConSheets(forceGlobal = false) {
   const est = AppState.establecimientoSeleccionado;
   AppState.estaSincronizando = true;
 
@@ -3827,11 +3945,12 @@ async function sincronizarConSheets() {
   }
 
   try {
-    mostrarToast('⏳ Sincronizando con Google Sheets y Google Drive...');
+    if (!forceGlobal) {
+      mostrarToast('⏳ Sincronizando con Google Sheets y Google Drive...');
+    }
 
-    // Si hay un establecimiento seleccionado, sincronizamos esa sede.
-    // Si no hay seleccionado (estamos en Repositorio Global, Matriz o Dashboard), sincronizamos TODO.
-    const isGlobal = !est;
+    // Si forceGlobal es true o estamos en Matriz, Repositorio o Dashboard, sincronizamos TODOS los legajos
+    const isGlobal = (forceGlobal === true) || (AppState.moduloActivo === 'matriz') || (AppState.moduloActivo === 'repositorio') || (AppState.moduloActivo === 'dashboard') || !est;
     const url = isGlobal 
       ? `${getWebhookUrl()}?action=get_todos_legajos`
       : `${getWebhookUrl()}?action=get_legajo_establecimiento&nroEstab=${encodeURIComponent(est.nroEstab || '')}&nombreEstab=${encodeURIComponent(est.nombreEstablecimiento)}&organismo=${encodeURIComponent(est.organismo)}`;
@@ -3951,8 +4070,16 @@ function cerrarModalVersionDesactualizada() {
 }
 
 function normalizarActividadDesdeSheet(str) {
-  if (!str) return 'confeccion_rgrl';
-  const s = str.toLowerCase().trim();
+  if (!str) return '';
+  const s = String(str).toLowerCase().trim();
+  // 1. RAR (Evaluar antes de RGRL)
+  if (s === 'rar' || s === 'confeccion_rar' || /\b(?:confeccion_)?rar\b/i.test(s) || s.includes('agentes de riesgo') || s.includes('expuestos') || s.includes('relevamiento de agentes')) {
+    return 'confeccion_rar';
+  }
+  // 2. RGRL
+  if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
+    return 'confeccion_rgrl';
+  }
   if (s.includes('constancia') || s === 'cv' || s.startsWith('cv_') || s.startsWith('cv ') || s.includes('visita')) {
     return 'constancia_visita';
   }
