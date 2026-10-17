@@ -398,8 +398,8 @@
       <!-- Barra de Filtros y Acciones de la Matriz (Perfectamente Alineados) -->
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         
-        <!-- Fila de Filtros en Grid Uniforme de 5 Columnas -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+        <!-- Fila de Filtros en Grid Uniforme de 6 Columnas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
           
           <!-- Filtro 1: Año a Evaluar -->
           <div>
@@ -415,7 +415,30 @@
             </select>
           </div>
 
-          <!-- Filtro 2: Organismo -->
+          <!-- Filtro 2: Período / Mes a Evaluar -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-clock text-amber-600 text-xs"></i>
+              <span>Período / Mes</span>
+            </label>
+            <select id="matriz-filtro-mes" class="input-select font-bold text-slate-800 w-full py-2 text-xs" onchange="cambiarFiltroMesMatriz(this.value)">
+              <option value="todos" selected>🗓️ Todo el Año (Anual)</option>
+              <option value="01">01 - Enero</option>
+              <option value="02">02 - Febrero</option>
+              <option value="03">03 - Marzo</option>
+              <option value="04">04 - Abril</option>
+              <option value="05">05 - Mayo</option>
+              <option value="06">06 - Junio</option>
+              <option value="07">07 - Julio</option>
+              <option value="08">08 - Agosto</option>
+              <option value="09">09 - Septiembre</option>
+              <option value="10">10 - Octubre</option>
+              <option value="11">11 - Noviembre</option>
+              <option value="12">12 - Diciembre</option>
+            </select>
+          </div>
+
+          <!-- Filtro 3: Organismo -->
           <div>
             <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <i class="fa-solid fa-landmark text-blue-600 text-xs"></i>
@@ -426,7 +449,7 @@
             </select>
           </div>
 
-          <!-- Filtro 3: Localidad -->
+          <!-- Filtro 4: Localidad -->
           <div>
             <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <i class="fa-solid fa-location-dot text-blue-600 text-xs"></i>
@@ -437,7 +460,7 @@
             </select>
           </div>
 
-          <!-- Filtro 4: Estado / Documentos -->
+          <!-- Filtro 5: Estado / Documentos -->
           <div>
             <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <i class="fa-solid fa-filter text-blue-600 text-xs"></i>
@@ -472,7 +495,7 @@
             </select>
           </div>
 
-          <!-- Filtro 5: Buscar Sede -->
+          <!-- Filtro 6: Buscar Sede -->
           <div>
             <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <i class="fa-solid fa-magnifying-glass text-blue-600 text-xs"></i>
@@ -486,9 +509,19 @@
 
         </div>
 
-        <!-- Fila de Acciones y Contador -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-slate-100">
-          <div class="flex items-center gap-2">
+        <!-- Fila de Acciones, Conmutador Anual/Mensual y Contador -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2.5 border-t border-slate-100">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="inline-flex rounded-lg p-1 bg-slate-100 border border-slate-200 shadow-2xs">
+              <button id="btn-modo-matriz-act" onclick="cambiarModoVistaMatriz('actividades')" class="px-3 py-1 rounded-md text-xs font-bold transition bg-white text-blue-900 shadow-2xs flex items-center gap-1.5" title="Ver matriz con columnas de actividades técnicas">
+                <i class="fa-solid fa-list-check text-blue-600"></i>
+                <span>Por Actividades</span>
+              </button>
+              <button id="btn-modo-matriz-mes" onclick="cambiarModoVistaMatriz('meses')" class="px-3 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5" title="Ver matriz cronológica con columnas de Enero a Diciembre">
+                <i class="fa-solid fa-calendar-days text-amber-600"></i>
+                <span>Evolución Mensual (Ene - Dic)</span>
+              </button>
+            </div>
             <span id="matriz-contador" class="text-xs font-bold text-blue-900 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full"></span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -509,31 +542,9 @@
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto max-h-[calc(100vh-18rem)]">
           <table class="w-full text-left border-collapse matriz-table">
-            <thead class="sticky top-0 z-20">
-              <tr>
-                <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
-                <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
-                <th class="text-left px-3 min-w-[160px]">Organismo</th>
-                <th class="px-3 min-w-[120px]">Localidad</th>
-                <th title="Constancia de Visita Oficial (CV firmado in situ)">CV</th>
-                <th title="Informe Técnico de Relevamiento / Visita">Informe</th>
-                <th title="Confección de RGRL (Dec. 351/79)">RGRL</th>
-                <th title="Confección de RAR (Nómina expuestos SRT)">RAR</th>
-                <th title="Muestra de Agua (Toma in situ)">Agua Toma</th>
-                <th title="Análisis de Agua (Protocolo Laboratorio)">Agua Lab</th>
-                <th title="Medición de Puesta a Tierra (Res. SRT 900/15)">PAT</th>
-                <th title="Medición de Ruido (Res. SRT 85/12)">Ruido</th>
-                <th title="Medición de Iluminación (Res. SRT 84/12)">Ilum</th>
-                <th title="Ergonomía Res. 886/15 SRT">Res 886</th>
-                <th title="Capacitaciones HyS dictadas">Capacit.</th>
-                <th title="Evaluación de Carga de Fuego">Carga Fuego</th>
-                <th title="Simulacros de Evacuación">Simulacro</th>
-                <th class="bg-[#07253d] font-black">Total</th>
-                <th class="bg-[#07253d]">Ver</th>
-              </tr>
+            <thead id="matriz-tabla-head" class="sticky top-0 z-20">
+              <!-- Rellenado dinámicamente según el modo (Por Actividades o Por Meses) -->
             </thead>
-            <tbody id="matriz-tabla-body">
-              <!-- Rellenado dinámicamente -->
             </tbody>
           </table>
         </div>

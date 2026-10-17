@@ -161,6 +161,8 @@ const AppState = {
   
   // Filtros Vista 2 (Matriz)
   matrizAnio: '2026',
+  matrizMes: 'todos', // 'todos' | '01'...'12'
+  matrizModoVista: 'actividades', // 'actividades' | 'meses'
   matrizFiltroOrg: '',
   matrizFiltroLoc: '',
   matrizFiltroTexto: '',
@@ -1374,6 +1376,29 @@ function cambiarFiltroLocMatriz(val) {
 }
 window.cambiarFiltroLocMatriz = cambiarFiltroLocMatriz;
 
+function cambiarFiltroMesMatriz(val) {
+  AppState.matrizMes = val || 'todos';
+  renderMatrizAnual();
+}
+window.cambiarFiltroMesMatriz = cambiarFiltroMesMatriz;
+
+function cambiarModoVistaMatriz(modo) {
+  AppState.matrizModoVista = modo;
+  const btnAct = document.getElementById('btn-modo-matriz-act');
+  const btnMes = document.getElementById('btn-modo-matriz-mes');
+  if (btnAct && btnMes) {
+    if (modo === 'meses') {
+      btnMes.className = 'px-3 py-1 rounded-md text-xs font-bold transition bg-white text-blue-900 shadow-2xs flex items-center gap-1.5';
+      btnAct.className = 'px-3 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5';
+    } else {
+      btnAct.className = 'px-3 py-1 rounded-md text-xs font-bold transition bg-white text-blue-900 shadow-2xs flex items-center gap-1.5';
+      btnMes.className = 'px-3 py-1 rounded-md text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5';
+    }
+  }
+  renderMatrizAnual();
+}
+window.cambiarModoVistaMatriz = cambiarModoVistaMatriz;
+
 function cambiarFiltroDocsMatriz(val) {
   AppState.matrizFiltroDocs = val;
   renderMatrizAnual();
@@ -1388,16 +1413,69 @@ window.cambiarFiltroTextoMatriz = cambiarFiltroTextoMatriz;
 
 function renderMatrizAnual() {
   const tbody = document.getElementById('matriz-tabla-body');
+  const thead = document.getElementById('matriz-tabla-head');
   const counterSpan = document.getElementById('matriz-contador');
   if (!tbody) return;
 
   const anio = AppState.matrizAnio;
+  const mesFiltro = AppState.matrizMes || 'todos';
+  const modoVista = AppState.matrizModoVista || 'actividades';
   const orgFiltro = AppState.matrizFiltroOrg;
   const locFiltro = AppState.matrizFiltroLoc;
   const textFiltro = AppState.matrizFiltroTexto.toLowerCase().trim();
   const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
 
-  // Filtrar establecimientos
+  const MESES_ABR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  // 1. Renderizar cabecera según el modo (Por Actividades Técnicas vs Por Meses Ene-Dic)
+  if (thead) {
+    if (modoVista === 'meses') {
+      let thMesesHtml = '';
+      MESES_ABR.forEach((mNombre, idx) => {
+        const mCod = (idx + 1 < 10 ? '0' : '') + (idx + 1);
+        const esMesActivo = (mesFiltro === mCod);
+        thMesesHtml += `<th class="text-center px-2 min-w-[52px] ${esMesActivo ? 'bg-amber-600 text-white font-extrabold' : ''}" title="${MESES_NOMBRES[idx]}">${mNombre}</th>`;
+      });
+
+      thead.innerHTML = `
+        <tr>
+          <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
+          <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
+          <th class="text-left px-3 min-w-[160px]">Organismo</th>
+          <th class="px-3 min-w-[120px]">Localidad</th>
+          ${thMesesHtml}
+          <th class="bg-[#07253d] font-black text-center px-3 min-w-[65px]" title="Total de actividades en el año">Total</th>
+          <th class="bg-[#07253d] text-right px-3 min-w-[70px]">Acción</th>
+        </tr>
+      `;
+    } else {
+      thead.innerHTML = `
+        <tr>
+          <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
+          <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
+          <th class="text-left px-3 min-w-[160px]">Organismo</th>
+          <th class="px-3 min-w-[120px]">Localidad</th>
+          <th title="Constancia de Visita Oficial (CV firmado in situ)">CV</th>
+          <th title="Informe Técnico de Relevamiento / Visita">Informe</th>
+          <th title="Confección de RGRL (Dec. 351/79)">RGRL</th>
+          <th title="Confección de RAR (Nómina expuestos SRT)">RAR</th>
+          <th title="Muestra de Agua (Toma in situ)">Agua Toma</th>
+          <th title="Análisis de Agua (Protocolo Laboratorio)">Agua Lab</th>
+          <th title="Medición de Puesta a Tierra (Res. SRT 900/15)">PAT</th>
+          <th title="Medición de Ruido (Res. SRT 85/12)">Ruido</th>
+          <th title="Medición de Iluminación (Res. SRT 84/12)">Ilum</th>
+          <th title="Ergonomía Res. 886/15 SRT">Res 886</th>
+          <th title="Capacitaciones HyS dictadas">Capacit.</th>
+          <th title="Evaluación de Carga de Fuego">Carga Fuego</th>
+          <th title="Simulacros de Evacuación">Simulacro</th>
+          <th class="bg-[#07253d] font-black text-center px-3">Total</th>
+          <th class="bg-[#07253d] text-right px-3">Acción</th>
+        </tr>
+      `;
+    }
+  }
+
+  // 2. Filtrar establecimientos por texto, organismo y localidad
   const establecimientosFiltrados = Object.values(AppState.establecimientos).filter(e => {
     if (orgFiltro && e.organismo !== orgFiltro) return false;
     if (locFiltro && e.localidad !== locFiltro) return false;
@@ -1416,21 +1494,21 @@ function renderMatrizAnual() {
   let totalActividadesPeriodo = 0;
   let sedesConAlMenosUnaActividad = 0;
   let sedesMostradas = 0;
-  const conteoPorColumna = {};
-  Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoPorColumna[k] = 0);
 
   tbody.innerHTML = '';
+
+  const totalCols = (modoVista === 'meses') ? 18 : 19;
 
   if (establecimientosFiltrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="19" class="text-center py-8 text-slate-400 text-xs">
+        <td colspan="${totalCols}" class="text-center py-8 text-slate-400 text-xs">
           No se encontraron sedes que coincidan con los filtros aplicados.
         </td>
       </tr>
     `;
     if (counterSpan) {
-      counterSpan.textContent = `Mostrando 0 de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
+      counterSpan.textContent = `Mostrando 0 de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico' : 'Año ' + anio})`;
     }
     actualizarKPIsMatriz(0, 0, 0);
     return;
@@ -1440,10 +1518,20 @@ function renderMatrizAnual() {
     const acts = obtenerActividadesDeSede(e);
     
     // Filtrar actividades correspondientes al año seleccionado
-    const actsPeriodo = acts.filter(a => {
+    const actsDelAnio = acts.filter(a => {
       if (anio === 'todos') return true;
       const anioAct = extraerAnioDeFecha(a.fechaActividad);
       return anioAct === anio;
+    });
+
+    // En modo actividades, si hay un mes seleccionado, se filtra además por mes
+    const actsPeriodo = actsDelAnio.filter(a => {
+      if (modoVista === 'actividades' && mesFiltro !== 'todos') {
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+        return mKey === mesFiltro;
+      }
+      return true;
     });
 
     // Conteo por cada actividad técnica
@@ -1459,6 +1547,19 @@ function renderMatrizAnual() {
       }
     });
 
+    // Conteo por cada mes del año (para la vista mensual Ene-Dic)
+    const conteoMesSede = {
+      '01': [], '02': [], '03': [], '04': [], '05': [], '06': [],
+      '07': [], '08': [], '09': [], '10': [], '11': [], '12': []
+    };
+    actsDelAnio.forEach(a => {
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+      if (conteoMesSede[mCod]) {
+        conteoMesSede[mCod].push(a);
+      }
+    });
+
     // Calcular total de actividades de la sede en el período
     let totalSedePeriodo = actsPeriodo.length;
     let sumaActividadesCatalogo = 0;
@@ -1469,7 +1570,7 @@ function renderMatrizAnual() {
       totalSedePeriodo = sumaActividadesCatalogo;
     }
 
-    // Filtro por Estado / Documentos específicos solicitado por el usuario
+    // Filtro por Estado / Documentos específicos
     if (docsFiltro === 'con_docs') {
       const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
       if (!tiene) return;
@@ -1492,15 +1593,10 @@ function renderMatrizAnual() {
     if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
     totalActividadesPeriodo += totalSedePeriodo;
 
-    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
-      conteoPorColumna[k] += (conteoSede[k] || 0);
-    });
-
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer';
     tr.onclick = (event) => {
-      // Si hizo clic en un botón no cambiamos, sino vamos a la ficha de la sede
-      if (event.target.tagName !== 'BUTTON' && event.target.tagName !== 'A') {
+      if (event.target.tagName !== 'BUTTON' && event.target.tagName !== 'A' && !event.target.closest('button') && !event.target.closest('a')) {
         irAFichaEstablecimiento(e.id);
       }
     };
@@ -1520,27 +1616,67 @@ function renderMatrizAnual() {
       </td>
     `;
 
-    // Columnas de actividades con badge numérico
-    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
-      const count = conteoSede[k] || 0;
-      let badgeHtml = '';
+    if (modoVista === 'meses') {
+      // Columnas mensuales de Enero a Diciembre
+      for (let m = 1; m <= 12; m++) {
+        const mCod = (m < 10 ? '0' : '') + m;
+        const actsMes = conteoMesSede[mCod] || [];
+        const count = actsMes.length;
+        const esMesActivo = (mesFiltro === mCod);
+        let badgeHtml = '';
 
-      if (count === 0) {
-        badgeHtml = `<span class="text-slate-300 font-mono text-[11px]">0</span>`;
-      } else if (count === 1) {
-        badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs shadow-xs">1</span>`;
-      } else {
-        badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-900 font-extrabold text-xs shadow-xs">${count}</span>`;
+        if (count === 0) {
+          badgeHtml = `<span class="text-slate-300 font-mono text-[11px]">-</span>`;
+        } else {
+          const titulosActs = actsMes.map(a => {
+            const cat = CATALOGO_ACTIVIDADES[normalizarTipoActividad(a.tipoActividad)] || { nombre: a.tipoActividad };
+            return `${cat.nombre} (${formatearFechaDdmmaaa(a.fechaActividad)})`;
+          }).join('\n• ');
+
+          if (count === 1) {
+            badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs shadow-xs hover:scale-110 transition cursor-help" title="• ${escapeHtml(titulosActs)}">1</span>`;
+          } else {
+            badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-900 font-extrabold text-xs shadow-xs hover:scale-110 transition cursor-help" title="• ${escapeHtml(titulosActs)}">${count}</span>`;
+          }
+        }
+
+        cellsHtml += `<td class="py-2.5 px-2 text-center whitespace-nowrap ${esMesActivo ? 'bg-amber-50/70 border-x border-amber-200' : ''}">${badgeHtml}</td>`;
       }
 
-      cellsHtml += `<td class="py-2.5 px-2 text-center whitespace-nowrap">${badgeHtml}</td>`;
-    });
+      // Columna Total Anual de la sede
+      const totalAnualSede = actsDelAnio.length;
+      cellsHtml += `
+        <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalAnualSede > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
+          ${totalAnualSede}
+        </td>
+      `;
+    } else {
+      // Columnas por actividades técnicas
+      Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+        const count = conteoSede[k] || 0;
+        let badgeHtml = '';
 
-    // Columna Total
+        if (count === 0) {
+          badgeHtml = `<span class="text-slate-300 font-mono text-[11px]">0</span>`;
+        } else if (count === 1) {
+          badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs shadow-xs">1</span>`;
+        } else {
+          badgeHtml = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-900 font-extrabold text-xs shadow-xs">${count}</span>`;
+        }
+
+        cellsHtml += `<td class="py-2.5 px-2 text-center whitespace-nowrap">${badgeHtml}</td>`;
+      });
+
+      // Columna Total del período
+      cellsHtml += `
+        <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
+          ${totalSedePeriodo}
+        </td>
+      `;
+    }
+
+    // Columna de Acciones rápidas
     cellsHtml += `
-      <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
-        ${totalSedePeriodo}
-      </td>
       <td class="py-2.5 px-3 text-right whitespace-nowrap">
         <button onclick="abrirModalSubidaRapida('${e.id}'); event.stopPropagation();" class="text-xs text-amber-600 hover:text-amber-800 font-semibold p-1 hover:bg-amber-100 rounded mr-1" title="Subida rápida (OCR) para esta sede">
           <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -1555,14 +1691,17 @@ function renderMatrizAnual() {
     tbody.appendChild(tr);
   });
 
+  const mesTxt = (mesFiltro !== 'todos') ? ` • Mes ${MESES_NOMBRES[parseInt(mesFiltro, 10) - 1]}` : ' • Consolidado Anual';
+  const modoTxt = (modoVista === 'meses') ? ' (Evolución Mensual Ene-Dic)' : ' (Por Actividades Técnicas)';
+
   if (counterSpan) {
-    counterSpan.textContent = `Mostrando ${sedesMostradas} de ${establecimientosFiltrados.length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio})`;
+    counterSpan.textContent = `Mostrando ${sedesMostradas} de ${establecimientosFiltrados.length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio}${mesTxt})${modoTxt}`;
   }
 
   if (sedesMostradas === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="19" class="text-center py-8 text-slate-400 text-xs">
+        <td colspan="${totalCols}" class="text-center py-8 text-slate-400 text-xs">
           No se encontraron sedes que coincidan con los filtros aplicados.
         </td>
       </tr>
@@ -1589,64 +1728,114 @@ function irAFichaEstablecimiento(estId) {
   seleccionarEstablecimiento(estId);
 }
 
-// Exportación a Excel / CSV con BOM
+// Exportación a Excel / CSV con BOM adaptada a modo Actividades o Mensual
 function exportarMatrizCSV() {
   const anio = AppState.matrizAnio;
+  const mesFiltro = AppState.matrizMes || 'todos';
+  const modoVista = AppState.matrizModoVista || 'actividades';
   const establecimientos = Object.values(AppState.establecimientos);
 
-  const activityHeaders = Object.values(CATALOGO_ACTIVIDADES).map(cat => cat.nombre);
-  const headers = [
-    'N° Estab',
-    'Organismo',
-    'Nombre Establecimiento',
-    'Localidad',
-    ...activityHeaders,
-    'Total Realizado'
-  ];
+  let headers = [];
+  if (modoVista === 'meses') {
+    headers = [
+      'N° Estab',
+      'Organismo',
+      'Nombre Establecimiento',
+      'Localidad',
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      'Total Anual Realizado'
+    ];
+  } else {
+    const activityHeaders = Object.values(CATALOGO_ACTIVIDADES).map(cat => cat.nombre);
+    headers = [
+      'N° Estab',
+      'Organismo',
+      'Nombre Establecimiento',
+      'Localidad',
+      ...activityHeaders,
+      'Total Período'
+    ];
+  }
 
   let csvContent = '\uFEFF'; // BOM para que Excel abra UTF-8 con tildes correctamente
   csvContent += headers.map(h => `"${h}"`).join(';') + '\r\n';
 
   establecimientos.forEach(e => {
-    const acts = AppState.actividadesRegistradas[e.id] || [];
-    const actsPeriodo = acts.filter(a => {
+    const acts = obtenerActividadesDeSede(e);
+    const actsDelAnio = acts.filter(a => {
       if (anio === 'todos') return true;
       return extraerAnioDeFecha(a.fechaActividad) === anio;
     });
 
-    const conteoSede = {};
-    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
-    actsPeriodo.forEach(a => {
-      const actNorm = normalizarTipoActividad(a.tipoActividad);
-      if (conteoSede[actNorm] !== undefined) {
-        conteoSede[actNorm]++;
-      } else if (conteoSede[a.tipoActividad] !== undefined) {
-        conteoSede[a.tipoActividad]++;
-      }
-    });
+    if (modoVista === 'meses') {
+      const conteoMesSede = {
+        '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0,
+        '07': 0, '08': 0, '09': 0, '10': 0, '11': 0, '12': 0
+      };
+      actsDelAnio.forEach(a => {
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+        if (conteoMesSede[mCod] !== undefined) {
+          conteoMesSede[mCod]++;
+        }
+      });
 
-    const row = [
-      e.nroEstab || '',
-      e.organismo || '',
-      e.nombreEstablecimiento || '',
-      e.localidad || '',
-      ...Object.keys(CATALOGO_ACTIVIDADES).map(k => conteoSede[k] || 0),
-      actsPeriodo.length
-    ];
+      const row = [
+        e.nroEstab || '',
+        e.organismo || '',
+        e.nombreEstablecimiento || '',
+        e.localidad || '',
+        conteoMesSede['01'], conteoMesSede['02'], conteoMesSede['03'], conteoMesSede['04'],
+        conteoMesSede['05'], conteoMesSede['06'], conteoMesSede['07'], conteoMesSede['08'],
+        conteoMesSede['09'], conteoMesSede['10'], conteoMesSede['11'], conteoMesSede['12'],
+        actsDelAnio.length
+      ];
+      csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
+    } else {
+      const actsPeriodo = actsDelAnio.filter(a => {
+        if (mesFiltro !== 'todos') {
+          const mInfo = parsearAnioMesCliente(a.fechaActividad);
+          const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+          return mKey === mesFiltro;
+        }
+        return true;
+      });
 
-    csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
+      const conteoSede = {};
+      Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
+      actsPeriodo.forEach(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        if (conteoSede[actNorm] !== undefined) {
+          conteoSede[actNorm]++;
+        } else if (conteoSede[a.tipoActividad] !== undefined) {
+          conteoSede[a.tipoActividad]++;
+        }
+      });
+
+      const row = [
+        e.nroEstab || '',
+        e.organismo || '',
+        e.nombreEstablecimiento || '',
+        e.localidad || '',
+        ...Object.keys(CATALOGO_ACTIVIDADES).map(k => conteoSede[k] || 0),
+        actsPeriodo.length
+      ];
+      csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
+    }
   });
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `Matriz_Cumplimiento_HyS_${anio}_IAPSER.csv`);
+  const sufijoModo = modoVista === 'meses' ? 'Mensual_Ene_Dic' : (mesFiltro !== 'todos' ? `Mes_${mesFiltro}` : 'Anual');
+  link.setAttribute('download', `Matriz_Cumplimiento_HyS_${anio}_${sufijoModo}_IAPSER.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  mostrarToast(`Matriz ${anio} exportada a CSV para Excel.`);
+  mostrarToast(`Matriz exportada a CSV (${modoVista === 'meses' ? 'Evolución Mensual' : 'Actividades'}).`);
 }
 
 // ==================== VISTA 3: REPOSITORIO GLOBAL DE DOCUMENTOS ====================
