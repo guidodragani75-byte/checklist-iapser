@@ -188,20 +188,37 @@ function parsearAnioMesCliente(fecha) {
     const s = String(fecha).trim();
     if (s.includes('-')) {
       const p = s.split('-');
-      if (p.length >= 2) {
+      if (p.length >= 3) {
+        if (p[0].length === 4) {
+          // YYYY-MM-DD
+          const y = parseInt(p[0], 10);
+          const m = parseInt(p[1], 10);
+          if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
+        } else if (p[2].length === 4) {
+          // DD-MM-YYYY
+          const y = parseInt(p[2], 10);
+          const m = parseInt(p[1], 10);
+          if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
+        }
+      } else if (p.length === 2) {
+        // YYYY-MM
         const y = parseInt(p[0], 10);
         const m = parseInt(p[1], 10);
-        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) {
-          anio = y; mes = m;
-        }
+        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
       }
     } else if (s.includes('/')) {
       const p2 = s.split('/');
       if (p2.length >= 3) {
-        const y2 = parseInt(p2[2], 10);
-        const m2 = parseInt(p2[1], 10);
-        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) {
-          anio = y2; mes = m2;
+        if (p2[2].length === 4) {
+          // DD/MM/YYYY
+          const y2 = parseInt(p2[2], 10);
+          const m2 = parseInt(p2[1], 10);
+          if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
+        } else if (p2[0].length === 4) {
+          // YYYY/MM/DD
+          const y2 = parseInt(p2[0], 10);
+          const m2 = parseInt(p2[1], 10);
+          if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
         }
       }
     }
@@ -1417,12 +1434,12 @@ function renderMatrizAnual() {
   const counterSpan = document.getElementById('matriz-contador');
   if (!tbody) return;
 
-  const anio = AppState.matrizAnio;
-  const mesFiltro = AppState.matrizMes || 'todos';
+  const anio = (document.getElementById('matriz-filtro-anio')?.value || AppState.matrizAnio || '2026').trim();
+  const mesFiltro = (document.getElementById('matriz-filtro-mes')?.value || AppState.matrizMes || 'todos').trim();
   const modoVista = AppState.matrizModoVista || 'actividades';
-  const orgFiltro = AppState.matrizFiltroOrg;
-  const locFiltro = AppState.matrizFiltroLoc;
-  const textFiltro = AppState.matrizFiltroTexto.toLowerCase().trim();
+  const orgFiltro = (document.getElementById('matriz-filtro-org')?.value || AppState.matrizFiltroOrg || '').trim();
+  const locFiltro = (document.getElementById('matriz-filtro-loc')?.value || AppState.matrizFiltroLoc || '').trim();
+  const textFiltro = (document.getElementById('matriz-buscar-texto')?.value || AppState.matrizFiltroTexto || '').toLowerCase().trim();
   const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
 
   const MESES_ABR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -1572,10 +1589,10 @@ function renderMatrizAnual() {
 
     // Filtro por Estado / Documentos específicos
     if (docsFiltro === 'con_docs') {
-      const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
+      const tiene = (totalSedePeriodo > 0) || (actsDelAnio.length > 0) || (acts.length > 0);
       if (!tiene) return;
     } else if (docsFiltro === 'sin_docs') {
-      const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
+      const tiene = (totalSedePeriodo > 0) || (actsDelAnio.length > 0) || (acts.length > 0);
       if (tiene) return;
     } else if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
