@@ -454,23 +454,26 @@ function doPost(e) {
         driveUrl = createdFile.getUrl();
         driveFileId = createdFile.getId();
 
-        // 1.b. Guardar además en la Carpeta Mensual correspondiente (SIN SUBCARPETAS)
+        // 1.b. Guardar además según: Mes/Año > Organismo > Establecimiento
         try {
           var mFolderData = getOrCreateMonthlyFolder(rootFolder, fechaAct);
-          var monthFolderUrl = mFolderData.url;
-          var monthFolderId = mFolderData.id;
+          var monthOrgFolder = getOrCreateSubfolder(mFolderData.folder, orgNom);
+          var monthEstabFolder = getOrCreateSubfolder(monthOrgFolder, estabFolderName);
+
+          var monthFolderUrl = monthEstabFolder.getUrl();
+          var monthFolderId = monthEstabFolder.getId();
 
           try {
-            mFolderData.folder.addFile(createdFile);
+            monthEstabFolder.addFile(createdFile);
           } catch(addErr) {
             try {
-              mFolderData.folder.createShortcut(createdFile.getId());
+              monthEstabFolder.createShortcut(createdFile.getId());
             } catch(scErr) {
-              createdFile.makeCopy(codedFileName, mFolderData.folder);
+              createdFile.makeCopy(codedFileName, monthEstabFolder);
             }
           }
         } catch(monthErr) {
-          Logger.log("Error al guardar en carpeta mensual: " + monthErr.toString());
+          Logger.log("Error al guardar en jerarquía mensual (Mes/Año > Org > Estab): " + monthErr.toString());
         }
       }
 
@@ -523,7 +526,7 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Actividad y documento registrados exitosamente (en sede y en carpeta mensual sin subcarpetas).",
+        message: "Actividad y documento registrados exitosamente (en Organismo > Sede y en Mes/Año > Organismo > Sede).",
         registroId: regId,
         fileName: codedFileName,
         fileUrl: driveUrl,

@@ -625,44 +625,56 @@ function normalizarTipoActividad(str) {
  */
 function obtenerActividadesDeSede(e) {
   if (!e) return [];
+  const mapUnique = new Map();
+
+  function agregarActividad(a) {
+    if (!a) return;
+    const key = (a.id && String(a.id).trim()) ? String(a.id).trim() : (a.fileName ? String(a.fileName).trim() : `${a.tipoActividad}_${a.fechaActividad}`);
+    if (!mapUnique.has(key)) {
+      mapUnique.set(key, a);
+    }
+  }
+
   // 1. Por ID directo de la sede
-  let acts = AppState.actividadesRegistradas[e.id] || [];
-  if (acts.length > 0) return acts;
+  const actsDirect = AppState.actividadesRegistradas[e.id];
+  if (Array.isArray(actsDirect)) {
+    actsDirect.forEach(agregarActividad);
+  }
 
   // 2. Por número de establecimiento
   if (e.nroEstab) {
     const n = String(e.nroEstab).trim();
-    if (AppState.actividadesRegistradas[n] && AppState.actividadesRegistradas[n].length > 0) {
-      return AppState.actividadesRegistradas[n];
+    if (Array.isArray(AppState.actividadesRegistradas[n])) {
+      AppState.actividadesRegistradas[n].forEach(agregarActividad);
     }
-    if (AppState.actividadesRegistradas['est_' + n] && AppState.actividadesRegistradas['est_' + n].length > 0) {
-      return AppState.actividadesRegistradas['est_' + n];
+    if (Array.isArray(AppState.actividadesRegistradas['est_' + n])) {
+      AppState.actividadesRegistradas['est_' + n].forEach(agregarActividad);
     }
   }
 
   // 3. Por coincidencia en todas las listas registradas
-  const matchActs = [];
-  const eNro = e.nroEstab ? String(e.nroEstab).trim() : '';
+  const eNro = e.nroEstab ? String(e.nroEstab).trim().toLowerCase() : '';
   const eNom = e.nombreEstablecimiento ? e.nombreEstablecimiento.trim().toLowerCase() : '';
 
   Object.values(AppState.actividadesRegistradas).forEach(list => {
     if (Array.isArray(list)) {
       list.forEach(a => {
         if (!a) return;
-        if (a.establecimiento && a.establecimiento.id === e.id) {
-          matchActs.push(a);
-        } else if (eNro && a.establecimiento && String(a.establecimiento.nroEstab).trim() === eNro) {
-          matchActs.push(a);
-        } else if (eNro && a.nroEstab && String(a.nroEstab).trim() === eNro) {
-          matchActs.push(a);
+        const aEstab = a.establecimiento;
+        if (aEstab && aEstab.id === e.id) {
+          agregarActividad(a);
+        } else if (eNro && aEstab && String(aEstab.nroEstab).trim().toLowerCase() === eNro) {
+          agregarActividad(a);
+        } else if (eNro && a.nroEstab && String(a.nroEstab).trim().toLowerCase() === eNro) {
+          agregarActividad(a);
         } else if (eNom && a.nombreEstablecimiento && a.nombreEstablecimiento.trim().toLowerCase() === eNom) {
-          matchActs.push(a);
+          agregarActividad(a);
         }
       });
     }
   });
 
-  return matchActs;
+  return Array.from(mapUnique.values());
 }
 window.obtenerActividadesDeSede = obtenerActividadesDeSede;
 
@@ -1461,18 +1473,15 @@ function renderMatrizAnual() {
     if (docsFiltro === 'con_docs') {
       const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
       if (!tiene) return;
-    }
-    if (docsFiltro === 'sin_docs') {
+    } else if (docsFiltro === 'sin_docs') {
       const tiene = (totalSedePeriodo > 0) || (acts.length > 0);
       if (tiene) return;
-    }
-    if (docsFiltro.startsWith('con_')) {
+    } else if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
       const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
       if (countPeriodo === 0 && countHistorico === 0) return;
-    }
-    if (docsFiltro.startsWith('sin_')) {
+    } else if (docsFiltro.startsWith('sin_')) {
       const actTarget = docsFiltro.replace('sin_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
       const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
@@ -3980,6 +3989,19 @@ async function sincronizarConSheets(forceGlobal = false) {
               row['Organismo']
             );
             const estKey = targetEst ? targetEst.id : ('est_' + (row['N° Estab'] || 'gen'));
+
+            mappedItem.estId = estKey;
+            mappedItem.establecimiento = targetEst || {
+              id: estKey,
+              nroEstab: row['N° Estab'] || row['Nro Estab'] || '',
+              nombreEstablecimiento: row['Nombre Establecimiento'] || '',
+              organismo: row['Organismo'] || '',
+              localidad: row['Localidad'] || ''
+            };
+            mappedItem.nroEstab = row['N° Estab'] || row['Nro Estab'] || (targetEst ? targetEst.nroEstab : '');
+            mappedItem.nombreEstablecimiento = row['Nombre Establecimiento'] || (targetEst ? targetEst.nombreEstablecimiento : '');
+            mappedItem.organismo = row['Organismo'] || (targetEst ? targetEst.organismo : '');
+            mappedItem.localidad = row['Localidad'] || (targetEst ? targetEst.localidad : '');
 
             if (!AppState.actividadesRegistradas[estKey]) {
               AppState.actividadesRegistradas[estKey] = [];
