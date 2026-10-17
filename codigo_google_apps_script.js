@@ -454,26 +454,40 @@ function doPost(e) {
         driveUrl = createdFile.getUrl();
         driveFileId = createdFile.getId();
 
-        // 1.b. Guardar además según: Mes/Año > Organismo > Establecimiento
+        // 1.b. Guardar además en la Carpeta Mensual:
+        // - En la RAÍZ del mes: [Mes/Año] > archivo.pdf
+        // - Y anidado: [Mes/Año] > [Organismo] > [Establecimiento] > archivo.pdf
         try {
           var mFolderData = getOrCreateMonthlyFolder(rootFolder, fechaAct);
+          var monthFolderUrl = mFolderData.url;
+          var monthFolderId = mFolderData.id;
+
+          // 1.b.1. Guardar en la raíz de la carpeta mensual (vista plana de todos los docs del mes)
+          try {
+            mFolderData.folder.addFile(createdFile);
+          } catch(addRootErr) {
+            try {
+              mFolderData.folder.createShortcut(createdFile.getId());
+            } catch(scRootErr) {
+              createdFile.makeCopy(codedFileName, mFolderData.folder);
+            }
+          }
+
+          // 1.b.2. Guardar también clasificado en: [Mes/Año] > [Organismo] > [Establecimiento]
           var monthOrgFolder = getOrCreateSubfolder(mFolderData.folder, orgNom);
           var monthEstabFolder = getOrCreateSubfolder(monthOrgFolder, estabFolderName);
 
-          var monthFolderUrl = monthEstabFolder.getUrl();
-          var monthFolderId = monthEstabFolder.getId();
-
           try {
             monthEstabFolder.addFile(createdFile);
-          } catch(addErr) {
+          } catch(addNestedErr) {
             try {
               monthEstabFolder.createShortcut(createdFile.getId());
-            } catch(scErr) {
+            } catch(scNestedErr) {
               createdFile.makeCopy(codedFileName, monthEstabFolder);
             }
           }
         } catch(monthErr) {
-          Logger.log("Error al guardar en jerarquía mensual (Mes/Año > Org > Estab): " + monthErr.toString());
+          Logger.log("Error al guardar en carpeta mensual (raíz y anidado): " + monthErr.toString());
         }
       }
 
