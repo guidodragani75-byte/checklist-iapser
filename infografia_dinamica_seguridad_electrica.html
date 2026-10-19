@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infografía Dinámica Técnica: Diagnóstico Integral de Seguridad Eléctrica | IAPSER ART</title>
+  
+  <!-- Tipografías de Alta Fidelidad Técnica -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Pro Free -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-space: #070a12;
+      --panel-bg: rgba(15, 23, 42, 0.75);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-glow: rgba(2, 132, 199, 0.15);
+      
+      --danger: #ff334b;
+      --danger-glow: rgba(255, 51, 75, 0.4);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.4);
+      --success: #10b981;
+      --info: #0284c7;
+      --cyan: #06b6d4;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-code: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-space);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.08) 0px, transparent 50%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text-main);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .infographic-wrapper {
+      max-width: 1450px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* HEADER HUD */
+    .hud-header {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .hud-header::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 4px; height: 100%;
+      background: linear-gradient(180deg, var(--danger) 0%, var(--warning) 50%, var(--info) 100%);
+    }
+
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .hud-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(2, 132, 199, 0.5);
+    }
+
+    .hud-title-group h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-title-group p {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-status-badge {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .pill-danger {
+      background: rgba(255, 51, 75, 0.15);
+      border: 1px solid var(--danger);
+      color: #ff6b7e;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px var(--danger-glow);
+    }
+
+    .pill-danger .beacon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+      animation: flash 1.2s infinite;
+    }
+
+    @keyframes flash {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(1.4); }
+    }
+
+    /* TOP INFOGRAPHIC METRICS MATRIX */
+    .metrics-band {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .metrics-band { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .metrics-band { grid-template-columns: 1fr; }
+    }
+
+    .matrix-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+
+    .matrix-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .matrix-icon-bg {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      font-size: 2.5rem;
+      opacity: 0.07;
+      color: #fff;
+    }
+
+    .matrix-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .matrix-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      margin: 8px 0;
+      line-height: 1;
+    }
+
+    .matrix-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* CORE WORKSPACE: 3 COLUMNS DYNAMIC LAYOUT */
+    .core-grid {
+      display: grid;
+      grid-template-columns: 320px 1.25fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1300px) {
+      .core-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hud-sidebar { grid-column: span 2; }
+    }
+    @media (max-width: 900px) {
+      .core-grid {
+        grid-template-columns: 1fr;
+      }
+      .hud-sidebar { grid-column: span 1; }
+    }
+
+    /* COLUMN 1: SIDEBAR ANOMALY DECK */
+    .hud-sidebar {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      backdrop-filter: blur(16px);
+    }
+
+    .sidebar-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #cbd5e1;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .anomaly-tab {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .anomaly-tab:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateX(4px);
+    }
+
+    .anomaly-tab.active {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-color: var(--danger);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .tab-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: #ff6b7e;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .tab-info {
+      flex: 1;
+    }
+
+    .tab-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .tab-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* COLUMN 2: AUGMENTED PHOTOGRAPHIC VIEWER */
+    .viewer-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .viewer-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .viewer-topbar h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hud-lens-container {
+      position: relative;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #1e293b;
+      background: #020617;
+      aspect-ratio: 3/4;
+      max-height: 590px;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+    }
+
+    .hud-lens-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    /* CROSSHAIR GRID OVERLAY */
+    .hud-reticle {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: 
+        linear-gradient(rgba(2, 132, 199, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(2, 132, 199, 0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* PULSING TARGET HOTSPOTS */
+    .target-node {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 51, 75, 0.9);
+      border: 2px solid #ffffff;
+      color: #ffffff;
+      font-weight: 800;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 20px var(--danger);
+      z-index: 20;
+    }
+
+    .target-node::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid var(--danger);
+      animation: sonar 2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    }
+
+    @keyframes sonar {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    .target-node:hover, .target-node.active {
+      transform: translate(-50%, -50%) scale(1.3);
+      background: #ffffff;
+      color: var(--danger);
+      box-shadow: 0 0 35px #ffffff, 0 0 60px var(--danger);
+    }
+
+    /* GALLERY STRIP */
+    .filmstrip {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .film-frame {
+      width: 76px;
+      height: 76px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      opacity: 0.5;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      background: #0f172a;
+    }
+
+    .film-frame:hover { opacity: 0.85; }
+
+    .film-frame.active {
+      opacity: 1;
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+      transform: scale(1.04);
+    }
+
+    .film-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* COLUMN 3: DEEP DIAGNOSTIC INSPECTOR */
+    .diagnostic-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .diag-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 14px;
+    }
+
+    .diag-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+    }
+
+    .diag-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 8px;
+      line-height: 1.25;
+    }
+
+    .norm-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--cyan);
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diag-box {
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .box-desc {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+    }
+
+    .box-threat {
+      background: rgba(239, 68, 68, 0.08);
+      border-left: 4px solid var(--danger);
+      border-top: 1px solid rgba(239, 68, 68, 0.15);
+      border-right: 1px solid rgba(239, 68, 68, 0.15);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+    }
+
+    .box-remedy {
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 4px solid var(--success);
+      border-top: 1px solid rgba(16, 185, 129, 0.15);
+      border-right: 1px solid rgba(16, 185, 129, 0.15);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+      color: #86efac;
+    }
+
+    .risk-meter {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .meter-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .meter-bar-track {
+      width: 100%;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* IN-LINE INTERACTIVE THERMAL SIMULATOR HUD */
+    .simulator-hud {
+      background: linear-gradient(135deg, rgba(30, 27, 75, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 20px;
+      padding: 24px 32px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    }
+
+    .sim-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .sim-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #c7d2fe;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.3fr;
+      gap: 20px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .sim-grid { grid-template-columns: 1fr; }
+    }
+
+    .sim-control label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+
+    .sim-select {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .sim-feedback {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sim-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sim-alert-text {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    /* BILL OF MATERIALS & SIGN-OFF FOOTER */
+    .bottom-deck {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 950px) {
+      .bottom-deck { grid-template-columns: 1fr; }
+    }
+
+    .deck-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+    }
+
+    .deck-card h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .spec-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--panel-border);
+      font-weight: 600;
+    }
+
+    .spec-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #e2e8f0;
+    }
+
+    .spec-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-action-glow {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 0 25px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-action-glow:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(2, 132, 199, 0.7);
+    }
+
+    /* IMPRESIÓN OFICIAL */
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0 !important;
+      }
+      .hud-header, .viewer-card, .diagnostic-card, .deck-card, .matrix-card, .simulator-hud {
+        background: #fff !important;
+        color: #000 !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      .target-node, .filmstrip, .btn-action-glow, .hud-reticle, .sim-select {
+        display: none !important;
+      }
+      .diag-title, .matrix-value, .hud-title-group h1 {
+        color: #000 !important;
+      }
+      .box-desc, .box-threat, .box-remedy {
+        color: #000 !important;
+        border: 1px solid #ddd !important;
+        background: #f9f9f9 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="infographic-wrapper">
+    
+    <!-- HEADER HUD -->
+    <header class="hud-header">
+      <div class="hud-brand">
+        <div class="hud-logo">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div class="hud-title-group">
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 2px;">
+            <span style="font-weight: 800; font-size: 0.75rem; letter-spacing: 0.08em; background: #0284c7; padding: 2px 8px; border-radius: 4px;">IAPSER ART</span>
+            <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">GERENCIA TÉCNICA DE PREVENCIÓN</span>
+          </div>
+          <h1>INFOGRAFÍA TÉCNICA DINÁMICA: AUDITORÍA DE TABLERO ELÉCTRICO</h1>
+          <p>
+            <span><i class="fa-solid fa-microchip text-cyan-400"></i> Sistema de Inspección Aumentada</span>
+            <span>•</span>
+            <span><i class="fa-solid fa-gavel text-amber-400"></i> Marco Legal: Ley 19.587 / Dec. 351/79 / Res. SRT 900/15</span>
+          </p>
+        </div>
+      </div>
+      
+      <div class="hud-status-badge">
+        <div class="pill-danger">
+          <span class="beacon"></span>
+          CONDICIÓN DE RIESGO SEVERO
+        </div>
+        <span style="font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">REF: EXP-ELEC-2026-09</span>
+      </div>
+    </header>
+
+    <!-- TOP 4 METRICS HUD -->
+    <div class="metrics-band">
+      <div class="matrix-card">
+        <i class="fa-solid fa-triangle-exclamation matrix-icon-bg"></i>
+        <div class="matrix-label">Índice Global de Vulnerabilidad</div>
+        <div class="matrix-value" style="color: var(--danger);">94.8%</div>
+        <div class="matrix-sub"><i class="fa-solid fa-circle-exclamation" style="color: var(--danger);"></i> Intervención Inmediata Exigida</div>
+      </div>
+
+      <div class="matrix-card">
+        <i class="fa-solid fa-bolt matrix-icon-bg"></i>
+        <div class="matrix-label">Protección Contra Fugas (Diferencial)</div>
+        <div class="matrix-value" style="color: var(--danger);">0% (NULA)</div>
+        <div class="matrix-sub"><i class="fa-solid fa-ban" style="color: var(--danger);"></i> Sin disyuntor de 30mA</div>
+      </div>
+
+      <div class="matrix-card">
+        <i class="fa-solid fa-gauge-high matrix-icon-bg"></i>
+        <div class="matrix-label">Curva Térmica vs Sección Cable</div>
+        <div class="matrix-value" style="color: var(--warning);">C40 / 40A</div>
+        <div class="matrix-sub"><i class="fa-solid fa-fire" style="color: var(--warning);"></i> Cables de 1.5/2.5 mm² desprotegidos</div>
+      </div>
+
+      <div class="matrix-card">
+        <i class="fa-solid fa-ground-worm matrix-icon-bg"></i>
+        <div class="matrix-label">Continuidad de Tierra (PE)</div>
+        <div class="matrix-value" style="color: var(--danger);">DESCONECTADA</div>
+        <div class="matrix-sub"><i class="fa-solid fa-link-slash" style="color: var(--danger);"></i> Chasis metálico desvinculado</div>
+      </div>
+    </div>
+
+    <!-- CORE 3-COLUMN WORKSPACE -->
+    <div class="core-grid">
+      
+      <!-- COLUMN 1: SIDEBAR ANOMALY DECK -->
+      <div class="hud-sidebar">
+        <div class="sidebar-title">
+          <span>Desvíos Detectados (6)</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Selección Rápida</span>
+        </div>
+
+        <div class="anomaly-tab active" id="tab-1" onclick="focusAnomaly(1)">
+          <div class="tab-badge">01</div>
+          <div class="tab-info">
+            <div class="tab-title">Sin Contratapa (Frente Muerto)</div>
+            <div class="tab-sub">Exposición a Contacto Directo</div>
+          </div>
+        </div>
+
+        <div class="anomaly-tab" id="tab-2" onclick="focusAnomaly(2)">
+          <div class="tab-badge">02</div>
+          <div class="tab-info">
+            <div class="tab-title">Protecciones C40 Sobredimensionadas</div>
+            <div class="tab-sub">Riesgo Crítico de Ignición Térmica</div>
+          </div>
+        </div>
+
+        <div class="anomaly-tab" id="tab-3" onclick="focusAnomaly(3)">
+          <div class="tab-badge">03</div>
+          <div class="tab-info">
+            <div class="tab-title">Cables Antiguos Entelados / Hilados</div>
+            <div class="tab-sub">Aislación Reseca y Quebradiza</div>
+          </div>
+        </div>
+
+        <div class="anomaly-tab" id="tab-4" onclick="focusAnomaly(4)">
+          <div class="tab-badge">04</div>
+          <div class="tab-info">
+            <div class="tab-title">Puesta a Tierra (PAT) Suelta</div>
+            <div class="tab-sub">Terminal Ojillo Desprendido</div>
+          </div>
+        </div>
+
+        <div class="anomaly-tab" id="tab-5" onclick="focusAnomaly(5)">
+          <div class="tab-badge">05</div>
+          <div class="tab-info">
+            <div class="tab-title">Polvillo y Telarañas Conductoras</div>
+            <div class="tab-sub">Riesgo de Cebado de Arco</div>
+          </div>
+        </div>
+
+        <div class="anomaly-tab" id="tab-6" onclick="focusAnomaly(6)">
+          <div class="tab-badge">06</div>
+          <div class="tab-info">
+            <div class="tab-title">Ausencia de Interruptor Diferencial</div>
+            <div class="tab-sub">Infracción Legal Directa Dec. 351/79</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 2: AUGMENTED PHOTOGRAPHIC VIEWER -->
+      <div class="viewer-card">
+        <div class="viewer-topbar">
+          <h2><i class="fa-solid fa-crosshairs" style="color: var(--cyan);"></i> Visor Óptico Aumentado</h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">MODO: INTERACTIVO ACTIVO</span>
+        </div>
+
+        <div class="hud-lens-container" id="lensContainer">
+          <div class="hud-reticle"></div>
+          <img id="activePhoto" src="img_tablero/media_1792177776810_baf1e451.jpg" alt="Inspección Visual del Tablero">
+
+          <!-- TARGET HOTSPOTS -->
+          <div class="target-node active" id="node-1" style="top: 15%; left: 88%;" onclick="focusAnomaly(1)">1</div>
+          <div class="target-node" id="node-2" style="top: 42%; left: 27%;" onclick="focusAnomaly(2)">2</div>
+          <div class="target-node" id="node-3" style="top: 55%; left: 18%;" onclick="focusAnomaly(3)">3</div>
+          <div class="target-node" id="node-4" style="top: 86%; left: 14%;" onclick="focusAnomaly(4)">4</div>
+          <div class="target-node" id="node-5" style="top: 82%; left: 70%;" onclick="focusAnomaly(5)">5</div>
+          <div class="target-node" id="node-6" style="top: 25%; left: 52%;" onclick="focusAnomaly(6)">6</div>
+        </div>
+
+        <!-- MULTI-ANGLE FILMSTRIP -->
+        <div class="filmstrip">
+          <div class="film-frame active" onclick="swapPhoto('img_tablero/media_1792177776810_baf1e451.jpg', this, true)">
+            <img src="img_tablero/media_1792177776810_baf1e451.jpg" alt="Interior Tablero">
+          </div>
+          <div class="film-frame" onclick="swapPhoto('img_tablero/media_1792177776813_18f88fa9.jpg', this, false)">
+            <img src="img_tablero/media_1792177776813_18f88fa9.jpg" alt="Puerta Exterior">
+          </div>
+          <div class="film-frame" onclick="swapPhoto('img_tablero/media_1792177776813_6741ec65.jpg', this, false)">
+            <img src="img_tablero/media_1792177776813_6741ec65.jpg" alt="Térmica AEA Superior">
+          </div>
+          <div class="film-frame" onclick="swapPhoto('img_tablero/media_1792177776818_a9978899.jpg', this, false)">
+            <img src="img_tablero/media_1792177776818_a9978899.jpg" alt="Tierra Suelta Inferior">
+          </div>
+          <div class="film-frame" onclick="swapPhoto('img_tablero/media_1792177776825_7e7cf518.jpg', this, false)">
+            <img src="img_tablero/media_1792177776825_7e7cf518.jpg" alt="Perspectiva Completa">
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 3: DEEP DIAGNOSTIC INSPECTOR -->
+      <div class="diagnostic-card">
+        <div class="diag-head">
+          <div>
+            <span class="diag-tag" id="dispCode">DESVÍO #01 DE 06</span>
+            <h3 class="diag-title" id="dispTitle">Inexistencia de Contratapa (Frente Muerto)</h3>
+          </div>
+        </div>
+
+        <div class="norm-badge" id="dispNorm">
+          <i class="fa-solid fa-scale-balanced"></i>
+          <span>Reglamentación AEA 90364-771 / Grado IP2X / Dec. 351</span>
+        </div>
+
+        <div class="risk-meter">
+          <div class="meter-label">
+            <span>Nivel de Severidad Operativa</span>
+            <span id="dispRiskScore" style="color: var(--danger);">CRÍTICO (98/100)</span>
+          </div>
+          <div class="meter-bar-track">
+            <div class="meter-bar-fill" id="dispRiskBar" style="width: 98%;"></div>
+          </div>
+        </div>
+
+        <div class="diag-box box-desc" id="dispDesc">
+          Al abrir la puerta exterior abatible, los bornes con tensión de 220V/380V y conductores desnudos quedan al alcance directo de cualquier usuario sin necesidad de herramientas.
+        </div>
+
+        <div class="diag-box box-threat" id="dispThreat">
+          <i class="fa-solid fa-triangle-exclamation"></i> <strong>Riesgo Humano:</strong> Contacto eléctrico directo. Posibilidad de choque severo, quemaduras de arco y fibrilación cardíaca al intentar encender o apagar un circuito.
+        </div>
+
+        <div class="diag-box box-remedy" id="dispRemedy">
+          <i class="fa-solid fa-screwdriver-wrench"></i> <strong>Acción Requerida:</strong> Confeccionar y montar contratapa cubrebornes de chapa plegada puesta a tierra o policarbonato aislante, dejando accesibles únicamente las palancas de accionamiento.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- INTEGRATED THERMAL SIMULATOR HUD -->
+    <div class="simulator-hud">
+      <div class="sim-top">
+        <div class="sim-title">
+          <i class="fa-solid fa-fire-flame-curved" style="color: #f59e0b;"></i>
+          <span>Simulador Físico de Sobrecarga ($I^2 \cdot t$) vs. Disparo de Protección Actual</span>
+        </div>
+        <span style="font-size: 0.8rem; color: #a5b4fc; font-family: 'JetBrains Mono', monospace;">MODELO MATEMÁTICO: IEC 60898</span>
+      </div>
+
+      <div class="sim-grid">
+        <div class="sim-control">
+          <label><i class="fa-solid fa-plug text-cyan-400"></i> Carga Conectada al Circuito:</label>
+          <select class="sim-select" id="simLoad" onchange="calcThermal()">
+            <option value="8">Carga Normal: Alumbrado LED + 2 PC (≈ 8A / 1.7 kW)</option>
+            <option value="22" selected>Sobrecarga Alta: 2 Caloventores + Pava Eléctrica (≈ 22A / 4.8 kW)</option>
+            <option value="34">Sobrecarga Extrema: Múltiples Aires Acondicionados (≈ 34A / 7.5 kW)</option>
+          </select>
+        </div>
+
+        <div class="sim-control">
+          <label><i class="fa-solid fa-lines-leaning text-amber-400"></i> Sección del Conductor Instalado:</label>
+          <select class="sim-select" id="simCable" onchange="calcThermal()">
+            <option value="1.5">1.5 mm² Cobre (Corriente Admisible: 13 A)</option>
+            <option value="2.5" selected>2.5 mm² Cobre (Corriente Admisible: 18 A)</option>
+            <option value="4.0">4.0 mm² Cobre (Corriente Admisible: 25 A)</option>
+          </select>
+        </div>
+
+        <div class="sim-feedback" id="simFeedbackBox">
+          <div class="sim-badge" id="simBadge" style="color: #ef4444;">DISPARO TÉRMICO INOPERANTE</div>
+          <div class="sim-alert-text" id="simAlertText" style="color: #fca5a5;">
+            La térmica C40 no detecta la sobrecarga de 22A. El cable de 2.5 mm² colapsará a más de 120°C provocando fuego.
+          </div>
+          <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">
+            Protección reglamentaria exigida: <strong style="color: #38bdf8;" id="simRecKey">Termomagnética Bipolar 16A (C16)</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOM AND CHECKLIST DECK -->
+    <div class="bottom-deck">
+      <div class="deck-card">
+        <h3><i class="fa-solid fa-list-check" style="color: var(--success);"></i> Plan de Normalización Técnica (Secuencia de Trabajo)</h3>
+        
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Paso</th>
+              <th>Operación Técnica Obligatoria</th>
+              <th>Responsable</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>01</strong></td>
+              <td>Consignación de la instalación (Aplicación de las 5 Reglas del Arte: Desconexión, Bloqueo, Verificación de ausencia de tensión, Puesta a tierra y Cortocircuito temporal, Señalización).</td>
+              <td>Electricista Matriculado</td>
+            </tr>
+            <tr>
+              <td><strong>02</strong></td>
+              <td>Aspirado y saneamiento integral de suciedad, hollín y telarañas del recinto interior.</td>
+              <td>Mantenimiento</td>
+            </tr>
+            <tr>
+              <td><strong>03</strong></td>
+              <td>Erradicación y recableado de conductores entelados antiguos por cables normalizados IRAM NM 247-3.</td>
+              <td>Electricista Matriculado</td>
+            </tr>
+            <tr>
+              <td><strong>04</strong></td>
+              <td>Instalación de Disyuntor Diferencial Bipolar de cabecera ($30\text{ mA} / 40\text{ A}$) y reemplazo de térmicas de 40A por llaves de 16A y 10A con peines de cobre.</td>
+              <td>Electricista Matriculado</td>
+            </tr>
+            <tr>
+              <td><strong>05</strong></td>
+              <td>Fijación mecánica de tierra con bulón dentado al chasis y medición final con telurímetro según Protocolo Res. SRT 900/15.</td>
+              <td>Profesional HyS / Matriculado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="deck-card">
+        <h3><i class="fa-solid fa-boxes-packing" style="color: #0284c7;"></i> Cómputo de Materiales Normalizados (BOM)</h3>
+        
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Cant.</th>
+              <th>Designación del Elemento</th>
+              <th>Norma IRAM / IEC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1 u.</strong></td>
+              <td>Interruptor Diferencial 2x40A 30mA</td>
+              <td>IRAM 2301 / IEC 61008</td>
+            </tr>
+            <tr>
+              <td><strong>2 u.</strong></td>
+              <td>Interruptor Termomagnético 2x16A (Curva C)</td>
+              <td>IRAM 2169 / IEC 60898</td>
+            </tr>
+            <tr>
+              <td><strong>1 u.</strong></td>
+              <td>Interruptor Termomagnético 2x10A (Curva C)</td>
+              <td>IRAM 2169 / IEC 60898</td>
+            </tr>
+            <tr>
+              <td><strong>1 u.</strong></td>
+              <td>Peine de Conexión Bipolar DIN</td>
+              <td>Certificado</td>
+            </tr>
+            <tr>
+              <td><strong>1 u.</strong></td>
+              <td>Barra equipotencial de Tierra + Tornillo bronce</td>
+              <td>IRAM 2281</td>
+            </tr>
+            <tr>
+              <td><strong>1 u.</strong></td>
+              <td>Contratapa calada cubrebornes IP2X / IP40</td>
+              <td>IRAM 62670</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn-action-glow" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Exportar Dictamen a PDF
+          </button>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">DOC ID: IAPSER-ELEC-V2</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // BASE DE CONOCIMIENTO TÉCNICO DE DESVÍOS
+    const deviations = {
+      1: {
+        code: "DESVÍO #01 DE 06",
+        title: "Inexistencia de Contratapa (Frente Muerto)",
+        norm: "Reglamentación AEA 90364-771 / Grado IP2X / Dec. 351",
+        riskScore: "CRÍTICO (98/100)",
+        riskPct: 98,
+        desc: "Al abrir la puerta exterior abatible, los bornes con tensión de 220V/380V y conductores desnudos quedan al alcance directo de cualquier usuario sin necesidad de herramientas.",
+        threat: "Contacto eléctrico directo. Posibilidad de choque severo, quemaduras de arco y fibrilación cardíaca al intentar encender o apagar un circuito.",
+        remedy: "Confeccionar y montar contratapa cubrebornes de chapa plegada puesta a tierra o policarbonato aislante, dejando accesibles únicamente las palancas de accionamiento."
+      },
+      2: {
+        code: "DESVÍO #02 DE 06",
+        title: "Protecciones C40 Sobredimensionadas (40 Amperes)",
+        norm: "Norma IRAM 2183 / IRAM 2169 / Dec. 351 Anexo VI",
+        riskScore: "SEVERO (92/100)",
+        riskPct: 92,
+        desc: "Las tres térmicas bipolares instaladas son de marca AEA modelo TMI-C40 (calibre de 40 Amperes). Sin embargo, aguas abajo alimentan conductores delgados de 1.5 mm² y 2.5 mm² cuya corriente máxima admisible es de 13A a 18A.",
+        threat: "Falla térmica grave. La térmica no saltará ante sobrecargas sostenidas de 20A a 35A; el conductor recalentará por encima de los 150°C iniciando un foco ígneo dentro de la cañería.",
+        remedy: "Reemplazar de inmediato las térmicas C40 por calibres adecuados: 10A para iluminación y 16A para tomacorrientes de uso general."
+      },
+      3: {
+        code: "DESVÍO #03 DE 06",
+        title: "Cables Antiguos con Aislación Textil e Hilada",
+        norm: "Prohibición AEA 90364 / Ley 19.587 Art. 95",
+        riskScore: "ALTO (88/100)",
+        riskPct: 88,
+        desc: "Se evidencian ramales con conductores vetustos de goma vulcanizada y envoltura de tela hilada, unidos con cintas precarias degradadas por el tiempo.",
+        threat: "Pérdida crítica de aislamiento dieléctrico, cortocircuitos francos por desmoronamiento de la envoltura e inflamación rápida de la tela ante chispas.",
+        remedy: "Retirar completamente todos los tramos de cable entelado y sustituirlos por cables ecológicos antihumo normalizados IRAM NM 247-3."
+      },
+      4: {
+        code: "DESVÍO #04 DE 06",
+        title: "Puesta a Tierra (PAT) Suelta y Desconectada",
+        norm: "Resolución SRT 900/15 / Ley 19.587 Anexo VI",
+        riskScore: "CRÍTICO (96/100)",
+        riskPct: 96,
+        desc: "El conductor verde-amarillo de protección a tierra se encuentra en la base con su terminal tipo ojillo colgando en el aire, sin estar atornillado a la estructura metálica del tablero.",
+        threat: "Contacto eléctrico indirecto. Si una fase roza el chasis, la caja y la puerta quedarán a potencial de fase (220V) convirtiéndose en una trampa mortal para quien toque la manija exterior.",
+        remedy: "Instalar barra de cobre colectora de puesta a tierra y fijar el terminal con bulón de bronce y arandela estrellada al chasis del tablero."
+      },
+      5: {
+        code: "DESVÍO #05 DE 06",
+        title: "Acumulación de Telarañas, Hollín y Polvo Conductor",
+        norm: "Mantenimiento Preventivo IRAM 2006 / Dec. 351",
+        riskScore: "MEDIO-ALTO (75/100)",
+        riskPct: 75,
+        desc: "El fondo del recinto acumula sedimentos de polvo, pelusa y telas de araña densas que unen terminales bajo tensión.",
+        threat: "En días de humedad relativa alta, la suciedad absorbe humedad volviéndose conductora superficial (tracking), cebando arcos eléctricos e inflamando los residuos.",
+        remedy: "Programar corte preventivo de energía y realizar limpieza profunda en seco mediante aspiración industrial (nunca solventes ni soplado con aire húmedo)."
+      },
+      6: {
+        code: "DESVÍO #06 DE 06",
+        title: "Ausencia Total de Interruptor Diferencial (Disyuntor)",
+        norm: "Decreto Reglamentario 351/79 Cap. 14 / AEA 90364",
+        riskScore: "CRÍTICO (100/100)",
+        riskPct: 100,
+        desc: "El tablero carece por completo de un interruptor por corriente diferencial de fuga (30mA). Solo existen termomagnéticas que no protegen a las personas.",
+        threat: "Falta de corte automático ante electrocución. Si una persona recibe una descarga o una fuga a tierra, la corriente continuará fluyendo sin que actúe ninguna protección.",
+        remedy: "Instalar en cabecera un Interruptor Diferencial bipolar de 40A con sensibilidad de 30mA certificado bajo norma IRAM 2301."
+      }
+    };
+
+    function focusAnomaly(id) {
+      // Sincronizar pestañas laterales
+      document.querySelectorAll('.anomaly-tab').forEach(t => t.classList.remove('active'));
+      const activeTab = document.getElementById('tab-' + id);
+      if (activeTab) activeTab.classList.add('active');
+
+      // Sincronizar puntos visuales
+      document.querySelectorAll('.target-node').forEach(n => n.classList.remove('active'));
+      const activeNode = document.getElementById('node-' + id);
+      if (activeNode) activeNode.classList.add('active');
+
+      // Actualizar Inspector de Diagnóstico
+      const data = deviations[id];
+      if (data) {
+        document.getElementById('dispCode').innerText = data.code;
+        document.getElementById('dispTitle').innerText = data.title;
+        document.getElementById('dispNorm').innerHTML = '<i class="fa-solid fa-scale-balanced"></i><span>' + data.norm + '</span>';
+        document.getElementById('dispRiskScore').innerText = data.riskScore;
+        document.getElementById('dispRiskBar').style.width = data.riskPct + '%';
+        document.getElementById('dispDesc').innerText = data.desc;
+        document.getElementById('dispThreat').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Riesgo Humano:</strong> ' + data.threat;
+        document.getElementById('dispRemedy').innerHTML = '<i class="fa-solid fa-screwdriver-wrench"></i> <strong>Acción Requerida:</strong> ' + data.remedy;
+      }
+    }
+
+    function swapPhoto(imgUrl, frameElement, showNodes) {
+      document.getElementById('activePhoto').src = imgUrl;
+      document.querySelectorAll('.film-frame').forEach(f => f.classList.remove('active'));
+      frameElement.classList.add('active');
+
+      document.querySelectorAll('.target-node').forEach(n => {
+        n.style.display = showNodes ? 'flex' : 'none';
+      });
+    }
+
+    function calcThermal() {
+      const load = parseFloat(document.getElementById('simLoad').value);
+      const cable = parseFloat(document.getElementById('simCable').value);
+      const badge = document.getElementById('simBadge');
+      const text = document.getElementById('simAlertText');
+      const rec = document.getElementById('simRecKey');
+
+      let limit = 13;
+      let recSize = "Termomagnética Bipolar 10A (C10)";
+
+      if (cable === 2.5) {
+        limit = 18;
+        recSize = "Termomagnética Bipolar 16A (C16)";
+      } else if (cable === 4.0) {
+        limit = 25;
+        recSize = "Termomagnética Bipolar 20A (C20)";
+      }
+
+      rec.innerText = recSize;
+
+      if (load > limit) {
+        badge.innerText = "¡COLAPSO TÉRMICO INMINENTE!";
+        badge.style.color = "#ff334b";
+        text.style.color = "#fca5a5";
+        text.innerHTML = "La corriente de " + load + "A supera ampliamente los " + limit + "A tolerados por el cable de " + cable + " mm². La térmica de 40A NO disparará y el conductor arderá.";
+      } else {
+        badge.innerText = "ZONA DE RIESGO LATENTE";
+        badge.style.color = "#f59e0b";
+        text.style.color = "#fde68a";
+        text.innerHTML = "El consumo de " + load + "A está dentro de los " + limit + "A, pero la térmica instalada (40A) deja el circuito totalmente desprotegido ante cualquier falla de aislación.";
+      }
+    }
+  </script>
+</body>
+</html>

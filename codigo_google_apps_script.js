@@ -422,15 +422,88 @@ function doPost(e) {
       var mimeType = data.mimeType || "application/pdf";
 
       var driveUrl = "";
+      var fileBase64 = data.fileBase64 || "";
+      var originalFileName = data.originalFileName || "";
+      var mimeType = data.mimeType || "application/pdf";
+      var permitirReemplazo = (data.permitirReemplazo === true || data.permitirReemplazo === "true");
+
+      var driveUrl = "";
       var driveFileId = "";
       var codedFileName = "";
 
+      // 0. Control de Duplicados en 'Legajo_Actividades_Archivos':
+      // Mismo Organismo + Mismo Nro Estab + Mismo Tipo de Actividad + Misma Fecha
+      var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+      var existingRowIndex = -1;
+      var existingFileId = "";
+
+      if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+        var legData = sheetLegajo.getDataRange().getValues();
+        var colFechaIdx = 2;   // Fecha Actividad
+        var colOrgIdx = 3;     // Organismo
+        var colNroIdx = 4;     // N° Estab
+        var colTipoIdx = 7;    // Tipo Actividad
+        var colFileIdIdx = 12; // ID Drive
+
+        var cleanFechaBuscada = String(fechaAct).split("T")[0].trim();
+        var cleanOrgBuscado = String(orgNom).toLowerCase().trim();
+        var cleanNroBuscado = String(nroEstabVal).toLowerCase().trim();
+        var cleanTipoBuscado = normalizarCodigoActividad(actTipo);
+
+        for (var l = 1; l < legData.length; l++) {
+          var rowL = legData[l];
+          var rFecha = rowL[colFechaIdx];
+          if (rFecha instanceof Date) {
+            try { rFecha = Utilities.formatDate(rFecha, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd"); } catch(eDate) { rFecha = rFecha.toISOString().substring(0, 10); }
+          } else {
+            rFecha = String(rFecha || "").split("T")[0].trim();
+          }
+          var rOrg = String(rowL[colOrgIdx] || "").toLowerCase().trim();
+          var rNro = String(rowL[colNroIdx] || "").toLowerCase().trim();
+          var rTipo = normalizarCodigoActividad(String(rowL[colTipoIdx] || ""));
+
+          if (rFecha === cleanFechaBuscada && rOrg === cleanOrgBuscado && rNro === cleanNroBuscado && rTipo === cleanTipoBuscado) {
+            existingRowIndex = l + 1; // Fila en Sheets (1-indexada)
+            existingFileId = String(rowL[colFileIdIdx] || "").trim();
+            break;
+          }
+        }
+      }
+
+      // Si es duplicado y el usuario no autorizó explícitamente el reemplazo, rechazar
+      if (existingRowIndex > 1 && !permitirReemplazo) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "duplicate_warning",
+          message: "Ya existe un documento de tipo '" + actTipo + "' registrado con fecha " + fechaAct + " para " + orgNom + " (Sede N° " + (nroEstabVal || "S/N") + ").",
+          existingRowIndex: existingRowIndex
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Si se autorizó reemplazo y había un archivo previo, mover el anterior a la papelera
+      if (existingRowIndex > 1 && permitirReemplazo && existingFileId) {
+        try {
+          DriveApp.getFileById(existingFileId).setTrashed(true);
+        } catch(eTrash) {
+          Logger.log("Aviso al mover archivo duplicado previo a papelera: " + eTrash.toString());
+        }
+      }
+
       // 1. Guardar archivo en Google Drive si se adjuntó contenido Base64
+      var mFolderData = null;
+      var monthFolderUrl = "";
+      var monthFolderId = "";
+
       if (fileBase64) {
         var rootFolder = getOrCreateRootFolder();
+        try { rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
+
         var orgFolder = getOrCreateSubfolder(rootFolder, orgNom);
-        var estabFolderName = (nroEstabVal ? ("Estab_" + nroEstabVal + " - ") : "") + estabNom;
+        try { orgFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
+
+        var cleanNroTag = nroEstabVal ? ("Estab_" + nroEstabVal) : "Estab_General";
+        var estabFolderName = cleanNroTag + " - " + estabNom;
         var estabFolder = getOrCreateSubfolder(orgFolder, estabFolderName);
+        try { estabFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eEstS) {}
 
         var ext = "pdf";
         if (originalFileName.lastIndexOf(".") !== -1) {
@@ -442,9 +515,9 @@ function doPost(e) {
         var cleanBase64 = String(fileBase64 || "").replace(/^data:.*base64,/, "").replace(/\s+/g, "");
         var fileBytes = Utilities.base64Decode(cleanBase64);
         var blob = Utilities.newBlob(fileBytes, mimeType, codedFileName);
-        var createdFile = estabFolder.createFile(blob);
         
-        // Configurar archivo como visualizable por quien tenga el link
+        // 1.a. Guardar archivo físico en la carpeta institucional: Organismo > Sede
+        var createdFile = estabFolder.createFile(blob);
         try {
           createdFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
         } catch(shareErr) {
@@ -454,45 +527,31 @@ function doPost(e) {
         driveUrl = createdFile.getUrl();
         driveFileId = createdFile.getId();
 
-        // 1.b. Guardar además en la Carpeta Mensual:
-        // - En la RAÍZ del mes: [Mes/Año] > archivo.pdf
-        // - Y anidado: [Mes/Año] > [Organismo] > [Establecimiento] > archivo.pdf
+        // 1.b. Guardar además archivo físico real en la Carpeta Mensual anidada:
+        // Carpetas_Mensuales > [Mes/Año] > [Organismo] > [Estab_XXX - Nombre]
         try {
-          var mFolderData = getOrCreateMonthlyFolder(rootFolder, fechaAct);
-          var monthFolderUrl = mFolderData.url;
-          var monthFolderId = mFolderData.id;
+          mFolderData = getOrCreateMonthlyFolder(rootFolder, fechaAct);
+          monthFolderUrl = mFolderData.url;
+          monthFolderId = mFolderData.id;
 
-          // 1.b.1. Guardar en la raíz de la carpeta mensual (vista plana de todos los docs del mes)
-          try {
-            mFolderData.folder.addFile(createdFile);
-          } catch(addRootErr) {
-            try {
-              mFolderData.folder.createShortcut(createdFile.getId());
-            } catch(scRootErr) {
-              createdFile.makeCopy(codedFileName, mFolderData.folder);
-            }
-          }
-
-          // 1.b.2. Guardar también clasificado en: [Mes/Año] > [Organismo] > [Establecimiento]
           var monthOrgFolder = getOrCreateSubfolder(mFolderData.folder, orgNom);
-          var monthEstabFolder = getOrCreateSubfolder(monthOrgFolder, estabFolderName);
+          try { monthOrgFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(mOrgS) {}
 
+          var monthEstabFolder = getOrCreateSubfolder(monthOrgFolder, estabFolderName);
+          try { monthEstabFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(mEstS) {}
+
+          // Crear copia física real en la carpeta mensual (no solo shortcut)
+          var monthCopy = createdFile.makeCopy(codedFileName, monthEstabFolder);
           try {
-            monthEstabFolder.addFile(createdFile);
-          } catch(addNestedErr) {
-            try {
-              monthEstabFolder.createShortcut(createdFile.getId());
-            } catch(scNestedErr) {
-              createdFile.makeCopy(codedFileName, monthEstabFolder);
-            }
-          }
+            monthCopy.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          } catch(mCopyS) {}
+
         } catch(monthErr) {
-          Logger.log("Error al guardar en carpeta mensual (raíz y anidado): " + monthErr.toString());
+          Logger.log("Error al guardar en carpeta mensual (anidado): " + monthErr.toString());
         }
       }
 
-      // 2. Registrar en la hoja 'Legajo_Actividades_Archivos'
-      var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+      // 2. Registrar o Actualizar en la hoja 'Legajo_Actividades_Archivos'
       if (!sheetLegajo) {
         sheetLegajo = ss.insertSheet("Legajo_Actividades_Archivos");
         var headersLeg = [
@@ -508,15 +567,14 @@ function doPost(e) {
         rHead.setFontWeight("bold");
         sheetLegajo.setFrozenRows(1);
       } else {
-        // Asegurar que exista la cabecera de URL Carpeta Mensual si la hoja es previa
         var curHeaders = sheetLegajo.getRange(1, 1, 1, Math.max(16, sheetLegajo.getLastColumn())).getValues()[0];
         if (!curHeaders[15] || curHeaders[15] === "") {
           sheetLegajo.getRange(1, 16).setValue("URL Carpeta Mensual").setBackground("#0b3d63").setFontColor("#ffffff").setFontWeight("bold");
         }
       }
 
-      var regId = "ACT_" + new Date().getTime();
-      sheetLegajo.appendRow([
+      var regId = (existingRowIndex > 1 && permitirReemplazo) ? ("ACT_" + new Date().getTime()) : ("ACT_" + new Date().getTime());
+      var rowPayload = [
         regId,
         new Date(),
         fechaAct,
@@ -533,15 +591,24 @@ function doPost(e) {
         preventor,
         observaciones,
         monthFolderUrl || ""
-      ]);
+      ];
+
+      if (existingRowIndex > 1 && permitirReemplazo) {
+        sheetLegajo.getRange(existingRowIndex, 1, 1, rowPayload.length).setValues([rowPayload]);
+      } else {
+        sheetLegajo.appendRow(rowPayload);
+      }
 
       // 3. Sincronizar en la 'Matriz_Control_Gestion'
-      actualizarMatrizPorActividad(ss, estabNom, nroEstabVal, actTipo, estadoAct, fechaAct, driveUrl);
+      actualizarMatrizPorActividad(ss, orgNom, estabNom, nroEstabVal, actTipo, estadoAct, fechaAct, driveUrl);
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Actividad y documento registrados exitosamente (en Organismo > Sede y en Mes/Año > Organismo > Sede).",
+        message: (existingRowIndex > 1 && permitirReemplazo) 
+          ? "Documento y actividad actualizados exitosamente en Drive y Sheets." 
+          : "Actividad y documento registrados exitosamente (en Organismo > Sede y en Mes/Año > Organismo > Sede).",
         registroId: regId,
+        esReemplazo: (existingRowIndex > 1 && permitirReemplazo),
         fileName: codedFileName,
         fileUrl: driveUrl,
         fileId: driveFileId,
@@ -656,7 +723,7 @@ function doPost(e) {
               }
             }
           }
-          actualizarColumnaMatriz(ss, targetEstab, colTarget, remainingValue);
+          actualizarColumnaMatriz(ss, "", targetEstab, targetNroEstab, colTarget, remainingValue);
         }
       }
 
@@ -817,7 +884,7 @@ function doPost(e) {
 // FUNCIONES AUXILIARES DE ACTUALIZACIÓN DE MATRIZ
 // ========================================================
 
-function actualizarMatrizPorActividad(ss, nombreEstab, nroEstab, actTipo, estado, fecha, driveUrl) {
+function actualizarMatrizPorActividad(ss, orgNom, nombreEstab, nroEstab, actTipo, estado, fecha, driveUrl) {
   var sheetMatriz = ss.getSheetByName("Matriz_Control_Gestion");
   if (!sheetMatriz) return;
 
@@ -844,10 +911,10 @@ function actualizarMatrizPorActividad(ss, nombreEstab, nroEstab, actTipo, estado
   if (!colTarget) return;
 
   var valor = estado + (fecha ? " (" + fecha + ")" : "");
-  actualizarColumnaMatriz(ss, nombreEstab, colTarget, valor);
+  actualizarColumnaMatriz(ss, orgNom, nombreEstab, nroEstab, colTarget, valor);
 }
 
-function actualizarColumnaMatriz(ss, estNombre, nombreColumna, nuevoValor) {
+function actualizarColumnaMatriz(ss, orgNom, estNombre, nroEstab, nombreColumna, nuevoValor) {
   var sheetMatriz = ss.getSheetByName("Matriz_Control_Gestion");
   if (!sheetMatriz) return;
 
@@ -865,13 +932,33 @@ function actualizarColumnaMatriz(ss, estNombre, nombreColumna, nuevoValor) {
   if (colIndex === -1) return;
 
   var targetRow = -1;
-  var buscado = String(estNombre).toLowerCase().trim();
+  var buscadoNom = String(estNombre || "").toLowerCase().trim();
+  var buscadoNro = String(nroEstab || "").toLowerCase().trim();
 
   for (var r = 1; r < data.length; r++) {
+    var valNro = String(data[r][0] || "").toLowerCase().trim();
     var valEstab = String(data[r][1] || "").toLowerCase().trim();
-    if (valEstab === buscado || (valEstab && buscado && (valEstab.includes(buscado) || buscado.includes(valEstab)))) {
+
+    // 1. Si ambos tienen N° de establecimiento, exigir coincidencia estricta de N°
+    if (buscadoNro && valNro && buscadoNro === valNro) {
+      if (!buscadoNom || valEstab === buscadoNom || valEstab.includes(buscadoNom) || buscadoNom.includes(valEstab)) {
+        targetRow = r + 1;
+        break;
+      }
+    } else if (!buscadoNro && buscadoNom && valEstab === buscadoNom) {
       targetRow = r + 1;
       break;
+    }
+  }
+
+  // Si no se encontró por N°, intentar por coincidencia exacta de nombre
+  if (targetRow === -1 && buscadoNom) {
+    for (var r2 = 1; r2 < data.length; r2++) {
+      var valNom2 = String(data[r2][1] || "").toLowerCase().trim();
+      if (valNom2 === buscadoNom) {
+        targetRow = r2 + 1;
+        break;
+      }
     }
   }
 

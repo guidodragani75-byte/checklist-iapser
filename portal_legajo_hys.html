@@ -326,20 +326,52 @@
           <!-- Inyectado dinámicamente -->
         </div>
 
-        <!-- Grid de Actividades -->
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
-              <i class="fa-solid fa-list-check text-blue-700"></i>
-              <span>Actividades Técnicas & Carga de Documentos</span>
-            </h3>
-            <span class="text-xs text-slate-500">
-              Carga y codificación independiente para esta sede
-            </span>
+        <!-- Contenedor de Actividades Técnicas -->
+        <div id="contenedor-actividades-sede">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-blue-700"></i>
+                <span>Actividades Técnicas & Carga de Documentos</span>
+              </h3>
+              <span class="text-xs text-slate-500">
+                Carga y codificación independiente para esta sede
+              </span>
+            </div>
+
+            <!-- Botones de Acción y Alternador Cards / Grilla -->
+            <div id="actividades-header-controls" class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Subida Masiva (OCR)</span>
+              </button>
+              <button type="button" onclick="abrirModalNuevaActividadPersonalizada()" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>Nueva Actividad</span>
+              </button>
+              
+              <!-- Píldora conmutador [ Tarjetas | Grilla ] -->
+              <div class="flex items-center p-0.5 bg-slate-200/80 rounded-lg border border-slate-300 text-xs">
+                <button type="button" id="btn-vista-cards" onclick="cambiarModoVistaActividades('cards')" class="px-2.5 py-1 font-bold rounded-md transition flex items-center gap-1 bg-white text-blue-900 shadow-2xs">
+                  <i class="fa-solid fa-grip"></i>
+                  <span>Tarjetas</span>
+                </button>
+                <button type="button" id="btn-vista-grilla" onclick="cambiarModoVistaActividades('grilla')" class="px-2.5 py-1 font-semibold rounded-md transition flex items-center gap-1 text-slate-600 hover:text-slate-900">
+                  <i class="fa-solid fa-table-list"></i>
+                  <span>Grilla</span>
+                </button>
+              </div>
+            </div>
           </div>
 
+          <!-- Vista 1: Tarjetas -->
           <div id="grid-actividades" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <!-- Rellenado dinámicamente con las tarjetas -->
+          </div>
+
+          <!-- Vista 2: Grilla / Tabla Técnica -->
+          <div id="tabla-actividades-grilla-container" class="hidden overflow-x-auto bg-white rounded-xl border border-slate-200/90 shadow-sm">
+            <!-- Rellenado dinámicamente con la tabla -->
           </div>
         </div>
 
@@ -939,8 +971,9 @@
         </button>
 
         <div class="flex items-center gap-2">
-          <button type="button" onclick="cerrarModal('modal-subida-rapida-general')" class="btn-secondary text-xs">
-            Cancelar
+          <button type="button" onclick="cerrarModal('modal-subida-rapida-general')" class="btn-secondary text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-right-from-bracket text-slate-500"></i>
+            <span>Salir</span>
           </button>
           <button type="button" id="btn-fast-guardar-lote" onclick="guardarLoteSubidaRapida()" class="btn-primary text-xs flex items-center gap-2">
             <i class="fa-solid fa-cloud-arrow-up"></i>
