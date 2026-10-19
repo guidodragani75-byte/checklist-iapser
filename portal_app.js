@@ -176,8 +176,11 @@ const AppState = {
 
   customActivities: [],
   estaSincronizando: false,
-  vistaActividadesModo: localStorage.getItem('hys_vista_actividades_modo') || 'cards' // 'cards' | 'grilla'
+  vistaActividadesModo: (typeof localStorage !== 'undefined' && localStorage.getItem('hys_vista_actividades_modo')) || 'cards' // 'cards' | 'grilla'
 };
+if (typeof window !== 'undefined') {
+  window.AppState = AppState;
+}
 
 const MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -262,7 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFiltrosLocalidades();
   renderListaEstablecimientos();
 
-  // Restaurar módulo activo si fue guardado
+  // 1. Configurar escuchadores de eventos inmediatamente para asegurar que los filtros funcionen siempre
+  setupEventListeners();
+
+  // 2. Restaurar módulo activo si fue guardado
   const savedModulo = localStorage.getItem(STORAGE_KEYS.MODULO_ACTIVO);
   if (savedModulo && ['ficha', 'matriz', 'repositorio'].includes(savedModulo)) {
     cambiarModulo(savedModulo, false);
@@ -270,17 +276,21 @@ document.addEventListener('DOMContentLoaded', () => {
     cambiarModulo('ficha', false);
   }
 
-  // Seleccionar por defecto el primer establecimiento o el que venga en URL
+  // 3. Seleccionar por defecto el establecimiento guardado o el primero del listado
   const urlParams = new URLSearchParams(window.location.search);
   const paramEstId = urlParams.get('estId') || localStorage.getItem(STORAGE_KEYS.CURRENT_EST_ID);
   
   if (paramEstId && AppState.establecimientos[paramEstId]) {
     seleccionarEstablecimiento(paramEstId);
   } else {
-    deseleccionarEstablecimiento();
+    const firstKey = Object.keys(AppState.establecimientos)[0];
+    if (firstKey) {
+      seleccionarEstablecimiento(firstKey);
+    } else {
+      deseleccionarEstablecimiento();
+    }
   }
 
-  setupEventListeners();
   consultarCarpetasMensualesDrive();
 
   // Sincronización automática con Google Sheets en segundo plano al iniciar
@@ -782,14 +792,14 @@ function renderListaEstablecimientos() {
   const locFilter = AppState.filtroLocalidad;
 
   const filtered = Object.values(AppState.establecimientos).filter(e => {
-    if (orgFilter && e.organismo !== orgFilter) return false;
+    if (orgFilter && e.organismo !== orgFilter && !sonOrganismosCoincidentes(e.organismo, orgFilter)) return false;
     if (locFilter && e.localidad !== locFilter) return false;
     if (textFilter) {
       const match = (e.organismo && e.organismo.toLowerCase().includes(textFilter)) ||
                     (e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(textFilter)) ||
                     (e.domicilio && e.domicilio.toLowerCase().includes(textFilter)) ||
                     (e.localidad && e.localidad.toLowerCase().includes(textFilter)) ||
-                    (e.nroEstab && e.nroEstab.toString().includes(textFilter)) ||
+                    (e.nroEstab && String(e.nroEstab).toLowerCase().includes(textFilter)) ||
                     (e.cuit && e.cuit.includes(textFilter));
       if (!match) return false;
     }
@@ -835,6 +845,7 @@ function renderListaEstablecimientos() {
     container.appendChild(div);
   });
 }
+window.renderListaEstablecimientos = renderListaEstablecimientos;
 
 function seleccionarEstablecimiento(estId) {
   const est = AppState.establecimientos[estId];
@@ -854,7 +865,7 @@ function deseleccionarEstablecimiento() {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_EST_ID);
   } catch(e) {}
 
-  document.querySelectorAll('.estab-item-card').forEach(el => {
+  document.querySelectorAll('.est-card-item').forEach(el => {
     el.classList.remove('active', 'border-blue-600', 'bg-blue-50/70');
   });
 
@@ -882,8 +893,8 @@ function deseleccionarEstablecimiento() {
     tablaGrilla.classList.add('hidden');
   }
 
-  const controls = document.getElementById('actividades-header-controls');
-  if (controls) controls.classList.add('hidden');
+  const contActividades = document.getElementById('contenedor-actividades-sede');
+  if (contActividades) contActividades.classList.add('hidden');
 }
 window.deseleccionarEstablecimiento = deseleccionarEstablecimiento;
 
@@ -964,6 +975,19 @@ function renderFichaEstablecimiento(est) {
   `;
 }
 
+function obtenerUltimaFechaVisita(acts) {
+  if (!acts || acts.length === 0) return 'Sin registros';
+  const dates = acts.map(a => a.fechaActividad).filter(f => !!f);
+  if (dates.length === 0) return 'Sin fecha';
+  dates.sort((a, b) => {
+    const isoA = convertirDdmmaaaAIso(a) || a;
+    const isoB = convertirDdmmaaaAIso(b) || b;
+    return (isoB || '').localeCompare(isoA || '');
+  });
+  return formatearFechaDdmmaaa(dates[0]) || dates[0];
+}
+window.obtenerUltimaFechaVisita = obtenerUltimaFechaVisita;
+
 function cambiarModoVistaActividades(modo) {
   AppState.vistaActividadesModo = modo;
   try {
@@ -992,6 +1016,9 @@ function buscarActividadDuplicada(estId, tipoActividad, fecha) {
 window.buscarActividadDuplicada = buscarActividadDuplicada;
 
 function renderPanelActividades(est) {
+  const contActividades = document.getElementById('contenedor-actividades-sede');
+  if (contActividades) contActividades.classList.remove('hidden');
+
   const controls = document.getElementById('actividades-header-controls');
   if (controls) controls.classList.remove('hidden');
 
@@ -4385,7 +4412,6 @@ async function guardarLoteSubidaRapida() {
 
   // Actualizar todas las vistas
   renderMatrizAnual();
-  renderMatrizKPIs();
   if (AppState.establecimientoSeleccionado && AppState.establecimientoSeleccionado.id === est.id) {
     renderFichaEstablecimiento(est);
     renderPanelActividades(est);
@@ -4589,7 +4615,7 @@ async function sincronizarConSheets(forceGlobal = false) {
 
     // Sincronizar también carpetas mensuales desde Drive
     try {
-      await cargarCarpetasMensualesDesdeDrive();
+      await consultarCarpetasMensualesDrive();
     } catch(e) {}
 
   } catch (err) {
