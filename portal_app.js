@@ -1921,11 +1921,6 @@ function renderMatrizAnual() {
       return mKey === mesFiltro;
     });
 
-    // REGLA FUNDAMENTAL: Si se filtra por mes, SOLO mostrar las sedes con actividades en ese mes
-    if (mesFiltro !== 'todos' && actsPeriodo.length === 0) {
-      return; // Omitir esta sede: no pertenece al mes filtrado
-    }
-
     // Conteo por cada actividad técnica en el período evaluado
     const conteoSede = {};
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
@@ -1967,17 +1962,27 @@ function renderMatrizAnual() {
       totalSedePeriodo = sumaActividadesCatalogo;
     }
 
-    // Filtro por Estado / Documentos específicos
+    // REGLA 1: Si se filtra por mes específico, SOLO mostrar sedes que tengan actividades en ese mes
+    // (a menos que el usuario filtre explícitamente por 'sin_docs' para auditar sedes sin actividad)
+    if (mesFiltro !== 'todos') {
+      if (docsFiltro === 'sin_docs') {
+        if (totalSedePeriodo > 0) return;
+      } else {
+        if (totalSedePeriodo === 0) return;
+      }
+    }
+
+    // REGLA 2: Filtro por Estado / Documentos específicos
+    // NUNCA usar fallback a otros períodos: si el usuario filtra "Con Actividades Cargadas",
+    // SOLO se deben presentar sedes con totalSedePeriodo > 0 en el período evaluado.
     if (docsFiltro === 'con_docs') {
-      const tiene = (totalSedePeriodo > 0) || (actsDelAnio.length > 0) || (acts.length > 0);
-      if (!tiene) return;
+      if (totalSedePeriodo <= 0) return;
     } else if (docsFiltro === 'sin_docs') {
-      const tiene = (totalSedePeriodo > 0) || (actsDelAnio.length > 0) || (acts.length > 0);
-      if (tiene) return;
+      if (totalSedePeriodo > 0) return;
     } else if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
-      if (countPeriodo === 0) return;
+      if (countPeriodo <= 0) return;
     } else if (docsFiltro.startsWith('sin_')) {
       const actTarget = docsFiltro.replace('sin_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
@@ -2160,10 +2165,10 @@ function renderMatrizAnual() {
     `;
   }
 
-  actualizarKPIsMatriz(totalActividadesPeriodo, sedesMostradas, establecimientosFiltrados.length, mesFiltro, anio);
+  actualizarKPIsMatriz(totalActividadesPeriodo, sedesMostradas, establecimientosFiltrados.length, mesFiltro, anio, docsFiltro);
 }
 
-function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedesBase, mesFiltro, anio) {
+function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedesBase, mesFiltro, anio, docsFiltro = '') {
   const kpiActs = document.getElementById('matriz-kpi-total-acts');
   const kpiSedes = document.getElementById('matriz-kpi-sedes-cobertura');
   const kpiPct = document.getElementById('matriz-kpi-pct-cobertura');
@@ -2177,17 +2182,17 @@ function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedesBase, mesFiltro,
   if (mesFiltro && mesFiltro !== 'todos') {
     const mesNombre = MESES_NOMBRES[parseInt(mesFiltro, 10) - 1] || 'Mes';
     if (lblActs) lblActs.textContent = `Actividades en ${mesNombre}`;
-    if (lblSedes) lblSedes.textContent = `Total Filas / Sedes (${mesNombre})`;
-    if (lblPct) lblPct.textContent = `% Cobertura Mensual`;
-    if (reglaConteo) reglaConteo.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'fila de sede' : 'filas de sedes'} con actividades en ${mesNombre}`;
+    if (lblSedes) lblSedes.textContent = `Sedes Activas (${mesNombre})`;
+    if (lblPct) lblPct.textContent = `% Cobertura Provincial`;
+    if (reglaConteo) reglaConteo.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'sede' : 'sedes'} con actividades en ${mesNombre}`;
 
     if (kpiActs) kpiActs.textContent = totalActs;
-    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'fila (1 sede)' : 'filas (' + sedesConAct + ' sedes)'}`;
-    const pct = totalProvincial > 0 ? Math.round((sedesConAct / totalProvincial) * 100) : 0;
+    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'sede' : 'sedes'}`;
+    const pct = totalProvincial > 0 ? ((sedesConAct / totalProvincial) * 100).toFixed(1) : 0;
     if (kpiPct) kpiPct.textContent = `${pct}% (${sedesConAct} de ${totalProvincial})`;
   } else {
     if (lblActs) lblActs.textContent = (anio === 'todos') ? `Actividades Históricas` : `Actividades en el Año ${anio}`;
-    if (lblSedes) lblSedes.textContent = `Sedes con Cobertura`;
+    if (lblSedes) lblSedes.textContent = (docsFiltro === 'con_docs') ? `Sedes con Actividades` : `Sedes con Cobertura`;
     if (lblPct) lblPct.textContent = `% Cobertura Provincial`;
     if (reglaConteo) reglaConteo.textContent = `Cantidad realizada por actividad`;
 
@@ -2245,24 +2250,46 @@ function exportarMatrizCSV() {
       return mKey === mesFiltro;
     });
 
+    // Total de actividades de la sede en el período
+    let totalSedePeriodo = actsPeriodo.length;
+    const conteoSede = {};
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
+    actsPeriodo.forEach(a => {
+      const actNorm = normalizarTipoActividad(a.tipoActividad);
+      if (conteoSede[actNorm] !== undefined) {
+        conteoSede[actNorm]++;
+      } else if (conteoSede[a.tipoActividad] !== undefined) {
+        conteoSede[a.tipoActividad]++;
+      }
+    });
+    let sumaActividadesCatalogo = 0;
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+      sumaActividadesCatalogo += (conteoSede[k] || 0);
+    });
+    if (modoVista === 'actividades' && sumaActividadesCatalogo > totalSedePeriodo) {
+      totalSedePeriodo = sumaActividadesCatalogo;
+    }
+
     // Filtro estricto por mes
-    if (mesFiltro !== 'todos' && actsPeriodo.length === 0) {
-      return;
+    if (mesFiltro !== 'todos') {
+      if (docsFiltro === 'sin_docs') {
+        if (totalSedePeriodo > 0) return;
+      } else {
+        if (totalSedePeriodo === 0) return;
+      }
     }
 
     if (docsFiltro === 'con_docs') {
-      const tiene = (actsPeriodo.length > 0) || (actsDelAnio.length > 0);
-      if (!tiene) return;
+      if (totalSedePeriodo <= 0) return;
     } else if (docsFiltro === 'sin_docs') {
-      const tiene = (actsPeriodo.length > 0) || (actsDelAnio.length > 0);
-      if (tiene) return;
+      if (totalSedePeriodo > 0) return;
     } else if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
-      const countTarget = actsPeriodo.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
-      if (countTarget === 0) return;
+      const countTarget = conteoSede[actTarget] || 0;
+      if (countTarget <= 0) return;
     } else if (docsFiltro.startsWith('sin_')) {
       const actTarget = docsFiltro.replace('sin_', '');
-      const countTarget = actsPeriodo.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
+      const countTarget = conteoSede[actTarget] || 0;
       if (countTarget > 0) return;
     }
 
@@ -4857,6 +4884,7 @@ async function sincronizarConSheets(forceGlobal = false) {
           guardarCarpetasMensualesLocal();
           guardarLegajoLocal();
           renderRepositorioGlobal(true);
+          actualizarSelectorMesesMatriz();
           renderMatrizAnual();
           renderDashboard();
           mostrarToast(`✅ Sincronizados ${totalMapped} registros globales desde Google Sheets.`);
@@ -4867,6 +4895,7 @@ async function sincronizarConSheets(forceGlobal = false) {
           guardarLegajoLocal();
           renderRepositorioGlobal(true);
           renderPanelActividades(est);
+          actualizarSelectorMesesMatriz();
           renderMatrizAnual();
           mostrarToast(`✅ Sincronizados ${mapped.length} registros para ${est.nombreEstablecimiento}.`);
         }
