@@ -185,48 +185,63 @@ if (typeof window !== 'undefined') {
 const MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 function parsearAnioMesCliente(fecha) {
-  const now = new Date();
-  let anio = now.getFullYear();
-  let mes = now.getMonth() + 1;
-  if (fecha) {
-    const s = String(fecha).trim();
-    if (s.includes('-')) {
-      const p = s.split('-');
-      if (p.length >= 3) {
-        if (p[0].length === 4) {
-          // YYYY-MM-DD
-          const y = parseInt(p[0], 10);
-          const m = parseInt(p[1], 10);
-          if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
-        } else if (p[2].length === 4) {
-          // DD-MM-YYYY
-          const y = parseInt(p[2], 10);
-          const m = parseInt(p[1], 10);
-          if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
-        }
-      } else if (p.length === 2) {
-        // YYYY-MM
+  if (!fecha || String(fecha).trim() === '' || String(fecha).trim() === 'S/F') {
+    return {
+      key: '',
+      label: 'Sin Fecha',
+      anio: null,
+      mes: null
+    };
+  }
+  let anio = null;
+  let mes = null;
+  const s = String(fecha).trim();
+  if (s.includes('-')) {
+    const p = s.split('-');
+    if (p.length >= 3) {
+      if (p[0].length === 4) {
+        // YYYY-MM-DD
         const y = parseInt(p[0], 10);
         const m = parseInt(p[1], 10);
         if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
+      } else if (p[2].length === 4) {
+        // DD-MM-YYYY
+        const y = parseInt(p[2], 10);
+        const m = parseInt(p[1], 10);
+        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
       }
-    } else if (s.includes('/')) {
-      const p2 = s.split('/');
-      if (p2.length >= 3) {
-        if (p2[2].length === 4) {
-          // DD/MM/YYYY
-          const y2 = parseInt(p2[2], 10);
-          const m2 = parseInt(p2[1], 10);
-          if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
-        } else if (p2[0].length === 4) {
-          // YYYY/MM/DD
-          const y2 = parseInt(p2[0], 10);
-          const m2 = parseInt(p2[1], 10);
-          if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
-        }
+    } else if (p.length === 2) {
+      // YYYY-MM
+      const y = parseInt(p[0], 10);
+      const m = parseInt(p[1], 10);
+      if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
+    }
+  } else if (s.includes('/')) {
+    const p2 = s.split('/');
+    if (p2.length >= 3) {
+      if (p2[2].length === 4) {
+        // DD/MM/YYYY
+        const y2 = parseInt(p2[2], 10);
+        const m2 = parseInt(p2[1], 10);
+        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
+      } else if (p2[0].length === 4) {
+        // YYYY/MM/DD
+        const y2 = parseInt(p2[0], 10);
+        const m2 = parseInt(p2[1], 10);
+        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
       }
     }
   }
+
+  if (!anio || !mes) {
+    return {
+      key: '',
+      label: 'Sin Fecha',
+      anio: null,
+      mes: null
+    };
+  }
+
   const mesStr = (mes < 10 ? '0' : '') + mes;
   const mesNombre = MESES_NOMBRES[mes - 1] || 'Mes';
   return {
@@ -1615,6 +1630,67 @@ window.eliminarDocumentoActividad = eliminarDocumentoActividad;
 
 // ==================== VISTA 2: MATRIZ DE CUMPLIMIENTO ANUAL ====================
 
+function actualizarSelectorMesesMatriz() {
+  const selectMes = document.getElementById('matriz-filtro-mes');
+  if (!selectMes) return;
+
+  const anio = (document.getElementById('matriz-filtro-anio')?.value || AppState.matrizAnio || '2026').trim();
+  const currentVal = (document.getElementById('matriz-filtro-mes')?.value || AppState.matrizMes || 'todos').trim();
+
+  // Contar sedes únicas con actividades para cada mes en el año evaluado
+  const sedesPorMes = {
+    '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0,
+    '07': 0, '08': 0, '09': 0, '10': 0, '11': 0, '12': 0
+  };
+  let sedesConActAnio = 0;
+
+  Object.values(AppState.establecimientos).forEach(e => {
+    const acts = obtenerActividadesDeSede(e);
+    const actsAnio = acts.filter(a => {
+      if (anio === 'todos') return true;
+      return extraerAnioDeFecha(a.fechaActividad) === anio;
+    });
+
+    if (actsAnio.length > 0) {
+      sedesConActAnio++;
+    }
+
+    const mesesVistosParaSede = new Set();
+    actsAnio.forEach(a => {
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (mInfo && mInfo.mes) {
+        const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+        mesesVistosParaSede.add(mCod);
+      }
+    });
+
+    mesesVistosParaSede.forEach(mCod => {
+      if (sedesPorMes[mCod] !== undefined) {
+        sedesPorMes[mCod]++;
+      }
+    });
+  });
+
+  selectMes.innerHTML = '';
+
+  const optTodos = document.createElement('option');
+  optTodos.value = 'todos';
+  optTodos.textContent = `🗓️ Todo el Año (Anual) - ${sedesConActAnio} sedes`;
+  if (currentVal === 'todos') optTodos.selected = true;
+  selectMes.appendChild(optTodos);
+
+  for (let m = 1; m <= 12; m++) {
+    const mCod = (m < 10 ? '0' : '') + m;
+    const count = sedesPorMes[mCod] || 0;
+    const opt = document.createElement('option');
+    opt.value = mCod;
+    opt.textContent = `${mCod} - ${MESES_NOMBRES[m - 1]} (${count} ${count === 1 ? 'sede' : 'sedes'})`;
+    if (mCod === currentVal) opt.selected = true;
+    selectMes.appendChild(opt);
+  }
+}
+window.actualizarSelectorMesesMatriz = actualizarSelectorMesesMatriz;
+
 function renderFiltrosMatriz() {
   const selectOrg = document.getElementById('matriz-filtro-org');
   const selectLoc = document.getElementById('matriz-filtro-loc');
@@ -1644,10 +1720,13 @@ function renderFiltrosMatriz() {
       selectLoc.appendChild(opt);
     });
   }
+
+  actualizarSelectorMesesMatriz();
 }
 
 function cambiarFiltroAnioMatriz(val) {
   AppState.matrizAnio = val;
+  actualizarSelectorMesesMatriz();
   renderMatrizAnual();
 }
 window.cambiarFiltroAnioMatriz = cambiarFiltroAnioMatriz;
@@ -1702,6 +1781,7 @@ window.cambiarFiltroTextoMatriz = cambiarFiltroTextoMatriz;
 function renderMatrizAnual() {
   const tbody = document.getElementById('matriz-tabla-body');
   const thead = document.getElementById('matriz-tabla-head');
+  const tfoot = document.getElementById('matriz-tabla-foot');
   const counterSpan = document.getElementById('matriz-contador');
   if (!tbody) return;
 
@@ -1725,6 +1805,13 @@ function renderMatrizAnual() {
         thMesesHtml += `<th class="text-center px-2 min-w-[52px] ${esMesActivo ? 'bg-amber-600 text-white font-extrabold' : ''}" title="${MESES_NOMBRES[idx]}">${mNombre}</th>`;
       });
 
+      const thTotalTitle = (mesFiltro !== 'todos')
+        ? `Total de actividades en ${MESES_NOMBRES[parseInt(mesFiltro, 10) - 1]}`
+        : 'Total de actividades en el año';
+      const thTotalLabel = (mesFiltro !== 'todos')
+        ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}`
+        : 'Total';
+
       thead.innerHTML = `
         <tr>
           <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
@@ -1732,11 +1819,18 @@ function renderMatrizAnual() {
           <th class="text-left px-3 min-w-[160px]">Organismo</th>
           <th class="px-3 min-w-[120px]">Localidad</th>
           ${thMesesHtml}
-          <th class="bg-[#07253d] font-black text-center px-3 min-w-[65px]" title="Total de actividades en el año">Total</th>
+          <th class="bg-[#07253d] font-black text-center px-3 min-w-[65px]" title="${thTotalTitle}">${thTotalLabel}</th>
           <th class="bg-[#07253d] text-right px-3 min-w-[70px]">Acción</th>
         </tr>
       `;
     } else {
+      const thTotalTitle = (mesFiltro !== 'todos')
+        ? `Total de actividades en ${MESES_NOMBRES[parseInt(mesFiltro, 10) - 1]}`
+        : 'Total del período';
+      const thTotalLabel = (mesFiltro !== 'todos')
+        ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}`
+        : 'Total';
+
       thead.innerHTML = `
         <tr>
           <th class="sticky left-0 z-30 bg-[#07253d] w-14">N° Est</th>
@@ -1756,7 +1850,7 @@ function renderMatrizAnual() {
           <th title="Capacitaciones HyS dictadas">Capacit.</th>
           <th title="Evaluación de Carga de Fuego">Carga Fuego</th>
           <th title="Simulacros de Evacuación">Simulacro</th>
-          <th class="bg-[#07253d] font-black text-center px-3">Total</th>
+          <th class="bg-[#07253d] font-black text-center px-3" title="${thTotalTitle}">${thTotalLabel}</th>
           <th class="bg-[#07253d] text-right px-3">Acción</th>
         </tr>
       `;
@@ -1778,19 +1872,25 @@ function renderMatrizAnual() {
     return true;
   });
 
-  // Métricas del resumen en cabecera
+  // Métricas del resumen en cabecera y acumuladores del pie de tabla (tfoot)
   let totalActividadesPeriodo = 0;
-  let sedesConAlMenosUnaActividad = 0;
   let sedesMostradas = 0;
+  const totalesPorColumna = {};
+  Object.keys(CATALOGO_ACTIVIDADES).forEach(k => totalesPorColumna[k] = 0);
+  const totalesPorMesColumna = {
+    '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0,
+    '07': 0, '08': 0, '09': 0, '10': 0, '11': 0, '12': 0
+  };
 
   tbody.innerHTML = '';
+  if (tfoot) tfoot.innerHTML = '';
 
   const totalCols = (modoVista === 'meses') ? 18 : 19;
 
   if (establecimientosFiltrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="${totalCols}" class="text-center py-8 text-slate-400 text-xs">
+        <td colspan="${totalCols}" class="text-center py-10 text-slate-400 text-xs font-semibold">
           No se encontraron sedes que coincidan con los filtros aplicados.
         </td>
       </tr>
@@ -1798,7 +1898,7 @@ function renderMatrizAnual() {
     if (counterSpan) {
       counterSpan.textContent = `Mostrando 0 de ${Object.keys(AppState.establecimientos).length} sedes (${anio === 'todos' ? 'Histórico' : 'Año ' + anio})`;
     }
-    actualizarKPIsMatriz(0, 0, 0);
+    actualizarKPIsMatriz(0, 0, 0, mesFiltro, anio);
     return;
   }
 
@@ -1812,17 +1912,21 @@ function renderMatrizAnual() {
       return anioAct === anio;
     });
 
-    // En modo actividades, si hay un mes seleccionado, se filtra además por mes
+    // Actividades específicas del período / mes seleccionado
     const actsPeriodo = actsDelAnio.filter(a => {
-      if (modoVista === 'actividades' && mesFiltro !== 'todos') {
-        const mInfo = parsearAnioMesCliente(a.fechaActividad);
-        const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
-        return mKey === mesFiltro;
-      }
-      return true;
+      if (mesFiltro === 'todos') return true;
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (!mInfo || !mInfo.mes) return false;
+      const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+      return mKey === mesFiltro;
     });
 
-    // Conteo por cada actividad técnica
+    // REGLA FUNDAMENTAL: Si se filtra por mes, SOLO mostrar las sedes con actividades en ese mes
+    if (mesFiltro !== 'todos' && actsPeriodo.length === 0) {
+      return; // Omitir esta sede: no pertenece al mes filtrado
+    }
+
+    // Conteo por cada actividad técnica en el período evaluado
     const conteoSede = {};
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
 
@@ -1842,19 +1946,24 @@ function renderMatrizAnual() {
     };
     actsDelAnio.forEach(a => {
       const mInfo = parsearAnioMesCliente(a.fechaActividad);
-      const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
-      if (conteoMesSede[mCod]) {
-        conteoMesSede[mCod].push(a);
+      if (mInfo && mInfo.mes) {
+        const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+        if (conteoMesSede[mCod]) {
+          conteoMesSede[mCod].push(a);
+        }
       }
     });
 
-    // Calcular total de actividades de la sede en el período
-    let totalSedePeriodo = actsPeriodo.length;
+    // Total de actividades de la sede en el período
+    let totalSedePeriodo = (modoVista === 'meses' && mesFiltro === 'todos')
+      ? actsDelAnio.length
+      : actsPeriodo.length;
+
     let sumaActividadesCatalogo = 0;
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
       sumaActividadesCatalogo += (conteoSede[k] || 0);
     });
-    if (sumaActividadesCatalogo > totalSedePeriodo) {
+    if (modoVista === 'actividades' && sumaActividadesCatalogo > totalSedePeriodo) {
       totalSedePeriodo = sumaActividadesCatalogo;
     }
 
@@ -1868,18 +1977,24 @@ function renderMatrizAnual() {
     } else if (docsFiltro.startsWith('con_')) {
       const actTarget = docsFiltro.replace('con_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
-      const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
-      if (countPeriodo === 0 && countHistorico === 0) return;
+      if (countPeriodo === 0) return;
     } else if (docsFiltro.startsWith('sin_')) {
       const actTarget = docsFiltro.replace('sin_', '');
       const countPeriodo = conteoSede[actTarget] || 0;
-      const countHistorico = acts.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
-      if (countPeriodo > 0 || countHistorico > 0) return;
+      if (countPeriodo > 0) return;
     }
 
     sedesMostradas++;
-    if (totalSedePeriodo > 0) sedesConAlMenosUnaActividad++;
     totalActividadesPeriodo += totalSedePeriodo;
+
+    // Acumular columnas para el pie de tabla (tfoot)
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+      totalesPorColumna[k] += (conteoSede[k] || 0);
+    });
+    for (let m = 1; m <= 12; m++) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      totalesPorMesColumna[mCod] += (conteoMesSede[mCod] || []).length;
+    }
 
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer';
@@ -1931,11 +2046,10 @@ function renderMatrizAnual() {
         cellsHtml += `<td class="py-2.5 px-2 text-center whitespace-nowrap ${esMesActivo ? 'bg-amber-50/70 border-x border-amber-200' : ''}">${badgeHtml}</td>`;
       }
 
-      // Columna Total Anual de la sede
-      const totalAnualSede = actsDelAnio.length;
+      // Columna Total (Total del mes seleccionado si hay mesFiltro, o Total Anual si es 'todos')
       cellsHtml += `
-        <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalAnualSede > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
-          ${totalAnualSede}
+        <td class="py-2.5 px-3 text-center font-black whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
+          ${totalSedePeriodo}
         </td>
       `;
     } else {
@@ -1957,7 +2071,7 @@ function renderMatrizAnual() {
 
       // Columna Total del período
       cellsHtml += `
-        <td class="py-2.5 px-3 text-center font-bold whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
+        <td class="py-2.5 px-3 text-center font-black whitespace-nowrap ${totalSedePeriodo > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-300'}">
           ${totalSedePeriodo}
         </td>
       `;
@@ -1979,36 +2093,109 @@ function renderMatrizAnual() {
     tbody.appendChild(tr);
   });
 
-  const mesTxt = (mesFiltro !== 'todos') ? ` • Mes ${MESES_NOMBRES[parseInt(mesFiltro, 10) - 1]}` : ' • Consolidado Anual';
+  // Renderizar Pie de Tabla con Totales Acumulados
+  if (tfoot) {
+    if (sedesMostradas === 0) {
+      tfoot.innerHTML = '';
+    } else if (modoVista === 'meses') {
+      let tdMesesHtml = '';
+      for (let m = 1; m <= 12; m++) {
+        const mCod = (m < 10 ? '0' : '') + m;
+        const esMesActivo = (mesFiltro === mCod);
+        const cVal = totalesPorMesColumna[mCod] || 0;
+        tdMesesHtml += `<td class="py-2.5 px-2 text-center font-bold whitespace-nowrap ${esMesActivo ? 'bg-amber-600 text-white font-extrabold' : ''}">${cVal}</td>`;
+      }
+      const txtSedesFilas = (sedesMostradas === 1) ? '1 sede (1 fila)' : `${sedesMostradas} sedes (${sedesMostradas} filas)`;
+      tfoot.innerHTML = `
+        <tr class="bg-[#07253d] text-white font-extrabold border-t-2 border-slate-700 shadow-md">
+          <td class="sticky left-0 z-30 bg-[#07253d] text-center font-black py-2.5 px-3">TOTAL</td>
+          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="3">${txtSedesFilas}</td>
+          ${tdMesesHtml}
+          <td class="text-center py-2.5 px-3 bg-[#051c2e] text-amber-300 font-black text-sm whitespace-nowrap">${totalActividadesPeriodo}</td>
+          <td class="text-right py-2.5 px-3">-</td>
+        </tr>
+      `;
+    } else {
+      let tdActsHtml = '';
+      Object.keys(CATALOGO_ACTIVIDADES).forEach(k => {
+        const cVal = totalesPorColumna[k] || 0;
+        tdActsHtml += `<td class="py-2.5 px-2 text-center font-bold whitespace-nowrap ${cVal > 0 ? 'text-emerald-300' : 'text-slate-400'}">${cVal}</td>`;
+      });
+      const txtSedesFilas = (sedesMostradas === 1) ? '1 sede (1 fila)' : `${sedesMostradas} sedes (${sedesMostradas} filas)`;
+      tfoot.innerHTML = `
+        <tr class="bg-[#07253d] text-white font-extrabold border-t-2 border-slate-700 shadow-md">
+          <td class="sticky left-0 z-30 bg-[#07253d] text-center font-black py-2.5 px-3">TOTAL</td>
+          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="3">${txtSedesFilas}</td>
+          ${tdActsHtml}
+          <td class="text-center py-2.5 px-3 bg-[#051c2e] text-amber-300 font-black text-sm whitespace-nowrap">${totalActividadesPeriodo}</td>
+          <td class="text-right py-2.5 px-3">-</td>
+        </tr>
+      `;
+    }
+  }
+
   const modoTxt = (modoVista === 'meses') ? ' (Evolución Mensual Ene-Dic)' : ' (Por Actividades Técnicas)';
 
   if (counterSpan) {
-    counterSpan.textContent = `Mostrando ${sedesMostradas} de ${establecimientosFiltrados.length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio}${mesTxt})${modoTxt}`;
+    if (mesFiltro !== 'todos') {
+      const mesNombre = MESES_NOMBRES[parseInt(mesFiltro, 10) - 1];
+      const txtCont = (sedesMostradas === 1) ? '1 de 1 sede (1 fila)' : `${sedesMostradas} de ${sedesMostradas} sedes (${sedesMostradas} filas)`;
+      counterSpan.textContent = `Mostrando ${txtCont} • Mes ${mesNombre} ${anio === 'todos' ? '' : anio}${modoTxt}`;
+    } else {
+      counterSpan.textContent = `Mostrando ${sedesMostradas} de ${establecimientosFiltrados.length} sedes (${anio === 'todos' ? 'Histórico Completo' : 'Año ' + anio} • Consolidado Anual)${modoTxt}`;
+    }
   }
 
   if (sedesMostradas === 0) {
+    const mesTxtEmpty = (mesFiltro !== 'todos')
+      ? ` en el mes de ${MESES_NOMBRES[parseInt(mesFiltro, 10) - 1]}`
+      : '';
     tbody.innerHTML = `
       <tr>
-        <td colspan="${totalCols}" class="text-center py-8 text-slate-400 text-xs">
-          No se encontraron sedes que coincidan con los filtros aplicados.
+        <td colspan="${totalCols}" class="text-center py-12 text-slate-400 text-xs font-semibold">
+          <i class="fa-regular fa-calendar-xmark text-3xl mb-2 block text-slate-300"></i>
+          No se encontraron sedes con actividades registradas${mesTxtEmpty} para los filtros aplicados.
         </td>
       </tr>
     `;
   }
 
-  actualizarKPIsMatriz(totalActividadesPeriodo, sedesConAlMenosUnaActividad, sedesMostradas);
+  actualizarKPIsMatriz(totalActividadesPeriodo, sedesMostradas, establecimientosFiltrados.length, mesFiltro, anio);
 }
 
-function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedes) {
+function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedesBase, mesFiltro, anio) {
   const kpiActs = document.getElementById('matriz-kpi-total-acts');
   const kpiSedes = document.getElementById('matriz-kpi-sedes-cobertura');
   const kpiPct = document.getElementById('matriz-kpi-pct-cobertura');
+  const lblActs = document.getElementById('matriz-kpi-lbl-acts');
+  const lblSedes = document.getElementById('matriz-kpi-lbl-sedes');
+  const lblPct = document.getElementById('matriz-kpi-lbl-pct');
+  const reglaConteo = document.getElementById('matriz-kpi-regla-conteo');
 
-  const pct = totalSedes > 0 ? Math.round((sedesConAct / totalSedes) * 100) : 0;
+  const totalProvincial = Object.keys(AppState.establecimientos).length || 452;
 
-  if (kpiActs) kpiActs.textContent = totalActs;
-  if (kpiSedes) kpiSedes.textContent = `${sedesConAct} de ${totalSedes}`;
-  if (kpiPct) kpiPct.textContent = `${pct}%`;
+  if (mesFiltro && mesFiltro !== 'todos') {
+    const mesNombre = MESES_NOMBRES[parseInt(mesFiltro, 10) - 1] || 'Mes';
+    if (lblActs) lblActs.textContent = `Actividades en ${mesNombre}`;
+    if (lblSedes) lblSedes.textContent = `Total Filas / Sedes (${mesNombre})`;
+    if (lblPct) lblPct.textContent = `% Cobertura Mensual`;
+    if (reglaConteo) reglaConteo.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'fila de sede' : 'filas de sedes'} con actividades en ${mesNombre}`;
+
+    if (kpiActs) kpiActs.textContent = totalActs;
+    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'fila (1 sede)' : 'filas (' + sedesConAct + ' sedes)'}`;
+    const pct = totalProvincial > 0 ? Math.round((sedesConAct / totalProvincial) * 100) : 0;
+    if (kpiPct) kpiPct.textContent = `${pct}% (${sedesConAct} de ${totalProvincial})`;
+  } else {
+    if (lblActs) lblActs.textContent = (anio === 'todos') ? `Actividades Históricas` : `Actividades en el Año ${anio}`;
+    if (lblSedes) lblSedes.textContent = `Sedes con Cobertura`;
+    if (lblPct) lblPct.textContent = `% Cobertura Provincial`;
+    if (reglaConteo) reglaConteo.textContent = `Cantidad realizada por actividad`;
+
+    if (kpiActs) kpiActs.textContent = totalActs;
+    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} de ${totalProvincial}`;
+    const pct = totalProvincial > 0 ? Math.round((sedesConAct / totalProvincial) * 100) : 0;
+    if (kpiPct) kpiPct.textContent = `${pct}%`;
+  }
 }
 
 function irAFichaEstablecimiento(estId) {
@@ -2018,10 +2205,69 @@ function irAFichaEstablecimiento(estId) {
 
 // Exportación a Excel / CSV con BOM adaptada a modo Actividades o Mensual
 function exportarMatrizCSV() {
-  const anio = AppState.matrizAnio;
-  const mesFiltro = AppState.matrizMes || 'todos';
+  const anio = (document.getElementById('matriz-filtro-anio')?.value || AppState.matrizAnio || '2026').trim();
+  const mesFiltro = (document.getElementById('matriz-filtro-mes')?.value || AppState.matrizMes || 'todos').trim();
   const modoVista = AppState.matrizModoVista || 'actividades';
-  const establecimientos = Object.values(AppState.establecimientos);
+  const orgFiltro = (document.getElementById('matriz-filtro-org')?.value || AppState.matrizFiltroOrg || '').trim();
+  const locFiltro = (document.getElementById('matriz-filtro-loc')?.value || AppState.matrizFiltroLoc || '').trim();
+  const textFiltro = (document.getElementById('matriz-buscar-texto')?.value || AppState.matrizFiltroTexto || '').toLowerCase().trim();
+  const docsFiltro = (document.getElementById('matriz-filtro-docs')?.value || AppState.matrizFiltroDocs || '').trim();
+
+  const MESES_ABR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  const establecimientos = Object.values(AppState.establecimientos).filter(e => {
+    if (orgFiltro && e.organismo !== orgFiltro) return false;
+    if (locFiltro && e.localidad !== locFiltro) return false;
+    if (textFiltro) {
+      const match = (e.organismo && e.organismo.toLowerCase().includes(textFiltro)) ||
+                    (e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(textFiltro)) ||
+                    (e.domicilio && e.domicilio.toLowerCase().includes(textFiltro)) ||
+                    (e.localidad && e.localidad.toLowerCase().includes(textFiltro)) ||
+                    (e.nroEstab && e.nroEstab.toString().includes(textFiltro));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  let filas = [];
+  establecimientos.forEach(e => {
+    const acts = obtenerActividadesDeSede(e);
+    const actsDelAnio = acts.filter(a => {
+      if (anio === 'todos') return true;
+      return extraerAnioDeFecha(a.fechaActividad) === anio;
+    });
+
+    const actsPeriodo = actsDelAnio.filter(a => {
+      if (mesFiltro === 'todos') return true;
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (!mInfo || !mInfo.mes) return false;
+      const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+      return mKey === mesFiltro;
+    });
+
+    // Filtro estricto por mes
+    if (mesFiltro !== 'todos' && actsPeriodo.length === 0) {
+      return;
+    }
+
+    if (docsFiltro === 'con_docs') {
+      const tiene = (actsPeriodo.length > 0) || (actsDelAnio.length > 0);
+      if (!tiene) return;
+    } else if (docsFiltro === 'sin_docs') {
+      const tiene = (actsPeriodo.length > 0) || (actsDelAnio.length > 0);
+      if (tiene) return;
+    } else if (docsFiltro.startsWith('con_')) {
+      const actTarget = docsFiltro.replace('con_', '');
+      const countTarget = actsPeriodo.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
+      if (countTarget === 0) return;
+    } else if (docsFiltro.startsWith('sin_')) {
+      const actTarget = docsFiltro.replace('sin_', '');
+      const countTarget = actsPeriodo.filter(a => normalizarTipoActividad(a.tipoActividad) === actTarget).length;
+      if (countTarget > 0) return;
+    }
+
+    filas.push({ e, actsDelAnio, actsPeriodo });
+  });
 
   let headers = [];
   if (modoVista === 'meses') {
@@ -2032,7 +2278,7 @@ function exportarMatrizCSV() {
       'Localidad',
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-      'Total Anual Realizado'
+      mesFiltro !== 'todos' ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}` : 'Total Anual Realizado'
     ];
   } else {
     const activityHeaders = Object.values(CATALOGO_ACTIVIDADES).map(cat => cat.nombre);
@@ -2042,20 +2288,16 @@ function exportarMatrizCSV() {
       'Nombre Establecimiento',
       'Localidad',
       ...activityHeaders,
-      'Total Período'
+      mesFiltro !== 'todos' ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}` : 'Total Período'
     ];
   }
 
-  let csvContent = '\uFEFF'; // BOM para que Excel abra UTF-8 con tildes correctamente
+  let csvContent = '\uFEFF';
   csvContent += headers.map(h => `"${h}"`).join(';') + '\r\n';
 
-  establecimientos.forEach(e => {
-    const acts = obtenerActividadesDeSede(e);
-    const actsDelAnio = acts.filter(a => {
-      if (anio === 'todos') return true;
-      return extraerAnioDeFecha(a.fechaActividad) === anio;
-    });
+  let totalGeneralActs = 0;
 
+  filas.forEach(({ e, actsDelAnio, actsPeriodo }) => {
     if (modoVista === 'meses') {
       const conteoMesSede = {
         '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0,
@@ -2063,11 +2305,16 @@ function exportarMatrizCSV() {
       };
       actsDelAnio.forEach(a => {
         const mInfo = parsearAnioMesCliente(a.fechaActividad);
-        const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
-        if (conteoMesSede[mCod] !== undefined) {
-          conteoMesSede[mCod]++;
+        if (mInfo && mInfo.mes) {
+          const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+          if (conteoMesSede[mCod] !== undefined) {
+            conteoMesSede[mCod]++;
+          }
         }
       });
+
+      const totalFila = (mesFiltro !== 'todos') ? actsPeriodo.length : actsDelAnio.length;
+      totalGeneralActs += totalFila;
 
       const row = [
         e.nroEstab || '',
@@ -2077,19 +2324,10 @@ function exportarMatrizCSV() {
         conteoMesSede['01'], conteoMesSede['02'], conteoMesSede['03'], conteoMesSede['04'],
         conteoMesSede['05'], conteoMesSede['06'], conteoMesSede['07'], conteoMesSede['08'],
         conteoMesSede['09'], conteoMesSede['10'], conteoMesSede['11'], conteoMesSede['12'],
-        actsDelAnio.length
+        totalFila
       ];
       csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
     } else {
-      const actsPeriodo = actsDelAnio.filter(a => {
-        if (mesFiltro !== 'todos') {
-          const mInfo = parsearAnioMesCliente(a.fechaActividad);
-          const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
-          return mKey === mesFiltro;
-        }
-        return true;
-      });
-
       const conteoSede = {};
       Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
       actsPeriodo.forEach(a => {
@@ -2101,17 +2339,35 @@ function exportarMatrizCSV() {
         }
       });
 
+      const totalFila = actsPeriodo.length;
+      totalGeneralActs += totalFila;
+
       const row = [
         e.nroEstab || '',
         e.organismo || '',
         e.nombreEstablecimiento || '',
         e.localidad || '',
         ...Object.keys(CATALOGO_ACTIVIDADES).map(k => conteoSede[k] || 0),
-        actsPeriodo.length
+        totalFila
       ];
       csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
     }
   });
+
+  // Fila de resumen de totales al final del CSV
+  const resumenRow = [
+    'TOTAL',
+    `${filas.length} sedes / filas`,
+    '-',
+    '-'
+  ];
+  if (modoVista === 'meses') {
+    for (let i = 0; i < 12; i++) resumenRow.push('');
+  } else {
+    Object.keys(CATALOGO_ACTIVIDADES).forEach(() => resumenRow.push(''));
+  }
+  resumenRow.push(totalGeneralActs);
+  csvContent += resumenRow.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\r\n';
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -2123,8 +2379,9 @@ function exportarMatrizCSV() {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  mostrarToast(`Matriz exportada a CSV (${modoVista === 'meses' ? 'Evolución Mensual' : 'Actividades'}).`);
+  mostrarToast(`Matriz exportada (${filas.length} filas / sedes).`);
 }
+window.exportarMatrizCSV = exportarMatrizCSV;
 
 // ==================== VISTA 3: REPOSITORIO GLOBAL DE DOCUMENTOS ====================
 
@@ -2741,6 +2998,15 @@ function setupEventListeners() {
   if (anioSelect) {
     anioSelect.addEventListener('change', (e) => {
       AppState.matrizAnio = e.target.value;
+      actualizarSelectorMesesMatriz();
+      renderMatrizAnual();
+    });
+  }
+
+  const matrizMesSelect = document.getElementById('matriz-filtro-mes');
+  if (matrizMesSelect) {
+    matrizMesSelect.addEventListener('change', (e) => {
+      AppState.matrizMes = e.target.value || 'todos';
       renderMatrizAnual();
     });
   }

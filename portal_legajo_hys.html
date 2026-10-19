@@ -192,6 +192,14 @@
       border-bottom: 1px solid #e2e8f0;
       padding: 0.45rem 0.5rem;
     }
+    .matriz-table tfoot td {
+      background-color: #07253d;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-top: 2px solid #0284c7;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -388,7 +396,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actividades en el Año</div>
+            <div id="matriz-kpi-lbl-acts" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actividades en el Año</div>
             <div id="matriz-kpi-total-acts" class="text-2xl font-extrabold text-blue-900 mt-0.5">0</div>
           </div>
           <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-lg">
@@ -398,7 +406,7 @@
 
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sedes con Cobertura</div>
+            <div id="matriz-kpi-lbl-sedes" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sedes con Cobertura</div>
             <div id="matriz-kpi-sedes-cobertura" class="text-2xl font-extrabold text-emerald-700 mt-0.5">0 de 452</div>
           </div>
           <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg">
@@ -408,7 +416,7 @@
 
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">% Cobertura Provincial</div>
+            <div id="matriz-kpi-lbl-pct" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">% Cobertura Provincial</div>
             <div id="matriz-kpi-pct-cobertura" class="text-2xl font-extrabold text-purple-900 mt-0.5">0%</div>
           </div>
           <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-lg">
@@ -418,8 +426,8 @@
 
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Regla de Conteo</div>
-            <div class="text-xs font-semibold text-slate-700 mt-1">Cantidad realizada por actividad</div>
+            <div id="matriz-kpi-lbl-regla" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Regla de Conteo</div>
+            <div class="text-xs font-semibold text-slate-700 mt-1" id="matriz-kpi-regla-conteo">Cantidad realizada por actividad</div>
           </div>
           <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-lg">
             <i class="fa-solid fa-calculator"></i>
@@ -580,6 +588,9 @@
             <tbody id="matriz-tabla-body">
               <!-- Rellenado dinámicamente -->
             </tbody>
+            <tfoot id="matriz-tabla-foot" class="sticky bottom-0 z-20">
+              <!-- Rellenado dinámicamente con totales y conteo de filas -->
+            </tfoot>
           </table>
         </div>
       </div>
