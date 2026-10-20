@@ -238,6 +238,11 @@
             <span>Archivo Base Sheets</span>
           </a>
 
+          <button onclick="abrirModalEstadisticaMensual()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-2 shadow-sm transition" title="Estadística Mensual: Establecimientos visitados y porcentaje de participación por tarea">
+            <i class="fa-solid fa-chart-simple text-amber-300"></i>
+            <span>Estadística Mensual</span>
+          </button>
+
           <button onclick="abrirModalTableroGeneral()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center gap-2 border border-white/15 transition">
             <i class="fa-solid fa-chart-pie text-amber-300"></i>
             <span>Métricas Provinciales</span>
@@ -425,13 +430,16 @@
         </div>
 
         <!-- Card 2: Avance Mensual (Meta 25-30 sedes/mes) -->
-        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition cursor-pointer" onclick="abrirModalEstadisticaMensual()" title="Click para ver la estadística mensual detallada y participación de tareas">
           <div class="flex items-center justify-between">
             <div class="text-[10px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-calendar-check text-amber-600"></i>
               <span id="kpi-mes-titulo">Avance Mensual</span>
             </div>
-            <span id="kpi-mes-badge-status" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Meta: 25-30</span>
+            <div class="flex items-center gap-1.5">
+              <span id="kpi-mes-badge-status" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Meta: 25-30</span>
+              <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px]" title="Abrir estadística del mes"><i class="fa-solid fa-chart-simple"></i></span>
+            </div>
           </div>
           <div class="mt-2">
             <div class="text-2xl font-black text-slate-900 leading-none">
@@ -637,6 +645,10 @@
               <i class="fa-solid fa-file-excel text-emerald-600"></i>
               <span>Archivo Base Sheets</span>
             </a>
+            <button onclick="abrirModalEstadisticaMensual()" class="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition whitespace-nowrap" title="Ver estadística del mes: Sedes visitadas y distribución porcentual por tipo de tarea">
+              <i class="fa-solid fa-chart-simple text-indigo-600"></i>
+              <span>Estadística Mensual</span>
+            </button>
             <button onclick="abrirModalSubidaRapida()" class="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap" title="Subida rápida por lote con OCR para cualquier sede">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <span>Subida Rápida (Carga Libre)</span>
@@ -1217,6 +1229,201 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: ESTADÍSTICA MENSUAL (SEDES & PARTICIPACIÓN DE TAREAS) ==================== -->
+  <div id="modal-estadistica-mensual" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] max-w-4xl w-full shadow-2xl">
+      
+      <!-- Encabezado del Modal -->
+      <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center text-base shadow-sm font-bold">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base leading-tight">Estadística Mensual de Actividades HyS</h3>
+            <span class="text-[11px] text-white/70">Establecimientos visitados y porcentaje de participación por tipo de tarea</span>
+          </div>
+        </div>
+        <button onclick="cerrarModal('modal-estadistica-mensual')" class="text-white/80 hover:text-white text-lg p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Barra de Filtros de Período del Modal -->
+      <div class="bg-slate-50 p-3 px-6 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Año Evaluado</label>
+            <select id="stat-mes-anio" class="input-select text-xs font-bold py-1.5 px-3 min-w-[100px]" onchange="renderEstadisticaMensualModal()">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="todos">Todos los Años</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Mes del Período</label>
+            <select id="stat-mes-selector" class="input-select text-xs font-bold py-1.5 px-3 min-w-[170px]" onchange="renderEstadisticaMensualModal()">
+              <!-- Se rellena dinámicamente con los 12 meses -->
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="stat-mes-badge-cumplimiento" class="text-xs font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+            Meta: 25 a 30 sedes
+          </span>
+        </div>
+      </div>
+
+      <!-- Cuerpo del Modal con Scroll -->
+      <div class="p-5 overflow-y-auto space-y-5 text-slate-800">
+        
+        <!-- 4 Tarjetas de Métricas Resumen del Mes -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          
+          <div class="bg-blue-50/80 p-3.5 rounded-xl border border-blue-200 flex flex-col justify-between">
+            <div class="text-[10px] font-extrabold text-blue-900 uppercase tracking-wider flex items-center justify-between">
+              <span>Sedes Visitadas</span>
+              <i class="fa-solid fa-building-circle-check text-blue-600"></i>
+            </div>
+            <div class="text-2xl font-black text-blue-900 mt-1">
+              <span id="stat-kpi-sedes-visitadas">0</span> <span class="text-xs font-semibold text-blue-700">sedes</span>
+            </div>
+            <div class="text-[11px] text-blue-800 font-semibold mt-1 flex justify-between">
+              <span>Meta mensual: 25 - 30</span>
+              <span id="stat-kpi-sedes-pct" class="font-bold">0%</span>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="stat-kpi-sedes-bar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="bg-indigo-50/80 p-3.5 rounded-xl border border-indigo-200 flex flex-col justify-between">
+            <div class="text-[10px] font-extrabold text-indigo-900 uppercase tracking-wider flex items-center justify-between">
+              <span>Total de Tareas Realizadas</span>
+              <i class="fa-solid fa-list-check text-indigo-600"></i>
+            </div>
+            <div class="text-2xl font-black text-indigo-900 mt-1">
+              <span id="stat-kpi-total-tareas">0</span> <span class="text-xs font-semibold text-indigo-700">actividades</span>
+            </div>
+            <div class="text-[11px] text-indigo-800 font-semibold mt-1">
+              Promedio: <strong id="stat-kpi-promedio-tareas" class="text-indigo-950">0</strong> tareas por sede
+            </div>
+            <div class="w-full bg-indigo-200 rounded-full h-1.5 mt-2">
+              <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <div class="bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200 flex flex-col justify-between">
+            <div class="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+              <span>Tarea de Mayor Participación</span>
+              <i class="fa-solid fa-award text-emerald-600"></i>
+            </div>
+            <div class="text-sm font-black text-emerald-900 mt-1 truncate" id="stat-kpi-tarea-top-nombre">
+              -
+            </div>
+            <div class="text-[11px] text-emerald-800 font-semibold mt-1 flex justify-between">
+              <span id="stat-kpi-tarea-top-cant">0 tareas</span>
+              <span id="stat-kpi-tarea-top-pct" class="font-bold">0% del mes</span>
+            </div>
+            <div class="w-full bg-emerald-200 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="stat-kpi-tarea-top-bar" class="bg-emerald-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="bg-purple-50/80 p-3.5 rounded-xl border border-purple-200 flex flex-col justify-between">
+            <div class="text-[10px] font-extrabold text-purple-900 uppercase tracking-wider flex items-center justify-between">
+              <span>Sedes >1000 m² Visitadas</span>
+              <i class="fa-solid fa-ruler-combined text-purple-600"></i>
+            </div>
+            <div class="text-2xl font-black text-purple-900 mt-1">
+              <span id="stat-kpi-sup-visitadas">0</span> <span class="text-xs font-semibold text-purple-700">sedes</span>
+            </div>
+            <div class="text-[11px] text-purple-800 font-semibold mt-1 flex justify-between" id="stat-kpi-sup-mediciones">
+              <span>Mediciones obligatorias</span>
+              <span class="font-bold" id="stat-kpi-sup-con-med">-</span>
+            </div>
+            <div class="w-full bg-purple-200 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="stat-kpi-sup-bar" class="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Participación Porcentual por Tipo de Tarea (Tabla & Barras de Participación) -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <h4 class="font-extrabold text-xs text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-chart-bar text-indigo-600"></i>
+              <span>Distribución & Participación de Tareas en el Mes (<span id="stat-lbl-mes-actual">Mes</span>)</span>
+            </h4>
+            <span class="text-[11px] font-semibold text-slate-500">Ordenado por porcentaje de participación</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
+                <tr>
+                  <th class="py-2.5 px-4 min-w-[220px]">Tipo de Tarea / Actividad Técnica</th>
+                  <th class="py-2.5 px-3 text-center min-w-[80px]">Cantidad</th>
+                  <th class="py-2.5 px-4 min-w-[240px]">Participación del Mes (% Share)</th>
+                  <th class="py-2.5 px-3 text-center min-w-[120px]">Sedes que la Recibieron</th>
+                  <th class="py-2.5 px-3 text-center min-w-[100px]">% de Sedes del Mes</th>
+                </tr>
+              </thead>
+              <tbody id="stat-tabla-tareas-body" class="divide-y divide-slate-100 text-slate-700">
+                <!-- Se llena dinámicamente -->
+              </tbody>
+              <tfoot id="stat-tabla-tareas-foot" class="bg-slate-50 font-bold text-slate-800 border-t border-slate-200 text-xs">
+                <!-- Totales -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Listado Detallado de Establecimientos Visitados en el Mes -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <h4 class="font-extrabold text-xs text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-blue-600"></i>
+              <span>Establecimientos Visitados en el Mes (<span id="stat-lbl-cant-sedes-lista">0</span> sedes)</span>
+            </h4>
+            <span class="text-[11px] font-semibold text-slate-500">Click en la fila para ir a la Ficha Técnica</span>
+          </div>
+          <div class="overflow-x-auto max-h-60">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
+                <tr>
+                  <th class="py-2 px-3 w-16">N° Est</th>
+                  <th class="py-2 px-3 min-w-[200px]">Establecimiento</th>
+                  <th class="py-2 px-3 min-w-[160px]">Organismo</th>
+                  <th class="py-2 px-3 min-w-[120px]">Localidad</th>
+                  <th class="py-2 px-2 text-center min-w-[70px]">Sup. m²</th>
+                  <th class="py-2 px-3 min-w-[180px]">Tareas Realizadas en el Mes</th>
+                  <th class="py-2 px-3 text-right w-20">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="stat-tabla-sedes-visitadas-body" class="divide-y divide-slate-100 text-slate-700">
+                <!-- Se llena dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del Modal -->
+      <div class="p-3.5 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <div class="text-xs text-slate-500 flex items-center gap-2">
+          <i class="fa-solid fa-circle-info text-blue-500"></i>
+          <span>Plan Provincial HyS • Meta: 25 a 30 establecimientos visitados por mes.</span>
+        </div>
+        <button onclick="cerrarModal('modal-estadistica-mensual')" class="btn-secondary text-xs">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==================== MODAL: EDITAR SUPERFICIE (m²) ==================== -->
   <div id="modal-editar-superficie" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden">
@@ -1437,7 +1644,7 @@
 
   <!-- Carga de datos de catálogo (452 establecimientos) y lógica -->
   <script src="datos_precargados_v2.js"></script>
-  <script src="portal_app_v2.js?v=20261019_7"></script>
+  <script src="portal_app_v2.js?v=20261019_8"></script>
 
 </body>
 </html>

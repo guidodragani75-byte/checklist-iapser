@@ -5627,6 +5627,315 @@ function abrirModalTableroGeneral() {
 }
 window.abrirModalTableroGeneral = abrirModalTableroGeneral;
 
+// ==================== ESTADÍSTICA MENSUAL (SEDES & PARTICIPACIÓN DE TAREAS) ====================
+
+function abrirModalEstadisticaMensual(mesDeseado = null, anioDeseado = null) {
+  const modal = document.getElementById('modal-estadistica-mensual');
+  if (!modal) return;
+
+  const anioActual = anioDeseado || AppState.matrizAnio || '2026';
+  const anioSelect = document.getElementById('stat-mes-anio');
+  if (anioSelect) anioSelect.value = anioActual;
+
+  // Llenar selector de meses si no tiene opciones completas
+  const mesSelect = document.getElementById('stat-mes-selector');
+  if (mesSelect) {
+    let mesSeleccionado = mesDeseado || (AppState.matrizMes !== 'todos' ? AppState.matrizMes : null);
+    
+    // Si no hay mes seleccionado, buscar el mes más reciente con actividades
+    if (!mesSeleccionado) {
+      const metricas = calcularMetricasPlanHyS(anioActual, 'todos');
+      for (let m = 12; m >= 1; m--) {
+        const mCod = (m < 10 ? '0' : '') + m;
+        if (metricas.visitasPorMes[mCod] && metricas.visitasPorMes[mCod].size > 0) {
+          mesSeleccionado = mCod;
+          break;
+        }
+      }
+      if (!mesSeleccionado) mesSeleccionado = '09'; // Default a Septiembre si no hay nada
+    }
+
+    mesSelect.innerHTML = MESES_NOMBRES.map((nombre, idx) => {
+      const cod = (idx + 1 < 10 ? '0' : '') + (idx + 1);
+      return `<option value="${cod}" ${cod === mesSeleccionado ? 'selected' : ''}>${cod} - ${nombre}</option>`;
+    }).join('');
+  }
+
+  renderEstadisticaMensualModal();
+  modal.classList.remove('hidden');
+}
+window.abrirModalEstadisticaMensual = abrirModalEstadisticaMensual;
+
+function renderEstadisticaMensualModal() {
+  const anio = (document.getElementById('stat-mes-anio')?.value || AppState.matrizAnio || '2026').trim();
+  const mes = (document.getElementById('stat-mes-selector')?.value || '09').trim();
+  const mesIdx = parseInt(mes, 10) - 1;
+  const mesNombre = MESES_NOMBRES[mesIdx] || `Mes ${mes}`;
+
+  const lblMes = document.getElementById('stat-lbl-mes-actual');
+  if (lblMes) lblMes.textContent = `${mesNombre} ${anio === 'todos' ? '' : anio}`;
+
+  // 1. Recopilar actividades y establecimientos visitados en ese año y mes
+  const sedesVisitadasMap = new Map(); // idEst -> { est, actsMes: [] }
+  const conteoTareas = {};
+  const sedesPorTarea = {};
+  let totalTareasMes = 0;
+  let sedesMayor1000Visitadas = 0;
+  let sedesMayor1000ConMed = 0;
+
+  Object.values(AppState.establecimientos).forEach(est => {
+    const acts = obtenerActividadesDeSede(est);
+    const actsMes = acts.filter(a => {
+      if (anio !== 'todos') {
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        if (aAnio !== anio) return false;
+      }
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (!mInfo || !mInfo.mes) return false;
+      const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+      return mCod === mes;
+    });
+
+    if (actsMes.length > 0) {
+      sedesVisitadasMap.set(est.id, { est, actsMes });
+      const numSup = Number(est.superficie);
+      if (numSup >= 1000) {
+        sedesMayor1000Visitadas++;
+        const tieneMed = acts.some(a => {
+          const norm = normalizarTipoActividad(a.tipoActividad);
+          return norm === 'medicion_pat' || norm === 'medicion_ruido' || norm === 'medicion_iluminacion';
+        });
+        if (tieneMed) sedesMayor1000ConMed++;
+      }
+
+      actsMes.forEach(a => {
+        totalTareasMes++;
+        const tipoNorm = normalizarTipoActividad(a.tipoActividad);
+        conteoTareas[tipoNorm] = (conteoTareas[tipoNorm] || 0) + 1;
+        if (!sedesPorTarea[tipoNorm]) sedesPorTarea[tipoNorm] = new Set();
+        sedesPorTarea[tipoNorm].add(est.id);
+      });
+    }
+  });
+
+  const cantSedesVisitadas = sedesVisitadasMap.size;
+
+  // 2. Actualizar KPIs del encabezado
+  const elVis = document.getElementById('stat-kpi-sedes-visitadas');
+  const elVisPct = document.getElementById('stat-kpi-sedes-pct');
+  const elVisBar = document.getElementById('stat-kpi-sedes-bar');
+  const elBadgeCumplimiento = document.getElementById('stat-mes-badge-cumplimiento');
+  if (elVis) elVis.textContent = cantSedesVisitadas;
+  const pctMeta = Math.min(100, Math.round((cantSedesVisitadas / 25) * 100));
+  if (elVisPct) elVisPct.textContent = `${pctMeta}% de meta (25-30)`;
+  if (elVisBar) elVisBar.style.width = `${pctMeta}%`;
+
+  if (elBadgeCumplimiento) {
+    if (cantSedesVisitadas >= 25) {
+      elBadgeCumplimiento.className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+      elBadgeCumplimiento.textContent = `✓ Meta Mensual Cumplida (${cantSedesVisitadas} sedes visitadas)`;
+    } else if (cantSedesVisitadas > 0) {
+      elBadgeCumplimiento.className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+      elBadgeCumplimiento.textContent = `⏳ En curso: ${cantSedesVisitadas} de 25-30 sedes (${pctMeta}%)`;
+    } else {
+      elBadgeCumplimiento.className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-300';
+      elBadgeCumplimiento.textContent = 'Sin visitas registradas en este mes';
+    }
+  }
+
+  const elTotTareas = document.getElementById('stat-kpi-total-tareas');
+  const elPromTareas = document.getElementById('stat-kpi-promedio-tareas');
+  if (elTotTareas) elTotTareas.textContent = totalTareasMes;
+  const promTareas = cantSedesVisitadas > 0 ? (totalTareasMes / cantSedesVisitadas).toFixed(1) : '0';
+  if (elPromTareas) elPromTareas.textContent = promTareas;
+
+  // Tarea de mayor participación
+  let topTareaKey = null;
+  let topTareaCount = 0;
+  Object.entries(conteoTareas).forEach(([tKey, tCount]) => {
+    if (tCount > topTareaCount) {
+      topTareaCount = tCount;
+      topTareaKey = tKey;
+    }
+  });
+
+  const elTopNom = document.getElementById('stat-kpi-tarea-top-nombre');
+  const elTopCant = document.getElementById('stat-kpi-tarea-top-cant');
+  const elTopPct = document.getElementById('stat-kpi-tarea-top-pct');
+  const elTopBar = document.getElementById('stat-kpi-tarea-top-bar');
+
+  if (topTareaKey && totalTareasMes > 0) {
+    const cat = CATALOGO_ACTIVIDADES[topTareaKey] || { nombre: topTareaKey, icono: '📋' };
+    if (elTopNom) elTopNom.innerHTML = `${cat.icono || '📋'} ${escapeHtml(cat.nombre)}`;
+    if (elTopCant) elTopCant.textContent = `${topTareaCount} tareas`;
+    const topPct = ((topTareaCount / totalTareasMes) * 100).toFixed(1);
+    if (elTopPct) elTopPct.textContent = `${topPct}% de participación`;
+    if (elTopBar) elTopBar.style.width = `${Math.min(100, parseFloat(topPct))}%`;
+  } else {
+    if (elTopNom) elTopNom.textContent = 'Sin actividades';
+    if (elTopCant) elTopCant.textContent = '0 tareas';
+    if (elTopPct) elTopPct.textContent = '0%';
+    if (elTopBar) elTopBar.style.width = '0%';
+  }
+
+  // Sedes >1000m² visitadas
+  const elSupVis = document.getElementById('stat-kpi-sup-visitadas');
+  const elSupMed = document.getElementById('stat-kpi-sup-con-med');
+  const elSupBar = document.getElementById('stat-kpi-sup-bar');
+  if (elSupVis) elSupVis.textContent = sedesMayor1000Visitadas;
+  if (elSupMed) elSupMed.textContent = `${sedesMayor1000ConMed} con mediciones`;
+  const pctSup = sedesMayor1000Visitadas > 0 ? Math.round((sedesMayor1000ConMed / sedesMayor1000Visitadas) * 100) : 0;
+  if (elSupBar) elSupBar.style.width = `${pctSup}%`;
+
+  // 3. Renderizar Tabla de Participación de Tareas
+  const tbodyTareas = document.getElementById('stat-tabla-tareas-body');
+  const tfootTareas = document.getElementById('stat-tabla-tareas-foot');
+
+  if (tbodyTareas) {
+    if (totalTareasMes === 0) {
+      tbodyTareas.innerHTML = `
+        <tr>
+          <td colspan="5" class="py-10 text-center text-slate-400 text-xs font-semibold">
+            <i class="fa-regular fa-calendar-xmark text-3xl mb-2 block text-slate-300"></i>
+            No se registraron tareas ni visitas para el mes de ${mesNombre} (${anio}).
+          </td>
+        </tr>
+      `;
+      if (tfootTareas) tfootTareas.innerHTML = '';
+    } else {
+      // Ordenar tareas de mayor a menor cantidad
+      const sortedTareas = Object.entries(conteoTareas).sort((a, b) => b[1] - a[1]);
+      let htmlFilasTareas = '';
+
+      sortedTareas.forEach(([tKey, count]) => {
+        const cat = CATALOGO_ACTIVIDADES[tKey] || { nombre: tKey, icono: '📋', codigo: tKey, color: '#4f46e5' };
+        const sharePct = ((count / totalTareasMes) * 100).toFixed(1);
+        const sedesRecibieron = sedesPorTarea[tKey] ? sedesPorTarea[tKey].size : 0;
+        const pctSedes = cantSedesVisitadas > 0 ? Math.round((sedesRecibieron / cantSedesVisitadas) * 100) : 0;
+        const colorBarra = cat.color || '#4f46e5';
+
+        htmlFilasTareas += `
+          <tr class="hover:bg-slate-50 border-b border-slate-100 text-xs transition">
+            <td class="py-2.5 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+              <span class="text-base">${cat.icono || '📋'}</span>
+              <div>
+                <div class="font-bold text-slate-900">${escapeHtml(cat.nombre)}</div>
+                <div class="text-[10px] text-slate-500 font-mono">Código: ${cat.codigo || tKey}</div>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-center font-extrabold text-blue-900 text-sm whitespace-nowrap">
+              ${count}
+            </td>
+            <td class="py-2.5 px-4">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+                <span>${sharePct}%</span>
+                <span class="text-[10px] text-slate-400 font-normal">${count} de ${totalTareasMes} tareas</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden shadow-2xs">
+                <div class="h-2 rounded-full transition-all duration-500" style="width: ${sharePct}%; background-color: ${colorBarra};"></div>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-700 whitespace-nowrap">
+              ${sedesRecibieron} sedes
+            </td>
+            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${pctSedes >= 80 ? 'bg-emerald-100 text-emerald-800' : (pctSedes >= 40 ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700')}">
+                ${pctSedes}%
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbodyTareas.innerHTML = htmlFilasTareas;
+
+      if (tfootTareas) {
+        tfootTareas.innerHTML = `
+          <tr>
+            <td class="py-2.5 px-4 font-black">TOTAL TAREAS DEL MES</td>
+            <td class="py-2.5 px-3 text-center font-black text-blue-900 text-sm">${totalTareasMes}</td>
+            <td class="py-2.5 px-4 font-black">100.0% de participación</td>
+            <td class="py-2.5 px-3 text-center font-black">${cantSedesVisitadas} sedes visitadas</td>
+            <td class="py-2.5 px-3 text-center font-black">-</td>
+          </tr>
+        `;
+      }
+    }
+  }
+
+  // 4. Renderizar Listado de Establecimientos Visitados en el Mes
+  const tbodySedes = document.getElementById('stat-tabla-sedes-visitadas-body');
+  const lblCantSedes = document.getElementById('stat-lbl-cant-sedes-lista');
+  if (lblCantSedes) lblCantSedes.textContent = cantSedesVisitadas;
+
+  if (tbodySedes) {
+    if (cantSedesVisitadas === 0) {
+      tbodySedes.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-8 text-center text-slate-400 text-xs font-semibold">
+            No hay establecimientos visitados en este mes.
+          </td>
+        </tr>
+      `;
+    } else {
+      let htmlFilasSedes = '';
+      const arrayVisitadas = Array.from(sedesVisitadasMap.values());
+      
+      arrayVisitadas.forEach(({ est, actsMes }) => {
+        const numSup = Number(est.superficie);
+        let supBadge = '';
+        if (numSup >= 1000) {
+          supBadge = `<span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 font-extrabold text-[10px] border border-purple-300">⚡ ${numSup} m²</span>`;
+        } else if (numSup > 0) {
+          supBadge = `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">${numSup} m²</span>`;
+        } else {
+          supBadge = `<span class="text-slate-400 text-[10px] font-mono">-</span>`;
+        }
+
+        // Badges de tareas que tuvo esta sede en el mes
+        const tareasSedeHtml = actsMes.map(a => {
+          const cat = CATALOGO_ACTIVIDADES[normalizarTipoActividad(a.tipoActividad)] || { nombre: a.tipoActividad, codigo: a.tipoActividad };
+          return `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-semibold" title="${escapeHtml(cat.nombre)} (${formatearFechaDdmmaaa(a.fechaActividad)})">${cat.codigo || cat.nombre}</span>`;
+        }).join(' ');
+
+        htmlFilasSedes += `
+          <tr class="hover:bg-blue-50/40 border-b border-slate-100 text-xs transition cursor-pointer" onclick="cerrarModal('modal-estadistica-mensual'); irAFichaEstablecimiento('${est.id}');">
+            <td class="py-2.5 px-3 font-mono font-bold text-slate-700 whitespace-nowrap bg-white">
+              ${est.nroEstab ? '#' + est.nroEstab : '-'}
+            </td>
+            <td class="py-2.5 px-3 font-semibold text-slate-900 max-w-[200px] truncate" title="${escapeHtml(est.nombreEstablecimiento)}">
+              ${escapeHtml(est.nombreEstablecimiento)}
+            </td>
+            <td class="py-2.5 px-3 text-slate-600 max-w-[160px] truncate" title="${escapeHtml(est.organismo)}">
+              ${escapeHtml(est.organismo)}
+            </td>
+            <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">
+              ${escapeHtml(est.localidad)}
+            </td>
+            <td class="py-2.5 px-2 text-center whitespace-nowrap">
+              ${supBadge}
+            </td>
+            <td class="py-2.5 px-3">
+              <div class="flex flex-wrap gap-1">
+                ${tareasSedeHtml}
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-right whitespace-nowrap">
+              <button onclick="cerrarModal('modal-estadistica-mensual'); irAFichaEstablecimiento('${est.id}'); event.stopPropagation();" class="text-xs text-blue-700 hover:text-blue-900 font-bold p-1 hover:bg-blue-100 rounded flex items-center gap-1 ml-auto">
+                <span>Ficha</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbodySedes.innerHTML = htmlFilasSedes;
+    }
+  }
+}
+window.renderEstadisticaMensualModal = renderEstadisticaMensualModal;
+
 // ==================== GESTIÓN DE SUPERFICIE (m²) ====================
 
 function abrirModalEditarSuperficie(estId) {
