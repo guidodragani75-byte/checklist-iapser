@@ -332,7 +332,75 @@ function doGet(e) {
           results.push(item);
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", actividades: results }))
+
+      // Obtener superficies de establecimientos si la hoja existe
+      var sSup = ss.getSheetByName("Superficie_Establecimientos");
+      var superficies = {};
+      var sheetSuperficiesUrl = "";
+      if (sSup) {
+        try { sheetSuperficiesUrl = ss.getUrl() + "#gid=" + sSup.getSheetId(); } catch(eSId) {}
+        if (sSup.getLastRow() > 1) {
+          var dSup = sSup.getDataRange().getValues();
+          for (var rowI = 1; rowI < dSup.length; rowI++) {
+            var rId = String(dSup[rowI][0] || "").trim();
+            var rNro = String(dSup[rowI][1] || "").trim();
+            var rNom = String(dSup[rowI][2] || "").trim().toLowerCase();
+            var rM2 = parseFloat(dSup[rowI][6]);
+            if (!isNaN(rM2) && rM2 > 0) {
+              var itemM2 = { m2: rM2, requiereMediciones: rM2 >= 1000 };
+              if (rId) superficies[rId] = itemM2;
+              if (rNro) superficies["nro_" + rNro] = itemM2;
+              if (rNom) superficies["nom_" + rNom] = itemM2;
+            }
+          }
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: "success", 
+        actividades: results,
+        superficies: superficies,
+        sheetSuperficiesUrl: sheetSuperficiesUrl || ss.getUrl()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2b. Obtener Superficies de Establecimientos
+    if (action === "get_superficies") {
+      var sSupOnly = ss.getSheetByName("Superficie_Establecimientos");
+      var supMap = {};
+      var sUrl = "";
+      if (sSupOnly) {
+        try { sUrl = ss.getUrl() + "#gid=" + sSupOnly.getSheetId(); } catch(eU) { sUrl = ss.getUrl(); }
+        if (sSupOnly.getLastRow() > 1) {
+          var dS = sSupOnly.getDataRange().getValues();
+          for (var rS = 1; rS < dS.length; rS++) {
+            var idS = String(dS[rS][0] || "").trim();
+            var nroS = String(dS[rS][1] || "").trim();
+            var nomS = String(dS[rS][2] || "").trim().toLowerCase();
+            var m2S = parseFloat(dS[rS][6]);
+            if (!isNaN(m2S) && m2S > 0) {
+              var itemS = { m2: m2S, requiereMediciones: m2S >= 1000 };
+              if (idS) supMap[idS] = itemS;
+              if (nroS) supMap["nro_" + nroS] = itemS;
+              if (nomS) supMap["nom_" + nomS] = itemS;
+            }
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: "success", 
+        superficies: supMap,
+        sheetUrl: sUrl || ss.getUrl()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2c. Guardar Superficie vía GET
+    if (action === "guardar_superficie") {
+      var idGet = e.parameter.idSede || e.parameter.id;
+      var nroGet = e.parameter.nroEstab || "";
+      var m2Get = e.parameter.superficie || e.parameter.m2;
+      var resM2Get = guardarSuperficieSede(ss, idGet, nroGet, "", m2Get);
+      return ContentService.createTextOutput(JSON.stringify(resM2Get))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -779,6 +847,24 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // ========================================================
+    // CASO 1.8: SETUP / POBLAR HOJA SUPERFICIES (M2)
+    // ========================================================
+    if (data.tipoOperacion === "setup_superficies") {
+      var resSetup = setupSuperficiesSheet(ss, data.establecimientos || []);
+      return ContentService.createTextOutput(JSON.stringify(resSetup))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ========================================================
+    // CASO 1.9: GUARDAR / ACTUALIZAR SUPERFICIE (M2) DE SEDE
+    // ========================================================
+    if (data.tipoOperacion === "guardar_superficie") {
+      var resM2 = guardarSuperficieSede(ss, data.id, data.nroEstab, data.nombreEstablecimiento, data.m2);
+      return ContentService.createTextOutput(JSON.stringify(resM2))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
 
     // ========================================================
     // CASO 2: CONTROL DE EXTINTORES (Móvil Offline)
@@ -1171,4 +1257,128 @@ function guardarEnHojaDatos(ss, data, orgVal, nombreEstabVal, nroVal, domVal, lo
     data.observaciones || "",
     JSON.stringify(data)
   ]);
+}
+
+// ========================================================
+// FUNCIONES DE CONTROL DE SUPERFICIES (M2) Y MEDICIONES OBLIGATORIAS
+// ========================================================
+
+function setupSuperficiesSheet(ss, estsList) {
+  var sheet = ss.getSheetByName("Superficie_Establecimientos");
+  if (!sheet) {
+    sheet = ss.insertSheet("Superficie_Establecimientos");
+  }
+
+  var headers = [
+    "ID Sede",
+    "N° Estab",
+    "Nombre Establecimiento",
+    "Organismo",
+    "Localidad",
+    "Domicilio",
+    "Superficie Cubierta (m²)",
+    "Requiere Mediciones (>1000 m²)",
+    "Estado Mediciones Realizadas"
+  ];
+
+  var existingMap = {};
+  if (sheet.getLastRow() > 1) {
+    var existingData = sheet.getDataRange().getValues();
+    for (var r = 1; r < existingData.length; r++) {
+      var row = existingData[r];
+      var idKey = String(row[0] || "").trim();
+      var nroKey = String(row[1] || "").trim();
+      var m2Val = row[6];
+      if (idKey && m2Val !== "" && m2Val !== null && m2Val !== undefined) existingMap[idKey] = m2Val;
+      if (nroKey && m2Val !== "" && m2Val !== null && m2Val !== undefined) existingMap["nro_" + nroKey] = m2Val;
+    }
+  }
+
+  sheet.clear();
+  sheet.appendRow(headers);
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground("#0b3d63").setFontColor("#ffffff").setFontWeight("bold");
+  sheet.setFrozenRows(1);
+
+  if (estsList && estsList.length > 0) {
+    var rowsToInsert = [];
+    for (var i = 0; i < estsList.length; i++) {
+      var e = estsList[i];
+      var id = e.id || ("est_" + (e.nroEstab || i));
+      var nro = e.nroEstab || "";
+      var m2Existente = existingMap[id] !== undefined ? existingMap[id] : (existingMap["nro_" + nro] !== undefined ? existingMap["nro_" + nro] : "");
+      
+      var rowIdx = i + 2;
+      var formulaReq = '=IF(ISBLANK(G' + rowIdx + '); "⏳ Pendiente dato m²"; IF(G' + rowIdx + '>=1000; "⚡ SÍ (Requiere Mediciones)"; "✓ NO (<1000 m²)"))';
+      
+      rowsToInsert.push([
+        id,
+        nro,
+        e.nombreEstablecimiento || "",
+        e.organismo || "",
+        e.localidad || "",
+        e.domicilio || "",
+        m2Existente,
+        formulaReq,
+        ""
+      ]);
+    }
+    if (rowsToInsert.length > 0) {
+      sheet.getRange(2, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+    }
+  }
+
+  // Estilo visual: Columna G con fondo verde suave destacado para invitar a la edición
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 7, sheet.getLastRow() - 1, 1)
+      .setBackground("#f0fdf4")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+      
+    sheet.getRange(2, 8, sheet.getLastRow() - 1, 1)
+      .setHorizontalAlignment("center");
+  }
+
+  var sheetUrl = "";
+  try { sheetUrl = ss.getUrl() + "#gid=" + sheet.getSheetId(); } catch(eU) { sheetUrl = ss.getUrl(); }
+
+  return { 
+    status: "success", 
+    count: estsList ? estsList.length : 0,
+    sheetUrl: sheetUrl
+  };
+}
+
+function guardarSuperficieSede(ss, id, nroEstab, nombreEstab, m2) {
+  var sheet = ss.getSheetByName("Superficie_Establecimientos");
+  if (!sheet || sheet.getLastRow() <= 1) return { status: "error", message: "Hoja no inicializada" };
+  
+  var data = sheet.getDataRange().getValues();
+  var targetRow = -1;
+  var sId = String(id || "").trim();
+  var sNro = String(nroEstab || "").trim().toLowerCase();
+  var sNom = String(nombreEstab || "").trim().toLowerCase();
+  
+  for (var r = 1; r < data.length; r++) {
+    var rId = String(data[r][0] || "").trim();
+    var rNro = String(data[r][1] || "").trim().toLowerCase();
+    var rNom = String(data[r][2] || "").trim().toLowerCase();
+    
+    if (sId && rId && sId === rId) {
+      targetRow = r + 1;
+      break;
+    } else if (sNro && rNro && sNro === rNro) {
+      targetRow = r + 1;
+      break;
+    } else if (sNom && rNom && (sNom === rNom || sNom.includes(rNom) || rNom.includes(sNom))) {
+      targetRow = r + 1;
+      break;
+    }
+  }
+  
+  if (targetRow !== -1) {
+    sheet.getRange(targetRow, 7).setValue(m2);
+    return { status: "success", row: targetRow, m2: m2 };
+  }
+  return { status: "not_found" };
 }

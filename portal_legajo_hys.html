@@ -393,45 +393,100 @@
          ======================================================== -->
     <div id="vista-matriz" class="modulo-vista hidden w-full space-y-4">
       
-      <!-- KPIs de la Matriz -->
+      <!-- KPIs Ejecutivos del Plan HyS: Stock Total, Avance Mensual, Acumulado y Mediciones >1000m² -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <div id="matriz-kpi-lbl-acts" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actividades en el Año</div>
-            <div id="matriz-kpi-total-acts" class="text-2xl font-extrabold text-blue-900 mt-0.5">0</div>
+        
+        <!-- Card 1: Stock Total (Meta 100% Visitadas) -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <div class="text-[10px] font-extrabold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-city text-blue-600"></i>
+              <span>Stock Total Provincial</span>
+            </div>
+            <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Plan 100%</span>
           </div>
-          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-list-check"></i>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <div id="matriz-kpi-lbl-sedes" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sedes con Cobertura</div>
-            <div id="matriz-kpi-sedes-cobertura" class="text-2xl font-extrabold text-emerald-700 mt-0.5">0 de 452</div>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-building-circle-check"></i>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <div id="matriz-kpi-lbl-pct" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">% Cobertura Provincial</div>
-            <div id="matriz-kpi-pct-cobertura" class="text-2xl font-extrabold text-purple-900 mt-0.5">0%</div>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-chart-line"></i>
+          <div class="mt-2">
+            <div class="text-2xl font-black text-slate-900 leading-none">
+              <span id="kpi-stock-visitadas">0</span> <span class="text-sm font-semibold text-slate-400">/ 452 sedes</span>
+            </div>
+            <div class="text-xs text-slate-600 font-semibold mt-1 flex items-center justify-between">
+              <span id="kpi-stock-pct">0% cubierto</span>
+              <span id="kpi-stock-pendientes" class="text-amber-700 font-bold">452 pendientes</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="kpi-stock-bar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
           </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <div id="matriz-kpi-lbl-regla" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Regla de Conteo</div>
-            <div class="text-xs font-semibold text-slate-700 mt-1" id="matriz-kpi-regla-conteo">Cantidad realizada por actividad</div>
+        <!-- Card 2: Avance Mensual (Meta 25-30 sedes/mes) -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <div class="text-[10px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-check text-amber-600"></i>
+              <span id="kpi-mes-titulo">Avance Mensual</span>
+            </div>
+            <span id="kpi-mes-badge-status" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Meta: 25-30</span>
           </div>
-          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-calculator"></i>
+          <div class="mt-2">
+            <div class="text-2xl font-black text-slate-900 leading-none">
+              <span id="kpi-mes-visitadas">0</span> <span class="text-sm font-semibold text-slate-400">sedes</span>
+            </div>
+            <div class="text-xs text-slate-600 font-semibold mt-1 flex items-center justify-between">
+              <span>Meta mensual: 25 a 30</span>
+              <span id="kpi-mes-pct" class="font-bold text-slate-800">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="kpi-mes-bar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Avance Acumulado del Plan -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <div class="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-line text-emerald-600"></i>
+              <span>Avance Acumulado</span>
+            </div>
+            <span id="kpi-acum-desvio-badge" class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700">Acumulado</span>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-black text-emerald-900 leading-none">
+              <span id="kpi-acum-visitadas">0</span> <span class="text-sm font-semibold text-slate-400">sedes</span>
+            </div>
+            <div class="text-xs text-slate-600 font-semibold mt-1 flex items-center justify-between">
+              <span id="kpi-acum-subtitulo">Meta acumulada</span>
+              <span id="kpi-acum-meta-val" class="font-bold text-slate-800">-</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="kpi-acum-bar" class="bg-emerald-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Superficies > 1000 m2 (Mediciones Obligatorias) -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <div class="text-[10px] font-extrabold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-ruler-combined text-purple-600"></i>
+              <span>Sedes > 1000 m² (Mediciones)</span>
+            </div>
+            <a id="btn-link-sheet-kpi" href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834" target="_blank" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200 flex items-center gap-1 transition" title="Abrir planilla para completar m² de cada sede">
+              <i class="fa-solid fa-table"></i> Sheets m²
+            </a>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-black text-purple-900 leading-none">
+              <span id="kpi-sup-con-med">0</span> <span class="text-sm font-semibold text-slate-400">/ <span id="kpi-sup-total">0</span> con mediciones</span>
+            </div>
+            <div class="text-xs text-slate-600 font-semibold mt-1 flex items-center justify-between">
+              <span>PAT, Ruido, Ilum</span>
+              <span id="kpi-sup-sin-dato" class="text-amber-700 font-bold">Pendientes de m²</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="kpi-sup-bar" class="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -512,6 +567,13 @@
               <optgroup label="Estado General">
                 <option value="con_docs">✅ Con Actividades Cargadas (≥ 1)</option>
                 <option value="sin_docs">⏳ Sin Actividades (Pendientes 0)</option>
+              </optgroup>
+              <optgroup label="Superficie & Mediciones Requeridas">
+                <option value="sup_mayor_1000">🏢 Sedes > 1000 m² (Requieren Mediciones)</option>
+                <option value="sup_mayor_1000_sin_med">⚠️ Sedes > 1000 m² SIN Mediciones</option>
+                <option value="sup_mayor_1000_con_med">✓ Sedes > 1000 m² CON Mediciones</option>
+                <option value="sup_menor_1000">🏠 Sedes < 1000 m²</option>
+                <option value="sup_sin_dato">❓ Sedes Sin Dato de m²</option>
               </optgroup>
               <optgroup label="Tienen Documento Específico">
                 <option value="con_confeccion_rgrl">📋 Con RGRL (Dec. 351/79)</option>
@@ -1024,43 +1086,178 @@
   </div>
 
   <!-- ==================== MODAL: TABLERO GENERAL DE MÉTRICAS ==================== -->
-  <div id="modal-tablero-general" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+  <div id="modal-tablero-general" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] max-w-4xl w-full shadow-2xl">
       <div class="bg-[#0b3d63] text-white p-4 px-6 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-chart-pie text-amber-400"></i>
-          <h3 class="font-bold text-sm">Tablero General de Métricas Provinciales</h3>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Tablero Ejecutivo de Métricas Provinciales - Plan HyS</h3>
+            <span class="text-[11px] text-white/70">Seguimiento de Metas: 100% Cobertura Provincial | 25-30 Visitas/Mes | Sedes >1000 m²</span>
+          </div>
         </div>
         <button onclick="cerrarModal('modal-tablero-general')" class="text-white/80 hover:text-white text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="p-6 overflow-y-auto space-y-4">
-        <div class="grid grid-cols-3 gap-3">
-          <div class="bg-blue-50 p-3 rounded-xl border border-blue-200 text-center">
-            <div class="text-[10px] font-bold text-blue-800 uppercase">Sedes Totales</div>
-            <div id="metric-total-sedes" class="text-2xl font-extrabold text-blue-900">452</div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-slate-800">
+        <!-- 4 Tarjetas de Pilares Estratégicos -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-blue-50/80 p-3.5 rounded-xl border border-blue-200">
+            <div class="text-[10px] font-extrabold text-blue-900 uppercase">Stock Total Provincial</div>
+            <div class="text-2xl font-black text-blue-900 mt-1">
+              <span id="tablero-kpi-stock-visitadas">0</span> <span class="text-xs font-semibold text-blue-700">/ 452</span>
+            </div>
+            <div class="text-[11px] text-blue-800 font-semibold mt-1" id="tablero-kpi-stock-pct">0% del Plan Cubierto</div>
+            <div class="w-full bg-blue-200 rounded-full h-1.5 mt-2">
+              <div id="tablero-kpi-stock-bar" class="bg-blue-700 h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
           </div>
-          <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center">
-            <div class="text-[10px] font-bold text-emerald-800 uppercase">Actividades Registradas</div>
-            <div id="metric-total-acts" class="text-2xl font-extrabold text-emerald-900">0</div>
+
+          <div class="bg-amber-50/80 p-3.5 rounded-xl border border-amber-200">
+            <div class="text-[10px] font-extrabold text-amber-900 uppercase">Avance Mensual (Meta 25-30)</div>
+            <div class="text-2xl font-black text-amber-900 mt-1">
+              <span id="tablero-kpi-mes-visitadas">0</span> <span class="text-xs font-semibold text-amber-700">visitas</span>
+            </div>
+            <div class="text-[11px] text-amber-800 font-semibold mt-1" id="tablero-kpi-mes-estado">Meta mensual: 25 a 30 sedes</div>
+            <div class="w-full bg-amber-200 rounded-full h-1.5 mt-2">
+              <div id="tablero-kpi-mes-bar" class="bg-amber-600 h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
           </div>
-          <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 text-center">
-            <div class="text-[10px] font-bold text-purple-800 uppercase">Archivos en Drive</div>
-            <div id="metric-total-docs" class="text-2xl font-extrabold text-purple-900">0</div>
+
+          <div class="bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200">
+            <div class="text-[10px] font-extrabold text-emerald-900 uppercase">Avance Acumulado</div>
+            <div class="text-2xl font-black text-emerald-900 mt-1">
+              <span id="tablero-kpi-acum-visitadas">0</span> <span class="text-xs font-semibold text-emerald-700">sedes</span>
+            </div>
+            <div class="text-[11px] text-emerald-800 font-semibold mt-1" id="tablero-kpi-acum-desvio">Meta acum: -</div>
+            <div class="w-full bg-emerald-200 rounded-full h-1.5 mt-2">
+              <div id="tablero-kpi-acum-bar" class="bg-emerald-600 h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="bg-purple-50/80 p-3.5 rounded-xl border border-purple-200">
+            <div class="flex items-center justify-between">
+              <div class="text-[10px] font-extrabold text-purple-900 uppercase">Sedes >1000 m²</div>
+              <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834" target="_blank" class="text-[9px] font-bold text-purple-700 underline flex items-center gap-1" title="Abrir planilla de m² en Google Sheets">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Sheets
+              </a>
+            </div>
+            <div class="text-2xl font-black text-purple-900 mt-1">
+              <span id="tablero-kpi-sup-con-med">0</span> <span class="text-xs font-semibold text-purple-700">/ <span id="tablero-kpi-sup-total">0</span></span>
+            </div>
+            <div class="text-[11px] text-purple-800 font-semibold mt-1" id="tablero-kpi-sup-sin-dato">Mediciones PAT/Ruido/Ilum</div>
+            <div class="w-full bg-purple-200 rounded-full h-1.5 mt-2">
+              <div id="tablero-kpi-sup-bar" class="bg-purple-700 h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
           </div>
         </div>
 
+        <!-- Tabla de Evolución Mensual: Real vs Meta (25-30) vs Acumulado -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <h4 class="font-extrabold text-xs text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-chart-column text-blue-600"></i>
+              <span>Evolución Mensual del Plan de Visitas (Año Seleccionado)</span>
+            </h4>
+            <span class="text-[11px] font-semibold text-slate-500">Benchmark: 25 - 30 sedes por mes</span>
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
+                <tr>
+                  <th class="py-2 px-3">Mes</th>
+                  <th class="py-2 px-3 text-center">Visitas Reales</th>
+                  <th class="py-2 px-3 text-center">Meta Mensual</th>
+                  <th class="py-2 px-3 text-center">Cumplimiento Mes</th>
+                  <th class="py-2 px-3 text-center">Acumulado Real</th>
+                  <th class="py-2 px-3 text-center">Meta Acumulada</th>
+                  <th class="py-2 px-3 text-center">Avance s/ 452</th>
+                </tr>
+              </thead>
+              <tbody id="tablero-tabla-meses-body" class="divide-y divide-slate-100 text-slate-700">
+                <!-- Se llena dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Distribución de Documentos Técnicos -->
         <div class="border-t border-slate-200 pt-3">
-          <h4 class="font-bold text-xs text-slate-800 mb-3">Distribución de Actividades Realizadas</h4>
-          <div id="metric-lista-actividades" class="space-y-2.5">
+          <h4 class="font-bold text-xs text-slate-800 mb-3 flex items-center justify-between">
+            <span>Distribución de Actividades Realizadas en el Período</span>
+            <span class="text-[11px] font-normal text-slate-500">Total actividades: <strong id="metric-total-acts" class="text-blue-900">0</strong></span>
+          </h4>
+          <div id="metric-lista-actividades" class="space-y-2">
             <!-- Rellenado dinámicamente -->
           </div>
         </div>
       </div>
-      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-end">
+
+      <div class="p-3.5 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <a id="tablero-btn-abrir-sheet" href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834" target="_blank" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-table text-emerald-600"></i> Abrir Planilla de Superficies (452 Sedes) en Sheets
+        </a>
         <button onclick="cerrarModal('modal-tablero-general')" class="btn-secondary text-xs">Cerrar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDITAR SUPERFICIE (m²) ==================== -->
+  <div id="modal-editar-superficie" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden">
+      <div class="bg-[#0b3d63] text-white p-4 px-5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-ruler-combined text-amber-400"></i>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Superficie del Establecimiento</h3>
+            <span class="text-[10px] text-white/70">Plan de Mediciones HyS (>1000 m²)</span>
+          </div>
+        </div>
+        <button onclick="cerrarModal('modal-editar-superficie')" class="text-white/80 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form onsubmit="confirmarGuardadoSuperficieModal(event)" class="p-5 space-y-4">
+        <input type="hidden" id="edit-sup-id-est">
+        
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
+          <div class="font-extrabold text-slate-900" id="edit-sup-nombre">-</div>
+          <div class="text-[11px] text-slate-500" id="edit-sup-organismo">-</div>
+          <div class="text-[11px] text-slate-500" id="edit-sup-localidad">-</div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Superficie Cubierta (m²) <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="number" id="edit-sup-m2-input" min="0" step="1" placeholder="Ej: 1450" class="input-text text-sm font-bold w-full py-2.5 px-3" required oninput="actualizarBadgePreviewSuperficie(this.value)">
+            <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400">m²</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Los establecimientos con más de 1.000 m² deben contar con mediciones obligatorias (PAT, Ruido, Iluminación).</p>
+        </div>
+
+        <!-- Preview de Requerimiento -->
+        <div id="edit-sup-badge-preview" class="p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-2 bg-slate-100 border-slate-200 text-slate-600">
+          <i class="fa-solid fa-info-circle"></i>
+          <span>Ingrese los m² para verificar requerimientos</span>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between border-t border-slate-200">
+          <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834" target="_blank" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1" title="Ver o editar todas las sedes en Google Sheets">
+            <i class="fa-solid fa-table"></i> Ver planilla completa
+          </a>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="cerrarModal('modal-editar-superficie')" class="btn-secondary text-xs">Cancelar</button>
+            <button type="submit" id="btn-guardar-superficie" class="btn-primary text-xs flex items-center gap-1.5 bg-blue-700 hover:bg-blue-800">
+              <i class="fa-solid fa-floppy-disk"></i> Guardar m²
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1227,7 +1424,7 @@
 
   <!-- Carga de datos de catálogo (452 establecimientos) y lógica -->
   <script src="datos_precargados_v2.js"></script>
-  <script src="portal_app_v2.js?v=20261019_5"></script>
+  <script src="portal_app_v2.js?v=20261019_6"></script>
 
 </body>
 </html>

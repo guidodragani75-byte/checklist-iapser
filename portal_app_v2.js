@@ -18,7 +18,9 @@ const STORAGE_KEYS = {
   CUSTOM_ACTIVITIES: 'iapser_custom_activities_v1',
   MODULO_ACTIVO: 'iapser_modulo_activo_v1',
   CARPETAS_MENSUALES: 'iapser_carpetas_mensuales_v1',
-  PARENT_MENSUAL_URL: 'iapser_parent_mensual_url'
+  PARENT_MENSUAL_URL: 'iapser_parent_mensual_url',
+  SUPERFICIES_DB: 'iapser_superficies_db',
+  SHEET_SUPERFICIES_URL: 'iapser_sheet_superficies_url'
 };
 
 // Catálogo maestro de actividades
@@ -153,6 +155,8 @@ const AppState = {
   actividadesRegistradas: {}, // estId -> array de actividades
   carpetasMensuales: {}, // key -> { key: "2026-10", label: "2026-10 (Octubre)", url: "...", id: "..." }
   parentMensualUrl: '',
+  superficies: {}, // estId -> { idSede, nroEstab, superficie, requiereMediciones }
+  sheetSuperficiesUrl: 'https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834',
   
   // Filtros Vista 1 (Ficha)
   filtroTexto: '',
@@ -450,6 +454,16 @@ function cargarEstablecimientos() {
     });
   }
 
+  // Cargar superficies precargadas/guardadas localmente
+  try {
+    const rawSup = localStorage.getItem(STORAGE_KEYS.SUPERFICIES_DB);
+    if (rawSup) {
+      AppState.superficies = JSON.parse(rawSup);
+    }
+  } catch (e) {
+    AppState.superficies = {};
+  }
+
   Object.keys(list).forEach(id => {
     const est = list[id];
     est.id = id;
@@ -459,6 +473,16 @@ function cargarEstablecimientos() {
     est.localidad = (est.localidad || 'Entre Ríos').trim();
     est.nroEstab = (est.nroEstab || '').toString().trim();
     est.cuit = (est.cuit || '30-67119808-1').trim();
+
+    // Asignar superficie y requerimiento de mediciones
+    const supInfo = AppState.superficies[id] || (est.nroEstab ? AppState.superficies[est.nroEstab] : null);
+    if (supInfo && supInfo.superficie) {
+      est.superficie = supInfo.superficie;
+      est.requiereMediciones = (Number(est.superficie) >= 1000);
+    } else {
+      est.superficie = '';
+      est.requiereMediciones = false;
+    }
   });
 
   AppState.establecimientos = list;
@@ -1027,7 +1051,7 @@ function renderFichaEstablecimiento(est) {
     </div>
 
     <!-- Barra de métricas del establecimiento -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200/80">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 pt-4 border-t border-slate-200/80">
       <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-center">
         <div class="text-[11px] font-medium text-slate-500 uppercase">Actividades Registradas</div>
         <div class="text-lg font-bold text-blue-900">${countRealizadas}</div>
@@ -1048,7 +1072,47 @@ function renderFichaEstablecimiento(est) {
           ${obtenerUltimaFechaVisita(acts)}
         </div>
       </div>
+      <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-center flex flex-col justify-between">
+        <div class="text-[10px] font-bold text-purple-900 uppercase flex items-center justify-center gap-1">
+          <i class="fa-solid fa-ruler-combined text-purple-600"></i> Superficie
+        </div>
+        <div class="text-sm font-black text-slate-900 mt-0.5">
+          ${est.superficie ? `${est.superficie} m²` : '<span class="text-amber-700 text-xs font-bold">Sin dato</span>'}
+        </div>
+        <div class="mt-1 flex items-center justify-center gap-1.5">
+          <button onclick="abrirModalEditarSuperficie('${est.id}')" class="text-[10px] font-extrabold text-blue-700 hover:text-blue-900 underline" title="Editar superficie de este establecimiento">
+            ${est.superficie ? 'Editar m²' : '+ Cargar m²'}
+          </button>
+          ${Number(est.superficie) >= 1000 ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800" title="Requiere mediciones obligatorias (PAT, Ruido, Ilum)">⚡ >1000 m²</span>' : ''}
+        </div>
+      </div>
     </div>
+    ${(() => {
+      const numSup = Number(est.superficie);
+      if (numSup >= 1000) {
+        const tienePAT = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_pat');
+        const tieneRuido = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_ruido');
+        const tieneIlum = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_iluminacion');
+        const todasCompletas = tienePAT && tieneRuido && tieneIlum;
+
+        return `
+          <div class="mt-3 p-3 rounded-xl border ${todasCompletas ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-amber-50 border-amber-300 text-amber-950'} text-xs flex flex-wrap items-center justify-between gap-2 shadow-xs">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid ${todasCompletas ? 'fa-circle-check text-emerald-600' : 'fa-triangle-exclamation text-amber-600'} text-base"></i>
+              <div>
+                <strong>Establecimiento con ${numSup} m² (&gt;1.000 m²):</strong> Requiere mediciones técnicas de HyS obligatorias por normativa.
+              </div>
+            </div>
+            <div class="flex items-center gap-2 font-bold text-[11px]">
+              <span class="px-2 py-0.5 rounded-full ${tienePAT ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'}">PAT: ${tienePAT ? '✓ Realizada' : 'Pendiente'}</span>
+              <span class="px-2 py-0.5 rounded-full ${tieneRuido ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'}">Ruido: ${tieneRuido ? '✓ Realizada' : 'Pendiente'}</span>
+              <span class="px-2 py-0.5 rounded-full ${tieneIlum ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'}">Ilum: ${tieneIlum ? '✓ Realizada' : 'Pendiente'}</span>
+            </div>
+          </div>
+        `;
+      }
+      return '';
+    })()}
   `;
 }
 
@@ -1880,6 +1944,7 @@ function renderMatrizAnual() {
           <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
           <th class="text-left px-3 min-w-[160px]">Organismo</th>
           <th class="px-3 min-w-[120px]">Localidad</th>
+          <th class="px-2 min-w-[70px] text-center" title="Superficie cubierta en m². Sedes con más de 1.000 m² requieren mediciones técnicas obligatorias">Sup. m²</th>
           ${thMesesHtml}
           <th class="bg-[#07253d] font-black text-center px-3 min-w-[65px]" title="${thTotalTitle}">${thTotalLabel}</th>
           <th class="bg-[#07253d] text-right px-3 min-w-[70px]">Acción</th>
@@ -1899,6 +1964,7 @@ function renderMatrizAnual() {
           <th class="text-left px-3 min-w-[200px]">Establecimiento</th>
           <th class="text-left px-3 min-w-[160px]">Organismo</th>
           <th class="px-3 min-w-[120px]">Localidad</th>
+          <th class="px-2 min-w-[70px] text-center" title="Superficie cubierta en m². Sedes con más de 1.000 m² requieren mediciones técnicas obligatorias">Sup. m²</th>
           <th title="Constancia de Visita Oficial (CV firmado in situ)">CV</th>
           <th title="Informe Técnico de Relevamiento / Visita">Informe</th>
           <th title="Confección de RGRL (Dec. 351/79)">RGRL</th>
@@ -1947,7 +2013,7 @@ function renderMatrizAnual() {
   tbody.innerHTML = '';
   if (tfoot) tfoot.innerHTML = '';
 
-  const totalCols = (modoVista === 'meses') ? 18 : 19;
+  const totalCols = (modoVista === 'meses') ? 19 : 20;
 
   if (establecimientosFiltrados.length === 0) {
     tbody.innerHTML = `
@@ -2038,10 +2104,33 @@ function renderMatrizAnual() {
       totalSedePeriodo = sumaActividadesCatalogo;
     }
 
-    // REGLA 2: Filtro por Estado / Documentos específicos
-    // NUNCA usar fallback a otros períodos: si el usuario filtra "Con Actividades Cargadas",
-    // SOLO se deben presentar sedes con totalSedePeriodo > 0 en el período evaluado.
-    if (docsFiltro === 'con_docs') {
+    // REGLA 2: Filtro por Estado / Documentos específicos y Superficie
+    if (docsFiltro === 'sup_mayor_1000') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+    } else if (docsFiltro === 'sup_menor_1000') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup >= 1000) return;
+    } else if (docsFiltro === 'sup_sin_dato') {
+      const sup = Number(e.superficie);
+      if (sup && !isNaN(sup) && sup > 0) return;
+    } else if (docsFiltro === 'sup_mayor_1000_sin_med') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+      const tieneMedicion = acts.some(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        return actNorm === 'medicion_pat' || actNorm === 'medicion_ruido' || actNorm === 'medicion_iluminacion';
+      });
+      if (tieneMedicion) return;
+    } else if (docsFiltro === 'sup_mayor_1000_con_med') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+      const tieneMedicion = acts.some(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        return actNorm === 'medicion_pat' || actNorm === 'medicion_ruido' || actNorm === 'medicion_iluminacion';
+      });
+      if (!tieneMedicion) return;
+    } else if (docsFiltro === 'con_docs') {
       if (totalSedePeriodo <= 0) return;
     } else if (docsFiltro === 'sin_docs') {
       if (totalSedePeriodo > 0) return;
@@ -2075,6 +2164,16 @@ function renderMatrizAnual() {
       }
     };
 
+    let supBadge = '';
+    const numSup = Number(e.superficie);
+    if (!numSup || isNaN(numSup) || numSup <= 0) {
+      supBadge = `<button onclick="abrirModalEditarSuperficie('${e.id}'); event.stopPropagation();" class="text-[10px] text-slate-400 hover:text-blue-700 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-dashed border-slate-300 font-mono transition" title="Sin dato de m². Click para ingresar">+ m²</button>`;
+    } else if (numSup >= 1000) {
+      supBadge = `<button onclick="abrirModalEditarSuperficie('${e.id}'); event.stopPropagation();" class="text-[11px] text-purple-900 bg-purple-100 hover:bg-purple-200 px-1.5 py-0.5 rounded font-black border border-purple-300 flex items-center justify-center gap-1 mx-auto transition" title="Superficie: ${numSup} m² (Requiere Mediciones Obligatorias: PAT, Ruido, Ilum). Click para editar"><i class="fa-solid fa-bolt text-[9px] text-purple-600"></i> ${numSup}</button>`;
+    } else {
+      supBadge = `<button onclick="abrirModalEditarSuperficie('${e.id}'); event.stopPropagation();" class="text-[11px] text-slate-700 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded font-bold border border-slate-200 mx-auto transition" title="Superficie: ${numSup} m² (<1000 m²). Click para editar">${numSup}</button>`;
+    }
+
     let cellsHtml = `
       <td class="py-2.5 px-3 font-mono font-bold text-slate-700 whitespace-nowrap bg-white sticky left-0 z-10 border-r border-slate-200">
         ${e.nroEstab ? `#${e.nroEstab}` : '-'}
@@ -2087,6 +2186,9 @@ function renderMatrizAnual() {
       </td>
       <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">
         ${escapeHtml(e.localidad)}
+      </td>
+      <td class="py-2.5 px-2 text-center whitespace-nowrap">
+        ${supBadge}
       </td>
     `;
 
@@ -2180,7 +2282,7 @@ function renderMatrizAnual() {
       tfoot.innerHTML = `
         <tr class="bg-[#07253d] text-white font-extrabold border-t-2 border-slate-700 shadow-md">
           <td class="sticky left-0 z-30 bg-[#07253d] text-center font-black py-2.5 px-3">TOTAL</td>
-          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="3">${txtSedesFilas}</td>
+          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="4">${txtSedesFilas}</td>
           ${tdMesesHtml}
           <td class="text-center py-2.5 px-3 bg-[#051c2e] text-amber-300 font-black text-sm whitespace-nowrap">${totalActividadesPeriodo}</td>
           <td class="text-right py-2.5 px-3">-</td>
@@ -2196,7 +2298,7 @@ function renderMatrizAnual() {
       tfoot.innerHTML = `
         <tr class="bg-[#07253d] text-white font-extrabold border-t-2 border-slate-700 shadow-md">
           <td class="sticky left-0 z-30 bg-[#07253d] text-center font-black py-2.5 px-3">TOTAL</td>
-          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="3">${txtSedesFilas}</td>
+          <td class="py-2.5 px-3 text-amber-300 font-black truncate" colspan="4">${txtSedesFilas}</td>
           ${tdActsHtml}
           <td class="text-center py-2.5 px-3 bg-[#051c2e] text-amber-300 font-black text-sm whitespace-nowrap">${totalActividadesPeriodo}</td>
           <td class="text-right py-2.5 px-3">-</td>
@@ -2234,39 +2336,226 @@ function renderMatrizAnual() {
   actualizarKPIsMatriz(totalActividadesPeriodo, sedesMostradas, establecimientosFiltrados.length, mesFiltro, anio, docsFiltro);
 }
 
+function calcularMetricasPlanHyS(anio = '2026', mesFiltro = 'todos') {
+  const totalSedesProvincia = Object.keys(AppState.establecimientos).length || 452;
+  
+  let sedesVisitadasTotal = 0;
+  let sedesVisitadasAnio = 0;
+  const sedesConVisitaAnioSet = new Set();
+  const sedesConVisitaTotalSet = new Set();
+  
+  const visitasPorMes = {
+    '01': new Set(), '02': new Set(), '03': new Set(), '04': new Set(),
+    '05': new Set(), '06': new Set(), '07': new Set(), '08': new Set(),
+    '09': new Set(), '10': new Set(), '11': new Set(), '12': new Set()
+  };
+
+  let sedesMayor1000 = 0;
+  let sedesMenor1000 = 0;
+  let sedesSinDatoM2 = 0;
+  let sedesMayor1000ConMediciones = 0;
+  let sedesMayor1000SinMediciones = 0;
+
+  Object.values(AppState.establecimientos).forEach(est => {
+    const acts = obtenerActividadesDeSede(est);
+    if (acts.length > 0) {
+      sedesConVisitaTotalSet.add(est.id);
+    }
+    
+    // Actividades del año
+    const actsAnio = acts.filter(a => {
+      if (anio === 'todos') return true;
+      return extraerAnioDeFecha(a.fechaActividad) === anio;
+    });
+
+    if (actsAnio.length > 0) {
+      sedesConVisitaAnioSet.add(est.id);
+      actsAnio.forEach(a => {
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        if (mInfo && mInfo.mes) {
+          const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+          if (visitasPorMes[mCod]) {
+            visitasPorMes[mCod].add(est.id);
+          }
+        }
+      });
+    }
+
+    // Superficie
+    const supVal = Number(est.superficie);
+    if (!supVal || isNaN(supVal) || supVal <= 0) {
+      sedesSinDatoM2++;
+    } else if (supVal >= 1000) {
+      sedesMayor1000++;
+      const tieneMedicion = acts.some(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        return actNorm === 'medicion_pat' || actNorm === 'medicion_ruido' || actNorm === 'medicion_iluminacion';
+      });
+      if (tieneMedicion) {
+        sedesMayor1000ConMediciones++;
+      } else {
+        sedesMayor1000SinMediciones++;
+      }
+    } else {
+      sedesMenor1000++;
+    }
+  });
+
+  sedesVisitadasTotal = sedesConVisitaTotalSet.size;
+  sedesVisitadasAnio = sedesConVisitaAnioSet.size;
+
+  return {
+    totalSedesProvincia,
+    sedesVisitadasTotal,
+    sedesVisitadasAnio,
+    visitasPorMes,
+    sedesMayor1000,
+    sedesMenor1000,
+    sedesSinDatoM2,
+    sedesMayor1000ConMediciones,
+    sedesMayor1000SinMediciones
+  };
+}
+window.calcularMetricasPlanHyS = calcularMetricasPlanHyS;
+
 function actualizarKPIsMatriz(totalActs, sedesConAct, totalSedesBase, mesFiltro, anio, docsFiltro = '') {
-  const kpiActs = document.getElementById('matriz-kpi-total-acts');
-  const kpiSedes = document.getElementById('matriz-kpi-sedes-cobertura');
-  const kpiPct = document.getElementById('matriz-kpi-pct-cobertura');
-  const lblActs = document.getElementById('matriz-kpi-lbl-acts');
-  const lblSedes = document.getElementById('matriz-kpi-lbl-sedes');
-  const lblPct = document.getElementById('matriz-kpi-lbl-pct');
-  const reglaConteo = document.getElementById('matriz-kpi-regla-conteo');
+  const metricas = calcularMetricasPlanHyS(anio, mesFiltro);
+  const totalProvincial = metricas.totalSedesProvincia;
+  const sedesVisitadasAnio = metricas.sedesVisitadasAnio;
 
-  const totalProvincial = Object.keys(AppState.establecimientos).length || 452;
+  // 1. CARD 1: STOCK TOTAL PROVINCIAL (Plan 100%)
+  const elStockVis = document.getElementById('kpi-stock-visitadas');
+  const elStockPct = document.getElementById('kpi-stock-pct');
+  const elStockPend = document.getElementById('kpi-stock-pendientes');
+  const elStockBar = document.getElementById('kpi-stock-bar');
+  if (elStockVis) elStockVis.textContent = sedesVisitadasAnio;
+  const pctStock = totalProvincial > 0 ? ((sedesVisitadasAnio / totalProvincial) * 100).toFixed(1) : '0';
+  if (elStockPct) elStockPct.textContent = `${pctStock}% cubierto`;
+  const pendStock = Math.max(0, totalProvincial - sedesVisitadasAnio);
+  if (elStockPend) elStockPend.textContent = `${pendStock} pendientes`;
+  if (elStockBar) elStockBar.style.width = `${Math.min(100, parseFloat(pctStock))}%`;
 
+  // 2. CARD 2: AVANCE MENSUAL (Meta 25-30 sedes/mes)
+  const elMesTitulo = document.getElementById('kpi-mes-titulo');
+  const elMesBadge = document.getElementById('kpi-mes-badge-status');
+  const elMesVis = document.getElementById('kpi-mes-visitadas');
+  const elMesPct = document.getElementById('kpi-mes-pct');
+  const elMesBar = document.getElementById('kpi-mes-bar');
+
+  let visitasMes = 0;
+  let labelMes = 'Avance Mensual';
   if (mesFiltro && mesFiltro !== 'todos') {
-    const mesNombre = MESES_NOMBRES[parseInt(mesFiltro, 10) - 1] || 'Mes';
-    if (lblActs) lblActs.textContent = `Actividades en ${mesNombre}`;
-    if (lblSedes) lblSedes.textContent = `Sedes Activas (${mesNombre})`;
-    if (lblPct) lblPct.textContent = `% Cobertura Provincial`;
-    if (reglaConteo) reglaConteo.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'sede' : 'sedes'} con actividades en ${mesNombre}`;
-
-    if (kpiActs) kpiActs.textContent = totalActs;
-    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} ${sedesConAct === 1 ? 'sede' : 'sedes'}`;
-    const pct = totalProvincial > 0 ? ((sedesConAct / totalProvincial) * 100).toFixed(1) : 0;
-    if (kpiPct) kpiPct.textContent = `${pct}% (${sedesConAct} de ${totalProvincial})`;
+    const idx = parseInt(mesFiltro, 10) - 1;
+    labelMes = `Avance ${MESES_NOMBRES[idx] || 'Mes'}`;
+    const mCod = (idx + 1 < 10 ? '0' : '') + (idx + 1);
+    visitasMes = (metricas.visitasPorMes[mCod] ? metricas.visitasPorMes[mCod].size : 0);
   } else {
-    if (lblActs) lblActs.textContent = (anio === 'todos') ? `Actividades Históricas` : `Actividades en el Año ${anio}`;
-    if (lblSedes) lblSedes.textContent = (docsFiltro === 'con_docs') ? `Sedes con Actividades` : `Sedes con Cobertura`;
-    if (lblPct) lblPct.textContent = `% Cobertura Provincial`;
-    if (reglaConteo) reglaConteo.textContent = `Cantidad realizada por actividad`;
-
-    if (kpiActs) kpiActs.textContent = totalActs;
-    if (kpiSedes) kpiSedes.textContent = `${sedesConAct} de ${totalProvincial}`;
-    const pct = totalProvincial > 0 ? Math.round((sedesConAct / totalProvincial) * 100) : 0;
-    if (kpiPct) kpiPct.textContent = `${pct}%`;
+    // Si es todos, tomar el último mes activo del año
+    let ultimoMesActivo = 0;
+    for (let m = 12; m >= 1; m--) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      if (metricas.visitasPorMes[mCod] && metricas.visitasPorMes[mCod].size > 0) {
+        ultimoMesActivo = m;
+        break;
+      }
+    }
+    if (ultimoMesActivo > 0) {
+      const mCod = (ultimoMesActivo < 10 ? '0' : '') + ultimoMesActivo;
+      visitasMes = metricas.visitasPorMes[mCod].size;
+      labelMes = `Últ. Mes (${MESES_NOMBRES[ultimoMesActivo - 1]})`;
+    } else {
+      visitasMes = 0;
+      labelMes = 'Avance Mensual';
+    }
   }
+
+  if (elMesTitulo) elMesTitulo.textContent = labelMes;
+  if (elMesVis) elMesVis.textContent = visitasMes;
+  const pctMes = Math.min(100, Math.round((visitasMes / 25) * 100));
+  if (elMesPct) elMesPct.textContent = `${pctMes}% de meta (25-30)`;
+  if (elMesBar) elMesBar.style.width = `${pctMes}%`;
+
+  if (elMesBadge) {
+    if (visitasMes >= 25) {
+      elMesBadge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+      elMesBadge.textContent = '✓ Meta Cumplida';
+    } else if (visitasMes > 0) {
+      elMesBadge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+      elMesBadge.textContent = 'Meta: 25-30';
+    } else {
+      elMesBadge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
+      elMesBadge.textContent = 'Meta: 25-30';
+    }
+  }
+
+  // 3. CARD 3: AVANCE ACUMULADO DEL PLAN
+  const elAcumVis = document.getElementById('kpi-acum-visitadas');
+  const elAcumSub = document.getElementById('kpi-acum-subtitulo');
+  const elAcumMeta = document.getElementById('kpi-acum-meta-val');
+  const elAcumBadge = document.getElementById('kpi-acum-desvio-badge');
+  const elAcumBar = document.getElementById('kpi-acum-bar');
+
+  let mesNumParaAcum = 12;
+  if (mesFiltro && mesFiltro !== 'todos') {
+    mesNumParaAcum = parseInt(mesFiltro, 10);
+  } else {
+    const hoy = new Date();
+    if (anio === hoy.getFullYear().toString()) {
+      mesNumParaAcum = hoy.getMonth() + 1;
+    }
+  }
+
+  let sedesAcumuladasPeriodo = new Set();
+  for (let m = 1; m <= mesNumParaAcum; m++) {
+    const mCod = (m < 10 ? '0' : '') + m;
+    if (metricas.visitasPorMes[mCod]) {
+      metricas.visitasPorMes[mCod].forEach(id => sedesAcumuladasPeriodo.add(id));
+    }
+  }
+  const cantAcum = sedesAcumuladasPeriodo.size;
+  const metaMinAcum = mesNumParaAcum * 25;
+  const metaMaxAcum = mesNumParaAcum * 30;
+
+  if (elAcumVis) elAcumVis.textContent = cantAcum;
+  if (elAcumSub) elAcumSub.textContent = `Meta a Mes ${mesNumParaAcum}`;
+  if (elAcumMeta) elAcumMeta.textContent = `${metaMinAcum} - ${metaMaxAcum} sedes`;
+  
+  const pctAcum = metaMinAcum > 0 ? Math.min(100, Math.round((cantAcum / metaMinAcum) * 100)) : 0;
+  if (elAcumBar) elAcumBar.style.width = `${pctAcum}%`;
+
+  if (elAcumBadge) {
+    if (cantAcum >= metaMinAcum) {
+      elAcumBadge.className = 'text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+      elAcumBadge.textContent = '✓ Al día';
+    } else if (cantAcum > 0) {
+      const desvio = metaMinAcum - cantAcum;
+      elAcumBadge.className = 'text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
+      elAcumBadge.textContent = `-${desvio} sedes`;
+    } else {
+      elAcumBadge.className = 'text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600';
+      elAcumBadge.textContent = 'Sin visitas';
+    }
+  }
+
+  // 4. CARD 4: SEDES > 1000 m² (MEDICIONES OBLIGATORIAS)
+  const elSupConMed = document.getElementById('kpi-sup-con-med');
+  const elSupTotal = document.getElementById('kpi-sup-total');
+  const elSupSinDato = document.getElementById('kpi-sup-sin-dato');
+  const elSupBar = document.getElementById('kpi-sup-bar');
+
+  if (elSupConMed) elSupConMed.textContent = metricas.sedesMayor1000ConMediciones;
+  if (elSupTotal) elSupTotal.textContent = metricas.sedesMayor1000;
+  if (elSupSinDato) {
+    if (metricas.sedesSinDatoM2 > 0) {
+      elSupSinDato.textContent = `${metricas.sedesSinDatoM2} sin dato de m²`;
+      elSupSinDato.className = 'text-amber-700 font-bold';
+    } else {
+      elSupSinDato.textContent = `${metricas.sedesMayor1000SinMediciones} pendientes de med.`;
+      elSupSinDato.className = 'text-purple-700 font-bold';
+    }
+  }
+  const pctSup = metricas.sedesMayor1000 > 0 ? Math.round((metricas.sedesMayor1000ConMediciones / metricas.sedesMayor1000) * 100) : 0;
+  if (elSupBar) elSupBar.style.width = `${pctSup}%`;
 }
 
 function irAFichaEstablecimiento(estId) {
@@ -2357,7 +2646,33 @@ function exportarMatrizCSV() {
       }
     }
 
-    if (docsFiltro === 'con_docs') {
+    // Filtros de Superficie y Mediciones Requeridas
+    if (docsFiltro === 'sup_mayor_1000') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+    } else if (docsFiltro === 'sup_menor_1000') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup >= 1000) return;
+    } else if (docsFiltro === 'sup_sin_dato') {
+      const sup = Number(e.superficie);
+      if (sup && !isNaN(sup) && sup > 0) return;
+    } else if (docsFiltro === 'sup_mayor_1000_sin_med') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+      const tieneMedicion = acts.some(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        return actNorm === 'medicion_pat' || actNorm === 'medicion_ruido' || actNorm === 'medicion_iluminacion';
+      });
+      if (tieneMedicion) return;
+    } else if (docsFiltro === 'sup_mayor_1000_con_med') {
+      const sup = Number(e.superficie);
+      if (!sup || isNaN(sup) || sup < 1000) return;
+      const tieneMedicion = acts.some(a => {
+        const actNorm = normalizarTipoActividad(a.tipoActividad);
+        return actNorm === 'medicion_pat' || actNorm === 'medicion_ruido' || actNorm === 'medicion_iluminacion';
+      });
+      if (!tieneMedicion) return;
+    } else if (docsFiltro === 'con_docs') {
       if (totalSedePeriodo <= 0) return;
     } else if (docsFiltro === 'sin_docs') {
       if (totalSedePeriodo > 0) return;
@@ -2381,6 +2696,7 @@ function exportarMatrizCSV() {
       'Organismo',
       'Nombre Establecimiento',
       'Localidad',
+      'Superficie (m²)',
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
       mesFiltro !== 'todos' ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}` : 'Total Anual Realizado'
@@ -2392,6 +2708,7 @@ function exportarMatrizCSV() {
       'Organismo',
       'Nombre Establecimiento',
       'Localidad',
+      'Superficie (m²)',
       ...activityHeaders,
       mesFiltro !== 'todos' ? `Total ${MESES_ABR[parseInt(mesFiltro, 10) - 1]}` : 'Total Período'
     ];
@@ -2426,6 +2743,7 @@ function exportarMatrizCSV() {
         e.organismo || '',
         e.nombreEstablecimiento || '',
         e.localidad || '',
+        e.superficie || '',
         conteoMesSede['01'], conteoMesSede['02'], conteoMesSede['03'], conteoMesSede['04'],
         conteoMesSede['05'], conteoMesSede['06'], conteoMesSede['07'], conteoMesSede['08'],
         conteoMesSede['09'], conteoMesSede['10'], conteoMesSede['11'], conteoMesSede['12'],
@@ -2452,6 +2770,7 @@ function exportarMatrizCSV() {
         e.organismo || '',
         e.nombreEstablecimiento || '',
         e.localidad || '',
+        e.superficie || '',
         ...Object.keys(CATALOGO_ACTIVIDADES).map(k => conteoSede[k] || 0),
         totalFila
       ];
@@ -2463,6 +2782,7 @@ function exportarMatrizCSV() {
   const resumenRow = [
     'TOTAL',
     `${filas.length} sedes / filas`,
+    '-',
     '-',
     '-'
   ];
@@ -4987,6 +5307,35 @@ async function sincronizarConSheets(forceGlobal = false) {
       mostrarToast('⚠️ Respuesta inesperada de Google Sheets. Verificá la configuración del Webhook.');
     }
 
+    // 3. Procesar superficies de establecimientos si vienen en la respuesta
+    if (json && json.superficies && typeof json.superficies === 'object') {
+      AppState.superficies = json.superficies;
+      try {
+        localStorage.setItem(STORAGE_KEYS.SUPERFICIES_DB, JSON.stringify(json.superficies));
+      } catch (e) {}
+
+      Object.keys(AppState.establecimientos).forEach(id => {
+        const itemEst = AppState.establecimientos[id];
+        const supData = json.superficies[id] || (itemEst.nroEstab ? json.superficies[itemEst.nroEstab] : null);
+        if (supData && supData.superficie) {
+          itemEst.superficie = supData.superficie;
+          itemEst.requiereMediciones = (Number(itemEst.superficie) >= 1000);
+        }
+      });
+      renderMatrizAnual();
+    }
+
+    if (json && json.sheetSuperficiesUrl) {
+      AppState.sheetSuperficiesUrl = json.sheetSuperficiesUrl;
+      try {
+        localStorage.setItem(STORAGE_KEYS.SHEET_SUPERFICIES_URL, json.sheetSuperficiesUrl);
+      } catch (e) {}
+      const btnLink = document.getElementById('btn-link-sheet-kpi');
+      if (btnLink) btnLink.href = json.sheetSuperficiesUrl;
+      const btnTableroLink = document.getElementById('tablero-btn-abrir-sheet');
+      if (btnTableroLink) btnTableroLink.href = json.sheetSuperficiesUrl;
+    }
+
     // Sincronizar también carpetas mensuales desde Drive
     try {
       await consultarCarpetasMensualesDrive();
@@ -5107,43 +5456,156 @@ function abrirModalTableroGeneral() {
   const modal = document.getElementById('modal-tablero-general');
   if (!modal) return;
 
-  const totalEst = Object.keys(AppState.establecimientos).length;
-  let totalDocs = 0;
+  const anio = AppState.matrizAnio || '2026';
+  const mesFiltro = AppState.matrizMes || 'todos';
+  const metricas = calcularMetricasPlanHyS(anio, mesFiltro);
+  const totalProvincial = metricas.totalSedesProvincia || 452;
+
+  // 1. Pilares Estratégicos del Tablero
+  // Card 1: Stock Total
+  const elStockVis = document.getElementById('tablero-kpi-stock-visitadas');
+  const elStockPct = document.getElementById('tablero-kpi-stock-pct');
+  const elStockBar = document.getElementById('tablero-kpi-stock-bar');
+  if (elStockVis) elStockVis.textContent = metricas.sedesVisitadasAnio;
+  const pctStock = ((metricas.sedesVisitadasAnio / totalProvincial) * 100).toFixed(1);
+  if (elStockPct) elStockPct.textContent = `${pctStock}% del Plan Cubierto (${totalProvincial - metricas.sedesVisitadasAnio} pendientes)`;
+  if (elStockBar) elStockBar.style.width = `${Math.min(100, parseFloat(pctStock))}%`;
+
+  // Card 2: Avance Mensual
+  const elMesVis = document.getElementById('tablero-kpi-mes-visitadas');
+  const elMesEst = document.getElementById('tablero-kpi-mes-estado');
+  const elMesBar = document.getElementById('tablero-kpi-mes-bar');
+  let visitasMesActivo = 0;
+  if (mesFiltro !== 'todos') {
+    const mCod = (parseInt(mesFiltro, 10) < 10 ? '0' : '') + parseInt(mesFiltro, 10);
+    visitasMesActivo = metricas.visitasPorMes[mCod] ? metricas.visitasPorMes[mCod].size : 0;
+  } else {
+    // Tomar el último mes con actividad
+    for (let m = 12; m >= 1; m--) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      if (metricas.visitasPorMes[mCod] && metricas.visitasPorMes[mCod].size > 0) {
+        visitasMesActivo = metricas.visitasPorMes[mCod].size;
+        break;
+      }
+    }
+  }
+  if (elMesVis) elMesVis.textContent = visitasMesActivo;
+  const pctMes = Math.min(100, Math.round((visitasMesActivo / 25) * 100));
+  if (elMesEst) {
+    elMesEst.textContent = visitasMesActivo >= 25 ? `✓ Meta cumplida (${visitasMesActivo} sedes)` : `${visitasMesActivo} de 25-30 sedes (${pctMes}%)`;
+  }
+  if (elMesBar) elMesBar.style.width = `${pctMes}%`;
+
+  // Card 3: Acumulado
+  const elAcumVis = document.getElementById('tablero-kpi-acum-visitadas');
+  const elAcumDes = document.getElementById('tablero-kpi-acum-desvio');
+  const elAcumBar = document.getElementById('tablero-kpi-acum-bar');
+  let mesEvaluado = 12;
+  const hoy = new Date();
+  if (anio === hoy.getFullYear().toString()) {
+    mesEvaluado = hoy.getMonth() + 1;
+  }
+  let sedesAcumuladasSet = new Set();
+  for (let m = 1; m <= mesEvaluado; m++) {
+    const mCod = (m < 10 ? '0' : '') + m;
+    if (metricas.visitasPorMes[mCod]) {
+      metricas.visitasPorMes[mCod].forEach(id => sedesAcumuladasSet.add(id));
+    }
+  }
+  const cantAcum = sedesAcumuladasSet.size;
+  const metaMinAcum = mesEvaluado * 25;
+  if (elAcumVis) elAcumVis.textContent = cantAcum;
+  if (elAcumDes) {
+    elAcumDes.textContent = cantAcum >= metaMinAcum ? `✓ Al día (Meta a Mes ${mesEvaluado}: ${metaMinAcum})` : `Meta a Mes ${mesEvaluado}: ${metaMinAcum} (-${metaMinAcum - cantAcum})`;
+  }
+  const pctAcum = metaMinAcum > 0 ? Math.min(100, Math.round((cantAcum / metaMinAcum) * 100)) : 0;
+  if (elAcumBar) elAcumBar.style.width = `${pctAcum}%`;
+
+  // Card 4: Superficie > 1000 m²
+  const elSupCon = document.getElementById('tablero-kpi-sup-con-med');
+  const elSupTot = document.getElementById('tablero-kpi-sup-total');
+  const elSupSin = document.getElementById('tablero-kpi-sup-sin-dato');
+  const elSupBar = document.getElementById('tablero-kpi-sup-bar');
+  if (elSupCon) elSupCon.textContent = metricas.sedesMayor1000ConMediciones;
+  if (elSupTot) elSupTot.textContent = metricas.sedesMayor1000;
+  if (elSupSin) {
+    elSupSin.textContent = metricas.sedesSinDatoM2 > 0 ? `${metricas.sedesSinDatoM2} sedes sin dato de m²` : `${metricas.sedesMayor1000SinMediciones} pendientes de medición`;
+  }
+  const pctSup = metricas.sedesMayor1000 > 0 ? Math.round((metricas.sedesMayor1000ConMediciones / metricas.sedesMayor1000) * 100) : 0;
+  if (elSupBar) elSupBar.style.width = `${pctSup}%`;
+
+  // 2. Tabla de Evolución Mensual (Enero a Diciembre)
+  const tablaBody = document.getElementById('tablero-tabla-meses-body');
+  if (tablaBody) {
+    let htmlFilas = '';
+    let acumSedesSet = new Set();
+    for (let m = 1; m <= 12; m++) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      const sedesMesSet = metricas.visitasPorMes[mCod] || new Set();
+      const cantMes = sedesMesSet.size;
+      sedesMesSet.forEach(id => acumSedesSet.add(id));
+      const acumReal = acumSedesSet.size;
+      const metaMin = m * 25;
+      const metaMax = m * 30;
+      const pctPlan = ((acumReal / totalProvincial) * 100).toFixed(1);
+
+      let badgeMes = '';
+      if (cantMes >= 25) {
+        badgeMes = `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ Cumplido (${cantMes})</span>`;
+      } else if (cantMes > 0) {
+        badgeMes = `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">${cantMes}/25 (${Math.round((cantMes/25)*100)}%)</span>`;
+      } else {
+        badgeMes = `<span class="text-slate-400 font-mono text-[11px]">-</span>`;
+      }
+
+      htmlFilas += `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 text-xs">
+          <td class="py-2 px-3 font-bold text-slate-800">${MESES_NOMBRES[m-1]}</td>
+          <td class="py-2 px-3 text-center font-bold ${cantMes > 0 ? 'text-blue-900 bg-blue-50/50' : 'text-slate-400'}">${cantMes}</td>
+          <td class="py-2 px-3 text-center text-slate-600 font-semibold">25 - 30</td>
+          <td class="py-2 px-3 text-center">${badgeMes}</td>
+          <td class="py-2 px-3 text-center font-black text-emerald-800">${acumReal}</td>
+          <td class="py-2 px-3 text-center text-slate-500 font-medium">${metaMin} - ${metaMax}</td>
+          <td class="py-2 px-3 text-center font-bold text-slate-700">${pctPlan}%</td>
+        </tr>
+      `;
+    }
+    tablaBody.innerHTML = htmlFilas;
+  }
+
+  // 3. Distribución de actividades y conteo general
   let totalActs = 0;
   const conteoPorActividad = {};
-
   Object.values(AppState.actividadesRegistradas).forEach(acts => {
-    totalActs += acts.length;
     acts.forEach(a => {
-      if (a.fileUrl || a.fileName) totalDocs++;
-      const cat = CATALOGO_ACTIVIDADES[a.tipoActividad];
-      const nom = cat ? cat.nombre : a.tipoActividad;
+      totalActs++;
+      const cat = CATALOGO_ACTIVIDADES[normalizarTipoActividad(a.tipoActividad)] || { nombre: a.tipoActividad };
+      const nom = cat.nombre;
       conteoPorActividad[nom] = (conteoPorActividad[nom] || 0) + 1;
     });
   });
 
-  document.getElementById('metric-total-sedes').textContent = totalEst;
-  document.getElementById('metric-total-acts').textContent = totalActs;
-  document.getElementById('metric-total-docs').textContent = totalDocs;
+  const totalActsEl = document.getElementById('metric-total-acts');
+  if (totalActsEl) totalActsEl.textContent = totalActs;
 
   const listContainer = document.getElementById('metric-lista-actividades');
   if (listContainer) {
     listContainer.innerHTML = '';
     const sorted = Object.entries(conteoPorActividad).sort((a, b) => b[1] - a[1]);
     if (sorted.length === 0) {
-      listContainer.innerHTML = '<div class="text-xs text-slate-400 py-4 text-center">Aún no hay actividades registradas en el sistema.</div>';
+      listContainer.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">Aún no hay actividades registradas en el sistema.</div>';
     } else {
       sorted.forEach(([nombre, count]) => {
-        const pct = Math.min(100, Math.round((count / totalEst) * 100));
+        const pct = Math.min(100, Math.round((count / totalProvincial) * 100));
         const div = document.createElement('div');
         div.className = 'space-y-1';
         div.innerHTML = `
           <div class="flex justify-between text-xs">
             <span class="font-semibold text-slate-700">${escapeHtml(nombre)}</span>
-            <span class="font-bold text-blue-900">${count} sedes (${pct}%)</span>
+            <span class="font-bold text-blue-900">${count} (${pct}% cobertura)</span>
           </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div class="bg-blue-600 h-2 rounded-full" style="width: ${pct}%"></div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${pct}%"></div>
           </div>
         `;
         listContainer.appendChild(div);
@@ -5151,8 +5613,121 @@ function abrirModalTableroGeneral() {
     }
   }
 
+  // Actualizar enlace directo a Google Sheets
+  if (AppState.sheetSuperficiesUrl) {
+    const btnLink = document.getElementById('tablero-btn-abrir-sheet');
+    if (btnLink) btnLink.href = AppState.sheetSuperficiesUrl;
+  }
+
   modal.classList.remove('hidden');
 }
+window.abrirModalTableroGeneral = abrirModalTableroGeneral;
+
+// ==================== GESTIÓN DE SUPERFICIE (m²) ====================
+
+function abrirModalEditarSuperficie(estId) {
+  const est = AppState.establecimientos[estId];
+  if (!est) return;
+
+  const modal = document.getElementById('modal-editar-superficie');
+  if (!modal) return;
+
+  const idInput = document.getElementById('edit-sup-id-est');
+  if (idInput) idInput.value = est.id;
+
+  const elNom = document.getElementById('edit-sup-nombre');
+  if (elNom) elNom.textContent = `${est.nombreEstablecimiento} ${est.nroEstab ? '(N° ' + est.nroEstab + ')' : ''}`;
+
+  const elOrg = document.getElementById('edit-sup-organismo');
+  if (elOrg) elOrg.textContent = `Organismo: ${est.organismo}`;
+
+  const elLoc = document.getElementById('edit-sup-localidad');
+  if (elLoc) elLoc.textContent = `Localidad: ${est.localidad} • ${est.domicilio}`;
+
+  const m2Input = document.getElementById('edit-sup-m2-input');
+  if (m2Input) {
+    m2Input.value = est.superficie || '';
+    actualizarBadgePreviewSuperficie(est.superficie);
+    setTimeout(() => m2Input.focus(), 100);
+  }
+
+  modal.classList.remove('hidden');
+}
+window.abrirModalEditarSuperficie = abrirModalEditarSuperficie;
+
+function actualizarBadgePreviewSuperficie(val) {
+  const preview = document.getElementById('edit-sup-badge-preview');
+  if (!preview) return;
+  const num = Number(val);
+  if (!val || isNaN(num) || num <= 0) {
+    preview.className = 'p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-2 bg-slate-100 border-slate-200 text-slate-600';
+    preview.innerHTML = '<i class="fa-solid fa-info-circle"></i><span>Ingrese los m² para verificar requerimientos</span>';
+  } else if (num >= 1000) {
+    preview.className = 'p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-2 bg-purple-50 border-purple-300 text-purple-900';
+    preview.innerHTML = '<i class="fa-solid fa-bolt text-purple-600"></i><span><strong>Superficie ≥ 1.000 m²</strong>: Requiere mediciones técnicas obligatorias (PAT, Ruido, Iluminación).</span>';
+  } else {
+    preview.className = 'p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-2 bg-emerald-50 border-emerald-300 text-emerald-900';
+    preview.innerHTML = '<i class="fa-solid fa-check-circle text-emerald-600"></i><span><strong>Superficie &lt; 1.000 m²</strong>: No requiere mediciones de gran superficie.</span>';
+  }
+}
+window.actualizarBadgePreviewSuperficie = actualizarBadgePreviewSuperficie;
+
+async function confirmarGuardadoSuperficieModal(event) {
+  if (event) event.preventDefault();
+  const idEst = document.getElementById('edit-sup-id-est')?.value;
+  const m2Val = document.getElementById('edit-sup-m2-input')?.value;
+  if (!idEst) return;
+
+  await guardarSuperficieEstablecimiento(idEst, m2Val);
+  cerrarModal('modal-editar-superficie');
+}
+window.confirmarGuardadoSuperficieModal = confirmarGuardadoSuperficieModal;
+
+async function guardarSuperficieEstablecimiento(idEst, m2) {
+  const est = AppState.establecimientos[idEst];
+  if (!est) return;
+
+  const numM2 = Number(m2);
+  const m2Limpio = (!isNaN(numM2) && numM2 > 0) ? numM2 : '';
+  est.superficie = m2Limpio;
+  est.requiereMediciones = (numM2 >= 1000);
+
+  if (!AppState.superficies) AppState.superficies = {};
+  AppState.superficies[idEst] = {
+    idSede: idEst,
+    nroEstab: est.nroEstab,
+    superficie: est.superficie,
+    requiereMediciones: est.requiereMediciones
+  };
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.SUPERFICIES_DB, JSON.stringify(AppState.superficies));
+  } catch (e) {}
+
+  mostrarToast(`Guardando ${est.superficie || 0} m² para ${est.nombreEstablecimiento}...`);
+
+  // Actualizar vistas inmediatas
+  if (AppState.establecimientoSeleccionado && AppState.establecimientoSeleccionado.id === idEst) {
+    renderFichaEstablecimiento(est);
+  }
+  renderMatrizAnual();
+
+  // Enviar a Google Apps Script en segundo plano
+  try {
+    const url = `${getWebhookUrl()}?action=guardar_superficie&idSede=${encodeURIComponent(idEst)}&nroEstab=${encodeURIComponent(est.nroEstab || '')}&superficie=${encodeURIComponent(est.superficie)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.status === 'success') {
+      mostrarToast(`✅ Superficie guardada en Google Sheets: ${est.superficie} m²`);
+    } else {
+      mostrarToast(`⚠️ Superficie guardada localmente (${est.superficie} m²). Se sincronizará con Sheets.`);
+    }
+  } catch (err) {
+    console.warn('Error enviando superficie a Google Sheets:', err);
+    mostrarToast(`⚠️ Guardado localmente (${est.superficie} m²). Se sincronizará en la próxima conexión.`);
+  }
+}
+window.guardarSuperficieEstablecimiento = guardarSuperficieEstablecimiento;
 
 // ==================== GESTIÓN DE CARPETAS MENSUALES DRIVE ====================
 
