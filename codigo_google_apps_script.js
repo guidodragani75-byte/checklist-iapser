@@ -59,14 +59,22 @@ function parsearAnioMes(fecha) {
   var mes = now.getMonth() + 1; // 1-12
   
   if (fecha) {
-    var s = String(fecha).trim();
+    var s = String(fecha).trim().split("T")[0].split(" ")[0].trim();
     if (s.includes("-")) {
       var p = s.split("-");
       if (p.length >= 2) {
         var y = parseInt(p[0], 10);
         var m = parseInt(p[1], 10);
-        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) {
-          anio = y; mes = m;
+        if (!isNaN(y) && y > 2000) {
+          if (!isNaN(m) && m >= 1 && m <= 12) {
+            anio = y; mes = m;
+          } else if (p.length >= 3) {
+            // Caso YYYY-DD-MM (ej: 2026-30-09)
+            var d = parseInt(p[2], 10);
+            if (!isNaN(d) && d >= 1 && d <= 12) {
+              anio = y; mes = d;
+            }
+          }
         }
       }
     } else if (s.includes("/")) {
@@ -74,8 +82,15 @@ function parsearAnioMes(fecha) {
       if (p2.length >= 3) {
         var y2 = parseInt(p2[2], 10);
         var m2 = parseInt(p2[1], 10);
-        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) {
-          anio = y2; mes = m2;
+        if (!isNaN(y2) && y2 > 2000) {
+          if (!isNaN(m2) && m2 >= 1 && m2 <= 12) {
+            anio = y2; mes = m2;
+          } else {
+            var mAlt = parseInt(p2[0], 10);
+            if (!isNaN(mAlt) && mAlt >= 1 && mAlt <= 12) {
+              anio = y2; mes = mAlt;
+            }
+          }
         }
       }
     }
@@ -265,6 +280,9 @@ function doGet(e) {
       var colOrgIdx = lHeaders.indexOf("Organismo");
       if (colOrgIdx === -1) colOrgIdx = 3;
 
+      var colFechaIdx = lHeaders.indexOf("Fecha Actividad");
+      if (colFechaIdx === -1) colFechaIdx = 2;
+
       var results = [];
       for (var i = 1; i < lData.length; i++) {
         var row = lData[i];
@@ -292,6 +310,21 @@ function doGet(e) {
                 val = Utilities.formatDate(val, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd");
               } catch(eDate) {
                 val = val.toISOString().substring(0, 10);
+              }
+            } else if (col === colFechaIdx && typeof val === "string") {
+              // Auto-corregir formato YYYY-DD-MM a YYYY-MM-DD
+              var mInvert = val.trim().match(/^(\d{4})[-_\/](\d{1,2})[-_\/](\d{1,2})/);
+              if (mInvert) {
+                var yI = mInvert[1];
+                var p1I = parseInt(mInvert[2], 10);
+                var p2I = parseInt(mInvert[3], 10);
+                if (p1I > 12 && p2I <= 12) {
+                  val = yI + "-" + (p2I < 10 ? "0" : "") + p2I + "-" + (p1I < 10 ? "0" : "") + p1I;
+                  // Auto-sanar la celda física en la hoja de cálculo
+                  try {
+                    sheetLegajo.getRange(i + 1, colFechaIdx + 1).setValue(val);
+                  } catch(eFixCell) {}
+                }
               }
             }
             item[lHeaders[col]] = val;
@@ -412,6 +445,17 @@ function doPost(e) {
 
       var actTipo = String(data.tipoActividad || "General").trim();
       var fechaAct = String(data.fechaActividad || "").trim();
+      if (fechaAct) {
+        var mInvertPost = fechaAct.match(/^(\d{4})[-_\/](\d{1,2})[-_\/](\d{1,2})/);
+        if (mInvertPost) {
+          var yPost = mInvertPost[1];
+          var p1Post = parseInt(mInvertPost[2], 10);
+          var p2Post = parseInt(mInvertPost[3], 10);
+          if (p1Post > 12 && p2Post <= 12) {
+            fechaAct = yPost + "-" + (p2Post < 10 ? "0" : "") + p2Post + "-" + (p1Post < 10 ? "0" : "") + p1Post;
+          }
+        }
+      }
       var estadoAct = String(data.estadoActividad || "Completado").trim();
       var detalle = String(data.detalle || "").trim();
       var preventor = String(data.preventor || "").trim();

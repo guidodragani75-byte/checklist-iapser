@@ -184,6 +184,75 @@ if (typeof window !== 'undefined') {
 
 const MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+// Convertir cualquier fecha (DD/MM/AAAA, YYYY-MM-DD, YYYY-DD-MM, YYYYMMDD, texto) a formato ISO YYYY-MM-DD
+function convertirDdmmaaaAIso(fechaStr) {
+  if (!fechaStr) return '';
+  let s = String(fechaStr).trim().split('T')[0].split(' ')[0].trim();
+  if (s === '' || s === 'S/F') return '';
+
+  // 1. Caso YYYY-something-something (ej: 2026-09-30 o 2026-30-09)
+  const mIso = s.match(/^(\d{4})[-_\.\/](\d{1,2})[-_\.\/](\d{1,2})/);
+  if (mIso) {
+    const y = mIso[1];
+    const p1 = parseInt(mIso[2], 10);
+    const p2 = parseInt(mIso[3], 10);
+    if (p1 > 12 && p2 <= 12) {
+      // YYYY-DD-MM -> convertir a YYYY-MM-DD
+      return `${y}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    }
+    return `${y}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+  }
+
+  // 2. Caso DD/MM/YYYY o DD-MM-YYYY
+  const mDmy = s.match(/^(\d{1,2})[-_\.\/](\d{1,2})[-_\.\/](\d{4})/);
+  if (mDmy) {
+    const p1 = parseInt(mDmy[1], 10);
+    const p2 = parseInt(mDmy[2], 10);
+    const y = mDmy[3];
+    if (p1 <= 12 && p2 > 12) {
+      // MM/DD/YYYY -> YYYY-MM-DD
+      return `${y}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+    }
+    // DD/MM/YYYY -> YYYY-MM-DD
+    return `${y}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+  }
+
+  // 3. Compacto de 8 dígitos: YYYYMMDD o YYYYDDMM (ej: 20263009 o 20260930)
+  const m8Iso = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m8Iso) {
+    const y = m8Iso[1];
+    const p1 = parseInt(m8Iso[2], 10);
+    const p2 = parseInt(m8Iso[3], 10);
+    if (p1 > 12 && p2 <= 12) {
+      return `${y}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    }
+    return `${y}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+  }
+
+  // 4. Compacto latino de 8 dígitos: DDMMYYYY
+  const m8Dmy = s.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (m8Dmy) {
+    return `${m8Dmy[3]}-${m8Dmy[2]}-${m8Dmy[1]}`;
+  }
+
+  // 5. Expresión formal con nombre de mes en español (ej: "30 de septiembre de 2026")
+  const mesesMap = {
+    enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+    julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+    noviembre: '11', diciembre: '12'
+  };
+  const mTxt = s.match(/([0-2]?[0-9]|3[01])\s+(?:de\s+)?([a-zA-Z]+)\s+(?:de\s+)?(202[0-9]|203[0-9])/i);
+  if (mTxt && mesesMap[mTxt[2].toLowerCase()]) {
+    const d = mTxt[1].padStart(2, '0');
+    const mo = mesesMap[mTxt[2].toLowerCase()];
+    return `${mTxt[3]}-${mo}-${d}`;
+  }
+
+  return s;
+}
+window.normalizarTipoActividad = normalizarTipoActividad;
+window.convertirDdmmaaaAIso = convertirDdmmaaaAIso;
+
 function parsearAnioMesCliente(fecha) {
   if (!fecha || String(fecha).trim() === '' || String(fecha).trim() === 'S/F') {
     return {
@@ -193,47 +262,34 @@ function parsearAnioMesCliente(fecha) {
       mes: null
     };
   }
+
+  const iso = convertirDdmmaaaAIso(fecha);
   let anio = null;
   let mes = null;
-  const s = String(fecha).trim();
-  if (s.includes('-')) {
-    const p = s.split('-');
-    if (p.length >= 3) {
-      if (p[0].length === 4) {
-        // YYYY-MM-DD
-        const y = parseInt(p[0], 10);
-        const m = parseInt(p[1], 10);
-        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
-      } else if (p[2].length === 4) {
-        // DD-MM-YYYY
-        const y = parseInt(p[2], 10);
-        const m = parseInt(p[1], 10);
-        if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
-      }
-    } else if (p.length === 2) {
-      // YYYY-MM
-      const y = parseInt(p[0], 10);
-      const m = parseInt(p[1], 10);
-      if (!isNaN(y) && y > 2000 && !isNaN(m) && m >= 1 && m <= 12) { anio = y; mes = m; }
-    }
-  } else if (s.includes('/')) {
-    const p2 = s.split('/');
-    if (p2.length >= 3) {
-      if (p2[2].length === 4) {
-        // DD/MM/YYYY
-        const y2 = parseInt(p2[2], 10);
-        const m2 = parseInt(p2[1], 10);
-        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
-      } else if (p2[0].length === 4) {
-        // YYYY/MM/DD
-        const y2 = parseInt(p2[0], 10);
-        const m2 = parseInt(p2[1], 10);
-        if (!isNaN(y2) && y2 > 2000 && !isNaN(m2) && m2 >= 1 && m2 <= 12) { anio = y2; mes = m2; }
+
+  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const p = iso.split('-');
+    anio = parseInt(p[0], 10);
+    mes = parseInt(p[1], 10);
+  } else {
+    // Si contiene nombre de mes en español o año suelto
+    const s = String(fecha).toLowerCase();
+    const mesesMap = {
+      enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+      julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10,
+      noviembre: 11, diciembre: 12
+    };
+    for (const [mNombre, mNum] of Object.entries(mesesMap)) {
+      if (s.includes(mNombre)) {
+        mes = mNum;
+        break;
       }
     }
+    const matchYear = String(fecha).match(/\b(202[0-9]|203[0-9])\b/);
+    if (matchYear) anio = parseInt(matchYear[1], 10);
   }
 
-  if (!anio || !mes) {
+  if (!anio || !mes || isNaN(anio) || isNaN(mes) || mes < 1 || mes > 12) {
     return {
       key: '',
       label: 'Sin Fecha',
@@ -251,6 +307,7 @@ function parsearAnioMesCliente(fecha) {
     mes: mes
   };
 }
+window.parsearAnioMesCliente = parsearAnioMesCliente;
 
 function guardarCarpetasMensualesLocal() {
   try {
@@ -412,6 +469,22 @@ function cargarLegajoLocal() {
     const raw = localStorage.getItem(STORAGE_KEYS.LEGAJO_DB);
     if (raw) {
       AppState.actividadesRegistradas = JSON.parse(raw);
+      // Auto-sanear y normalizar fechas invertidas (YYYY-DD-MM) en memoria local
+      Object.values(AppState.actividadesRegistradas).forEach(list => {
+        if (Array.isArray(list)) {
+          list.forEach(a => {
+            if (a && a.fechaActividad) {
+              const fNorm = convertirDdmmaaaAIso(a.fechaActividad);
+              if (fNorm && fNorm !== a.fechaActividad) {
+                a.fechaActividad = fNorm;
+                const mInfo = parsearAnioMesCliente(fNorm);
+                a.monthKey = mInfo.key;
+                a.monthLabel = mInfo.label;
+              }
+            }
+          });
+        }
+      });
     } else {
       AppState.actividadesRegistradas = {};
     }
@@ -554,36 +627,14 @@ function generarCodigoArchivo(org, nroEstab, actividadId, fecha, detalle, ext) {
 // Formatear cualquier fecha a DD/MM/AAAA
 function formatearFechaDdmmaaa(fechaStr) {
   if (!fechaStr) return 'S/F';
-  const s = String(fechaStr).trim();
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const p = s.split('/');
-    return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+  const iso = convertirDdmmaaaAIso(fechaStr);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const p = iso.split('-');
+    return `${p[2]}/${p[1]}/${p[0]}`;
   }
-  const mIso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (mIso) {
-    return `${mIso[3].padStart(2, '0')}/${mIso[2].padStart(2, '0')}/${mIso[1]}`;
-  }
-  const m8 = s.match(/^(\d{2})(\d{2})(\d{4})$/);
-  if (m8) {
-    return `${m8[1]}/${m8[2]}/${m8[3]}`;
-  }
-  return s;
+  return String(fechaStr).trim();
 }
 window.formatearFechaDdmmaaa = formatearFechaDdmmaaa;
-
-// Convertir fecha DD/MM/AAAA a formato ISO YYYY-MM-DD
-function convertirDdmmaaaAIso(fechaStr) {
-  if (!fechaStr) return '';
-  const s = String(fechaStr).trim();
-  const mIso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (mIso) return `${mIso[1]}-${mIso[2].padStart(2, '0')}-${mIso[3].padStart(2, '0')}`;
-  const mDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (mDmy) return `${mDmy[3]}-${mDmy[2].padStart(2, '0')}-${mDmy[1].padStart(2, '0')}`;
-  const m8 = s.match(/^(\d{2})(\d{2})(\d{4})$/);
-  if (m8) return `${m8[3]}-${m8[2].padStart(2, '0')}-${m8[1].padStart(2, '0')}`;
-  return s;
-}
-window.convertirDdmmaaaAIso = convertirDdmmaaaAIso;
 
 // Extraer año de cualquier cadena de fecha
 function extraerAnioDeFecha(fechaStr) {
@@ -602,6 +653,7 @@ function extraerAnioDeFecha(fechaStr) {
   const match = s.match(/(20\d\d)/);
   return match ? match[1] : '';
 }
+window.extraerAnioDeFecha = extraerAnioDeFecha;
 
 function normalizarTipoActividad(str) {
   if (!str) return '';
@@ -662,6 +714,7 @@ function normalizarTipoActividad(str) {
 
   return s;
 }
+window.normalizarTipoActividad = normalizarTipoActividad;
 
 /**
  * Obtiene todas las actividades pertenecientes a un establecimiento,
@@ -690,7 +743,16 @@ function obtenerActividadesDeSede(e) {
 
   function agregarActividad(a) {
     if (!a) return;
-    const key = (a.id && String(a.id).trim()) ? String(a.id).trim() : (a.fileName ? String(a.fileName).trim() : `${a.tipoActividad}_${a.fechaActividad}`);
+    const aFechaIso = convertirDdmmaaaAIso(a.fechaActividad) || a.fechaActividad;
+    if (aFechaIso && aFechaIso !== a.fechaActividad) {
+      a.fechaActividad = aFechaIso;
+      const mI = parsearAnioMesCliente(aFechaIso);
+      a.monthKey = mI.key;
+      a.monthLabel = mI.label;
+    }
+    const key = (a.id && String(a.id).trim()) 
+      ? String(a.id).trim() 
+      : (a.fileName ? String(a.fileName).trim() : `${normalizarTipoActividad(a.tipoActividad)}_${aFechaIso}`);
     if (!mapUnique.has(key)) {
       mapUnique.set(key, a);
     }
@@ -992,7 +1054,7 @@ function renderFichaEstablecimiento(est) {
 
 function obtenerUltimaFechaVisita(acts) {
   if (!acts || acts.length === 0) return 'Sin registros';
-  const dates = acts.map(a => a.fechaActividad).filter(f => !!f);
+  const dates = acts.map(a => convertirDdmmaaaAIso(a.fechaActividad) || a.fechaActividad).filter(f => !!f);
   if (dates.length === 0) return 'Sin fecha';
   dates.sort((a, b) => {
     const isoA = convertirDdmmaaaAIso(a) || a;
@@ -1019,12 +1081,12 @@ function buscarActividadDuplicada(estId, tipoActividad, fecha) {
   if (!est) return null;
   const acts = obtenerActividadesDeSede(est);
   const tipoNorm = normalizarTipoActividad(tipoActividad);
-  const fechaIso = fecha ? fecha.split('T')[0] : '';
+  const fechaIso = fecha ? (convertirDdmmaaaAIso(fecha).split('T')[0]) : '';
   if (!fechaIso) return null;
 
   return acts.find(a => {
     const aTipoNorm = normalizarTipoActividad(a.tipoActividad);
-    const aFecha = a.fechaActividad ? a.fechaActividad.split('T')[0] : '';
+    const aFecha = a.fechaActividad ? (convertirDdmmaaaAIso(a.fechaActividad).split('T')[0]) : '';
     return aTipoNorm === tipoNorm && aFecha === fechaIso;
   });
 }
@@ -4746,7 +4808,8 @@ window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatib
 
 function mapearFilaActividad(row) {
   if (!row) return null;
-  const fAct = row['Fecha Actividad'] ? String(row['Fecha Actividad']).split('T')[0] : '';
+  const rawDate = row['Fecha Actividad'] ? String(row['Fecha Actividad']).split('T')[0].split(' ')[0].trim() : '';
+  const fAct = convertirDdmmaaaAIso(rawDate) || rawDate;
   const mInfo = parsearAnioMesCliente(fAct);
   const mUrl = row['URL Carpeta Mensual'] || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
   if (mUrl && mInfo.key) {
