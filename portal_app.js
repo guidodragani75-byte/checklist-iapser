@@ -1921,6 +1921,20 @@ function renderMatrizAnual() {
       return mKey === mesFiltro;
     });
 
+    // REGLA FUNDAMENTAL DE PERÍODO:
+    // Si se filtra por un mes específico, descartar INMEDIATAMENTE toda sede que no tenga actividades en ese mes
+    if (mesFiltro !== 'todos') {
+      if (docsFiltro === 'sin_docs') {
+        if (actsPeriodo.length > 0) return;
+      } else {
+        if (actsPeriodo.length === 0) return;
+      }
+    }
+    // Si se evalúa el año consolidado con 'con_docs', descartar si no tiene actividades en el año
+    if (mesFiltro === 'todos' && docsFiltro === 'con_docs' && actsDelAnio.length === 0) {
+      return;
+    }
+
     // Conteo por cada actividad técnica en el período evaluado
     const conteoSede = {};
     Object.keys(CATALOGO_ACTIVIDADES).forEach(k => conteoSede[k] = 0);
@@ -1960,16 +1974,6 @@ function renderMatrizAnual() {
     });
     if (modoVista === 'actividades' && sumaActividadesCatalogo > totalSedePeriodo) {
       totalSedePeriodo = sumaActividadesCatalogo;
-    }
-
-    // REGLA 1: Si se filtra por mes específico, SOLO mostrar sedes que tengan actividades en ese mes
-    // (a menos que el usuario filtre explícitamente por 'sin_docs' para auditar sedes sin actividad)
-    if (mesFiltro !== 'todos') {
-      if (docsFiltro === 'sin_docs') {
-        if (totalSedePeriodo > 0) return;
-      } else {
-        if (totalSedePeriodo === 0) return;
-      }
     }
 
     // REGLA 2: Filtro por Estado / Documentos específicos
@@ -2249,6 +2253,18 @@ function exportarMatrizCSV() {
       const mKey = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
       return mKey === mesFiltro;
     });
+
+    // Filtro estricto inmediato por mes
+    if (mesFiltro !== 'todos') {
+      if (docsFiltro === 'sin_docs') {
+        if (actsPeriodo.length > 0) return;
+      } else {
+        if (actsPeriodo.length === 0) return;
+      }
+    }
+    if (mesFiltro === 'todos' && docsFiltro === 'con_docs' && actsDelAnio.length === 0) {
+      return;
+    }
 
     // Total de actividades de la sede en el período
     let totalSedePeriodo = actsPeriodo.length;
