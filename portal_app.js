@@ -1043,6 +1043,10 @@ function renderFichaEstablecimiento(est) {
           <i class="fa-solid fa-arrows-rotate ${AppState.estaSincronizando ? 'fa-spin' : ''}"></i>
           <span>Sincronizar</span>
         </button>
+        <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit?gid=540097411#gid=540097411" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-semibold flex items-center gap-1.5 transition" title="Abrir Archivo Base en Google Sheets">
+          <i class="fa-solid fa-file-excel text-emerald-700"></i>
+          <span>Archivo Base</span>
+        </a>
         <button type="button" onclick="deseleccionarEstablecimiento()" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-300 hover:border-rose-300 flex items-center gap-1.5 transition cursor-pointer" title="Salir de este establecimiento y limpiar la vista">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
           <span>Salir</span>

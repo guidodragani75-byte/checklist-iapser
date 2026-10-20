@@ -233,6 +233,11 @@
             <span>Sincronizar</span>
           </button>
 
+          <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit?gid=540097411#gid=540097411" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition border border-emerald-400/40" title="Abrir Archivo Base en Google Sheets (Hoja Legajo_Actividades_Archivos / Superficies)">
+            <i class="fa-solid fa-file-excel text-emerald-200 text-sm"></i>
+            <span>Archivo Base Sheets</span>
+          </a>
+
           <button onclick="abrirModalTableroGeneral()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center gap-2 border border-white/15 transition">
             <i class="fa-solid fa-chart-pie text-amber-300"></i>
             <span>Métricas Provinciales</span>
@@ -628,6 +633,10 @@
             <span id="matriz-contador" class="text-xs font-bold text-blue-900 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full"></span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
+            <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit?gid=540097411#gid=540097411" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition whitespace-nowrap" title="Abrir Archivo Base en Google Sheets">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Archivo Base Sheets</span>
+            </a>
             <button onclick="abrirModalSubidaRapida()" class="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap" title="Subida rápida por lote con OCR para cualquier sede">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <span>Subida Rápida (Carga Libre)</span>
@@ -705,6 +714,10 @@
 
         <div class="flex items-center gap-2 pt-2 md:pt-0 shrink-0">
           <span id="repo-contador" class="text-xs text-slate-500 font-semibold mr-1"></span>
+          <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit?gid=540097411#gid=540097411" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition" title="Abrir Archivo Base en Google Sheets">
+            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+            <span>Archivo Base</span>
+          </a>
           <button id="btn-abrir-carpeta-mes-repo" onclick="abrirCarpetaMensualSeleccionada()" class="btn-primary text-xs flex items-center gap-2 shadow-sm bg-blue-700 hover:bg-blue-800" title="Abrir carpeta mensual de Drive (archivos agrupados sin subcarpetas)">
             <i class="fa-solid fa-folder-open text-amber-300"></i>
             <span id="label-abrir-carpeta-mes-repo">Carpeta Mensual en Drive</span>
@@ -1424,7 +1437,7 @@
 
   <!-- Carga de datos de catálogo (452 establecimientos) y lógica -->
   <script src="datos_precargados_v2.js"></script>
-  <script src="portal_app_v2.js?v=20261019_6"></script>
+  <script src="portal_app_v2.js?v=20261019_7"></script>
 
 </body>
 </html>
