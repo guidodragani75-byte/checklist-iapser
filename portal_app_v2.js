@@ -162,6 +162,8 @@ const AppState = {
   filtroTexto: '',
   filtroOrganismo: '',
   filtroLocalidad: '',
+  filtroSuperficie: '',
+  filtroMes: 'todos',
   
   // Filtros Vista 2 (Matriz)
   matrizAnio: '2026',
@@ -941,6 +943,19 @@ function renderListaEstablecimientos() {
       if (supFilter === 'sin_dato' && supNum > 0) return false;
     }
 
+    // Filtro por mes de visita o actividad técnica
+    if (AppState.filtroMes && AppState.filtroMes !== 'todos') {
+      const acts = obtenerActividadesDeSede(e);
+      const targetMes = String(AppState.filtroMes).padStart(2, '0');
+      const tieneEnMes = acts.some(a => {
+        const d = String(a.fechaActividad || '');
+        if (d.includes(`-${targetMes}-`) || d.includes(`/${targetMes}/`)) return true;
+        if (a.monthKey && (a.monthKey.endsWith(`-${targetMes}`) || a.monthKey.endsWith(`/${targetMes}`))) return true;
+        return false;
+      });
+      if (!tieneEnMes) return false;
+    }
+
     // Filtros por chips de tareas faltantes
     if (AppState.filtrosFaltantes && AppState.filtrosFaltantes.size > 0) {
       const acts = obtenerActividadesDeSede(e);
@@ -1674,54 +1689,55 @@ function abrirModalDocumentosActividad(catId) {
 
       const card = document.createElement('div');
       card.className = 'bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+      card.style.cssText = 'background:#fff;border:1px solid var(--border-table, #D5D8D3);padding:12px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
       card.innerHTML = `
-        <div class="space-y-1 flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="badge-completo text-[10px] font-bold px-2 py-0.5 rounded-full">
+        <div class="space-y-1 flex-1 min-w-0" style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;">
+          <div class="flex items-center gap-2" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <span style="font-size:10px;font-weight:700;background:var(--primary-light, #E3EDEF);color:var(--primary, #0F4C5C);padding:2px 6px;border-radius:2px;">
               ${escapeHtml(act.estadoActividad || 'Completado')}
             </span>
-            <span class="text-xs font-semibold text-slate-900">
-              <i class="fa-regular fa-calendar text-slate-400 mr-1"></i>${formatearFechaDdmmaaa(fAct)}
+            <span style="font-weight:600;font-family:var(--font-mono, monospace);">
+              <i class="fa-regular fa-calendar" style="color:var(--text-muted);margin-right:4px;"></i>${formatearFechaDdmmaaa(fAct)}
             </span>
-            ${act.preventor ? `<span class="text-[11px] text-slate-500 truncate"><i class="fa-solid fa-user-shield text-[10px] text-slate-400 mr-1"></i>${escapeHtml(act.preventor)}</span>` : ''}
+            ${act.preventor ? `<span style="color:var(--text-muted);font-size:11px;"><i class="fa-solid fa-user-shield" style="margin-right:3px;"></i>${escapeHtml(act.preventor)}</span>` : ''}
           </div>
 
           ${act.detalle ? `
-            <div class="text-xs text-slate-700 font-medium">
-              <span class="text-slate-400">Detalle:</span> ${escapeHtml(act.detalle)}
+            <div style="font-size:12px;color:var(--text-main);">
+              <span style="color:var(--text-muted);">Detalle:</span> ${escapeHtml(act.detalle)}
             </div>
           ` : ''}
 
-          <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-blue-900 truncate">
-            <i class="fa-solid fa-file-pdf text-red-600 text-sm shrink-0"></i>
-            <span class="truncate" title="${escapeHtml(act.fileName || 'Documento')}">${escapeHtml(act.fileName || 'Documento sin nombre')}</span>
+          <div class="m" style="font-size:11px;font-weight:600;color:var(--primary, #0F4C5C);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            <i class="fa-solid fa-file-pdf" style="color:var(--alert, #A8470A);margin-right:4px;"></i>
+            <span title="${escapeHtml(act.fileName || 'Documento')}">${escapeHtml(act.fileName || 'Documento sin nombre')}</span>
           </div>
 
           ${act.observaciones ? `
-            <div class="text-[11px] text-slate-500 italic truncate" title="${escapeHtml(act.observaciones)}">
+            <div style="font-size:11px;color:var(--text-muted);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(act.observaciones)}">
               ${escapeHtml(act.observaciones)}
             </div>
           ` : ''}
         </div>
 
-        <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           ${fileUrl ? `
-            <a href="${fileUrl}" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <a href="${fileUrl}" target="_blank" style="background:var(--primary, #0F4C5C);color:#fff;font-weight:600;font-size:11px;padding:5px 10px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir en Google Drive">
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px;"></i>
               <span>Ver en Drive</span>
             </a>
           ` : `
-            <span class="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded text-[11px] font-semibold">
-              <i class="fa-solid fa-clock mr-1"></i>Guardado Local
+            <span style="background:var(--alert-bg, #FBEFE6);color:var(--alert, #A8470A);border:1px solid #EED4C2;font-size:11px;padding:3px 8px;border-radius:2px;font-weight:500;">
+              <i class="fa-solid fa-clock" style="margin-right:3px;"></i>Guardado Local
             </span>
           `}
           ${mFUrl ? `
-            <a href="${mFUrl}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold text-xs flex items-center gap-1.5 transition" title="Abrir carpeta mensual de Drive">
-              <i class="fa-solid fa-folder-open text-amber-700"></i>
+            <a href="${mFUrl}" target="_blank" style="background:#fff;border:1px solid var(--border-control, #B9BEB8);color:var(--text-main);font-size:11px;padding:5px 8px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir carpeta mensual de Drive">
+              <i class="fa-solid fa-folder-open" style="color:var(--primary, #0F4C5C);"></i>
               <span>Mes</span>
             </a>
           ` : ''}
-          <button onclick="eliminarDocumentoActividad('${act.id}', '${est.id}')" class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1.5 transition" title="Eliminar este documento y registro">
+          <button type="button" onclick="eliminarDocumentoActividad('${act.id}', '${est.id}')" style="background:#fff;border:1px solid #F87171;color:#DC2626;font-size:11px;padding:5px 8px;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Eliminar este documento y registro">
             <i class="fa-solid fa-trash-can"></i>
             <span>Eliminar</span>
           </button>
@@ -1732,6 +1748,7 @@ function abrirModalDocumentosActividad(catId) {
   }
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 /**
@@ -3180,6 +3197,7 @@ function abrirModalRegistrarActividad(actividadId) {
   actualizarPreviewNombreArchivo();
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 function configurarCamposDinamicosModal(cat, est) {
@@ -3505,6 +3523,14 @@ function setupEventListeners() {
   if (supSelect) {
     supSelect.addEventListener('change', (e) => {
       AppState.filtroSuperficie = e.target.value;
+      renderListaEstablecimientos();
+    });
+  }
+
+  const mesSelect = document.getElementById('filtro-mes');
+  if (mesSelect) {
+    mesSelect.addEventListener('change', (e) => {
+      AppState.filtroMes = e.target.value || 'todos';
       renderListaEstablecimientos();
     });
   }
@@ -4440,6 +4466,7 @@ function abrirModalSubidaRapida(estId) {
   renderFastBatchList();
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 window.abrirModalSubidaRapida = abrirModalSubidaRapida;
 
@@ -5711,6 +5738,7 @@ function abrirModalTableroGeneral() {
   }
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 window.abrirModalTableroGeneral = abrirModalTableroGeneral;
 
@@ -5750,6 +5778,7 @@ function abrirModalEstadisticaMensual(mesDeseado = null, anioDeseado = null) {
 
   renderEstadisticaMensualModal();
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 window.abrirModalEstadisticaMensual = abrirModalEstadisticaMensual;
 
@@ -6052,6 +6081,7 @@ function abrirModalEditarSuperficie(estId) {
   }
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 window.abrirModalEditarSuperficie = abrirModalEditarSuperficie;
 
@@ -6204,6 +6234,7 @@ function abrirModalCarpetasMensuales() {
   });
 
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 function abrirCarpetaMensualSeleccionada() {
@@ -6282,6 +6313,7 @@ function abrirModalConfiguracion() {
   document.getElementById('config-webhook-url').value = getWebhookUrl();
   document.getElementById('config-drive-id').value = localStorage.getItem(STORAGE_KEYS.DRIVE_ROOT_ID) || '';
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 function guardarConfiguracion() {
@@ -6524,6 +6556,12 @@ function actualizarFichaLateralMaqueta(est) {
     if (elSub) elSub.textContent = 'Seleccioná una sede del listado central';
     if (elM2) elM2.textContent = '-';
     if (elAlerta) elAlerta.style.display = 'none';
+    const contTareas = document.getElementById('side-lista-tareas-sede');
+    const badgeResumen = document.getElementById('side-tareas-resumen-badge');
+    if (contTareas) {
+      contTareas.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Hacé clic en una sede de la tabla para ver sus tareas y documentos.</div>';
+    }
+    if (badgeResumen) badgeResumen.textContent = '';
     return;
   }
 
@@ -6567,6 +6605,168 @@ function actualizarFichaLateralMaqueta(est) {
       }
     } else {
       elAlerta.style.display = 'none';
+    }
+  }
+
+  // Renderizar listado interactivo de tareas y documentos en la barra lateral
+  const contTareas = document.getElementById('side-lista-tareas-sede');
+  const badgeResumen = document.getElementById('side-tareas-resumen-badge');
+
+  if (contTareas) {
+    contTareas.innerHTML = '';
+    const acts = obtenerActividadesDeSede(est);
+
+    const categorias = [
+      ...Object.values(CATALOGO_ACTIVIDADES),
+      ...AppState.customActivities.map(custom => ({
+        id: custom.id,
+        codigo: sanitizeText(custom.nombre).toUpperCase(),
+        nombre: custom.nombre,
+        subtitulo: custom.subtitulo || 'Actividad adicional personalizada',
+        icono: '📌',
+        color: '#475569',
+        permiteMultiples: true
+      }))
+    ];
+
+    let completadasCount = 0;
+
+    categorias.forEach(cat => {
+      const catNorm = normalizarTipoActividad(cat.id);
+      const registros = acts.filter(a => {
+        return normalizarTipoActividad(a.tipoActividad) === catNorm || a.tipoActividad === cat.id;
+      });
+
+      const tieneRegistros = registros.length > 0;
+      const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
+      const docUrl = ultimoRegistro ? (ultimoRegistro.fileUrl || ultimoRegistro.monthFolderUrl || '') : '';
+
+      let estadoTexto = 'Pendiente';
+      let estadoBadgeStyle = 'background:#F0F1EE;color:#5B6670;border:1px solid #D5D8D3;';
+      let estadoIcon = '<i class="fa-regular fa-clock"></i>';
+      let cardBorderLeft = '3px solid #B9BEB8';
+
+      if (tieneRegistros) {
+        completadasCount++;
+        cardBorderLeft = '3px solid #0F4C5C';
+        if (cat.id === 'muestra_agua') {
+          const tieneAnalisis = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+          if (tieneAnalisis) {
+            estadoTexto = 'Completo';
+            estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+            estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+          } else {
+            estadoTexto = 'En Análisis';
+            estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+            estadoIcon = '<i class="fa-solid fa-hourglass-half"></i>';
+            cardBorderLeft = '3px solid #A8470A';
+          }
+        } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
+          estadoTexto = ultimoRegistro.estadoActividad;
+          estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+          estadoIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+          cardBorderLeft = '3px solid #A8470A';
+        } else {
+          estadoTexto = ultimoRegistro.estadoActividad || 'Realizado';
+          estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+          estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+        }
+      } else if (cat.id === 'confeccion_rgrl' && est.data) {
+        completadasCount++;
+        estadoTexto = 'Cargado';
+        estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+        estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+        cardBorderLeft = '3px solid #0F4C5C';
+      }
+
+      const card = document.createElement('div');
+      card.style.cssText = `background:#fff;border:1px solid var(--border-table);border-left:${cardBorderLeft};padding:9px 11px;border-radius:2px;display:flex;flex-direction:column;gap:5px;transition:background 0.15s ease;`;
+
+      // Header: Nombre y Badge
+      const headerDiv = document.createElement('div');
+      headerDiv.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:6px;';
+      headerDiv.innerHTML = `
+        <div style="font-weight:600;font-size:12px;color:var(--text-main);line-height:1.3;display:flex;align-items:center;gap:5px;">
+          <span style="font-size:13px;">${cat.icono || '📋'}</span>
+          <span>${escapeHtml(cat.nombre)}</span>
+        </div>
+        <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:2px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;${estadoBadgeStyle}">
+          ${estadoIcon} ${escapeHtml(estadoTexto)}
+        </span>
+      `;
+      card.appendChild(headerDiv);
+
+      // Metadatos: Fecha, preventor y archivo
+      if (tieneRegistros && ultimoRegistro) {
+        const metaDiv = document.createElement('div');
+        metaDiv.style.cssText = 'font-size:11px;color:var(--text-muted);display:flex;flex-direction:column;gap:2px;';
+
+        const fechaFmt = ultimoRegistro.fechaActividad ? formatearFechaDdmmaaa(ultimoRegistro.fechaActividad) : 'S/F';
+        const prevTxt = ultimoRegistro.preventor ? ` · <span title="${escapeHtml(ultimoRegistro.preventor)}">${escapeHtml(ultimoRegistro.preventor)}</span>` : '';
+
+        let fileLine = '';
+        if (ultimoRegistro.fileName) {
+          const fileClickAction = docUrl ? `href="${docUrl}" target="_blank"` : `href="#" onclick="abrirModalDocumentosActividad('${cat.id}'); return false;"`;
+          fileLine = `
+            <div style="margin-top:2px;">
+              <a ${fileClickAction} class="m" style="font-size:11px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(ultimoRegistro.fileName)}">
+                <i class="fa-solid fa-file-pdf" style="color:var(--alert);flex-shrink:0;"></i>
+                <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(ultimoRegistro.fileName)}</span>
+              </a>
+            </div>
+          `;
+        }
+
+        metaDiv.innerHTML = `
+          <div><i class="fa-regular fa-calendar" style="margin-right:3px;"></i><strong class="m">${fechaFmt}</strong>${prevTxt}</div>
+          ${fileLine}
+        `;
+        card.appendChild(metaDiv);
+      }
+
+      // Barra de Acciones: [Abrir ↗], [Historial], [+ Subir], [Checklist]
+      const actionsDiv = document.createElement('div');
+      actionsDiv.style.cssText = 'display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap;';
+
+      let btnsHtml = '';
+      if (docUrl) {
+        btnsHtml += `
+          <a href="${docUrl}" target="_blank" class="btn-side-doc" style="background:#0F4C5C;color:#fff;padding:3px 8px;border-radius:2px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir documento en Google Drive">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px;"></i> Abrir ↗
+          </a>
+        `;
+      }
+
+      if (tieneRegistros) {
+        btnsHtml += `
+          <button type="button" onclick="abrirModalDocumentosActividad('${cat.id}')" style="background:#fff;border:1px solid var(--border-control);color:var(--text-main);padding:3px 7px;border-radius:2px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Ver todos los documentos subidos para esta tarea">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:9px;"></i> Historial (${registros.length})
+          </button>
+        `;
+      }
+
+      if (cat.esChecklist) {
+        btnsHtml += `
+          <button type="button" onclick="abrirChecklistRGRL('${est.id}')" style="background:#fff;border:1px solid var(--border-control);color:var(--primary);padding:3px 7px;border-radius:2px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Abrir relevamiento interactivo RGRL Dec. 351/79">
+            <i class="fa-solid fa-clipboard-check" style="font-size:10px;"></i> Formulario
+          </button>
+        `;
+      }
+
+      btnsHtml += `
+        <button type="button" onclick="abrirModalRegistrarActividad('${cat.id}')" style="background:#fff;border:1px solid var(--border-control);color:var(--text-main);padding:3px 7px;border-radius:2px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;" title="Subir documento para esta actividad">
+          <i class="fa-solid fa-plus" style="font-size:9px;"></i> Subir
+        </button>
+      `;
+
+      actionsDiv.innerHTML = btnsHtml;
+      card.appendChild(actionsDiv);
+
+      contTareas.appendChild(card);
+    });
+
+    if (badgeResumen) {
+      badgeResumen.textContent = `${completadasCount} de ${categorias.length} al día`;
     }
   }
 

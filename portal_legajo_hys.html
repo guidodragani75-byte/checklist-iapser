@@ -182,9 +182,14 @@
       padding: 20px 28px;
     }
 
-    /* Panel lateral derecho (340px) */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Panel lateral derecho (420px) */
     .side {
-      width: 340px;
+      width: 420px;
+      min-width: 380px;
       flex: none;
       background: #fff;
       border-left: 1px solid var(--border-table);
@@ -544,11 +549,30 @@
 
             <label style="font-size:12px;color:var(--text-muted)">
               Superficie
-              <select id="filtro-superficie" class="input-clean" style="display:block;margin-top:4px;min-width:160px;">
+              <select id="filtro-superficie" class="input-clean" style="display:block;margin-top:4px;min-width:140px;">
                 <option value="">Cualquiera</option>
                 <option value="mas_1000">Más de 1.000 m²</option>
                 <option value="menor_1000">Menos de 1.000 m²</option>
                 <option value="sin_dato">Sin dato</option>
+              </select>
+            </label>
+
+            <label style="font-size:12px;color:var(--text-muted)">
+              Mes de visita
+              <select id="filtro-mes" class="input-clean" style="display:block;margin-top:4px;min-width:130px;">
+                <option value="todos">Todo el año</option>
+                <option value="01">Enero</option>
+                <option value="02">Febrero</option>
+                <option value="03">Marzo</option>
+                <option value="04">Abril</option>
+                <option value="05">Mayo</option>
+                <option value="06">Junio</option>
+                <option value="07">Julio</option>
+                <option value="08">Agosto</option>
+                <option value="09">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
               </select>
             </label>
           </div>
@@ -615,19 +639,34 @@
           </div>
 
           <!-- Alerta Condicional: Sedes > 1000 m2 sin mediciones -->
-          <div id="side-sede-alerta" style="border:1px solid var(--alert);background:var(--alert-bg);padding:12px 14px;font-size:13px;border-radius:2px;display:none;">
+          <div id="side-sede-alerta" style="border:1px solid var(--alert);background:var(--alert-bg);padding:12px 14px;font-size:13px;border-radius:2px;display:none;margin-bottom:14px;">
             <strong style="color:var(--alert)">Mediciones obligatorias pendientes</strong><br>
             Supera 1.000 m². Falta puesta a tierra, ruido e iluminación.
           </div>
 
-          <!-- Botón de Acceso a las 12 Tareas Técnicas e Historial -->
+          <!-- Listado Interactivo de Tareas y Documentos Técnicos -->
           <div style="margin-top:14px;">
-            <button type="button" class="chip" onclick="abrirModalActividadesSedeActual()" style="width:100%;font-weight:600;background:#fff;border-color:var(--border-control);color:var(--text-main);">
-              <i class="fa-solid fa-list-check" style="margin-right:6px;color:var(--primary)"></i> Ver todas las actividades e historial
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <h3 style="margin:0;font-size:13px;font-weight:600;text-transform:uppercase;color:var(--text-main);letter-spacing:.02em;">
+                Tareas y Documentos
+              </h3>
+              <span id="side-tareas-resumen-badge" class="m" style="font-size:11px;color:var(--primary);font-weight:600;"></span>
+            </div>
+
+            <!-- Contenedor con scroll para las 12 actividades -->
+            <div id="side-lista-tareas-sede" style="display:flex;flex-direction:column;gap:8px;max-height:450px;overflow-y:auto;padding-right:4px;">
+              <!-- Se inyectan las 12 actividades técnicas dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Botón de Acceso a pantalla completa -->
+          <div style="margin-top:10px;">
+            <button type="button" class="chip" onclick="abrirModalActividadesSedeActual()" style="width:100%;font-weight:600;background:#fff;border-color:var(--border-control);color:var(--text-main);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;">
+              <i class="fa-solid fa-expand" style="color:var(--primary)"></i> Ver todas en pantalla completa
             </button>
           </div>
 
-          <!-- Zona Drag & Drop: Carga de Documentos con OCR -->
+          <!-- Zona Drag & Drop: Carga Rápida de Documentos con OCR -->
           <div style="margin-top:18px;font-size:12px;color:var(--text-muted)">Cargar documentos</div>
           <div id="side-dropzone" style="margin-top:6px;border:1.5px dashed #8A949C;padding:22px 16px;text-align:center;cursor:pointer;background:#fff;border-radius:2px;transition:all 0.15s ease;">
             <input type="file" id="side-file-input" multiple style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg">
@@ -912,7 +951,7 @@
 <!-- ==================== MODALES COMPATIBLES ==================== -->
 
 <!-- MODAL: DETALLE COMPLETO DE LAS 12 ACTIVIDADES TÉCNICAS (EXPANSIÓN) -->
-<div id="modal-actividades-completas" class="modal-backdrop" style="display:none;">
+<div id="modal-actividades-completas" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:1000px;max-width:96vw;">
     <div class="modal-head">
       <div>
@@ -948,7 +987,7 @@
 </div>
 
 <!-- MODAL: REGISTRAR ACTIVIDAD TÉCNICA -->
-<div id="modal-registro-actividad" class="modal-backdrop" style="display:none;">
+<div id="modal-registro-actividad" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:680px;max-width:94vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1024,7 +1063,7 @@
 </div>
 
 <!-- MODAL: HISTORIAL DE ACTIVIDAD -->
-<div id="modal-historial-actividad" class="modal-backdrop" style="display:none;">
+<div id="modal-historial-actividad" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:700px;max-width:94vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1054,7 +1093,7 @@
 </div>
 
 <!-- MODAL: SUBIDA RÁPIDA POR LOTE CON OCR -->
-<div id="modal-subida-rapida-general" class="modal-backdrop" style="display:none;">
+<div id="modal-subida-rapida-general" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:850px;max-width:96vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1119,7 +1158,7 @@
 </div>
 
 <!-- MODAL: EDITAR SUPERFICIE CUBIERTA -->
-<div id="modal-editar-superficie" class="modal-backdrop" style="display:none;">
+<div id="modal-editar-superficie" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:460px;max-width:92vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1169,7 +1208,7 @@
 </div>
 
 <!-- MODAL: CONFIGURACIÓN DE CONEXIÓN Y DRIVE -->
-<div id="modal-configuracion" class="modal-backdrop" style="display:none;">
+<div id="modal-configuracion" class="modal-backdrop hidden" style="display:none;">
   <div class="modal-window" style="width:520px;max-width:92vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1196,6 +1235,132 @@
     <div style="padding:14px 20px;background:#F7F8F6;border-top:1px solid var(--border-table);display:flex;justify-content:flex-end;gap:10px;">
       <button type="button" class="chip" onclick="cerrarModal('modal-configuracion')">Cancelar</button>
       <button type="button" class="btn-action-primary" onclick="guardarConfiguracion()">Guardar Configuración</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TABLERO GENERAL DE MÉTRICAS PROVINCIALES -->
+<div id="modal-tablero-general" class="modal-backdrop hidden" style="display:none;">
+  <div class="modal-window" style="width:900px;max-width:96vw;">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-chart-pie" style="color:#A8470A;font-size:20px;"></i>
+        <div>
+          <h3 style="margin:0;">Tablero Ejecutivo de Métricas Provinciales - Plan HyS</h3>
+          <div style="font-size:11px;color:var(--rail-muted);margin-top:2px;">Metas: 100% Cobertura Provincial · 25 a 30 Visitas/Mes · Sedes >1.000 m²</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="cerrarModal('modal-tablero-general')">&times;</button>
+    </div>
+
+    <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
+      <!-- 4 Pilares -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:12px;">
+        <div style="background:#fff;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-muted)">Stock Provincial</div>
+          <div style="font-size:24px;font-weight:600;margin-top:2px;">
+            <span id="tablero-kpi-stock-visitadas">0</span> <span style="font-size:14px;color:var(--text-muted)">/ 452</span>
+          </div>
+          <div id="tablero-kpi-stock-pct" style="font-size:12px;color:var(--primary);margin-top:4px;font-weight:500;">0% del Plan</div>
+          <div style="height:5px;background:#E3E5E1;margin-top:6px;"><div id="tablero-kpi-stock-bar" style="height:5px;background:var(--primary);width:0%;"></div></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-muted)">Avance Mensual (Meta 25-30)</div>
+          <div style="font-size:24px;font-weight:600;margin-top:2px;">
+            <span id="tablero-kpi-mes-visitadas">0</span> <span style="font-size:14px;color:var(--text-muted)">visitas</span>
+          </div>
+          <div id="tablero-kpi-mes-estado" style="font-size:12px;color:var(--alert);margin-top:4px;font-weight:500;">Meta: 25 a 30 sedes</div>
+          <div style="height:5px;background:#E3E5E1;margin-top:6px;"><div id="tablero-kpi-mes-bar" style="height:5px;background:var(--alert);width:0%;"></div></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-muted)">Avance Acumulado</div>
+          <div style="font-size:24px;font-weight:600;margin-top:2px;">
+            <span id="tablero-kpi-acum-visitadas">0</span> <span style="font-size:14px;color:var(--text-muted)">sedes</span>
+          </div>
+          <div id="tablero-kpi-acum-desvio" style="font-size:12px;color:var(--text-muted);margin-top:4px;">Meta acum: -</div>
+          <div style="height:5px;background:#E3E5E1;margin-top:6px;"><div id="tablero-kpi-acum-bar" style="height:5px;background:var(--primary);width:0%;"></div></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-muted)">Sedes >1.000 m²</div>
+          <div style="font-size:24px;font-weight:600;margin-top:2px;">
+            <span id="tablero-kpi-sup-con-med">0</span> <span style="font-size:14px;color:var(--text-muted)">/ <span id="tablero-kpi-sup-total">0</span></span>
+          </div>
+          <div id="tablero-kpi-sup-sin-dato" style="font-size:12px;color:var(--alert);margin-top:4px;font-weight:500;">PAT, Ruido, Ilum</div>
+          <div style="height:5px;background:#E3E5E1;margin-top:6px;"><div id="tablero-kpi-sup-bar" style="height:5px;background:var(--primary);width:0%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Tabla Evolución Mensual -->
+      <div style="border:1px solid var(--border-table);background:#fff;">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border-table);background:#F7F8F6;font-size:12px;font-weight:600;">
+          Evolución Mensual del Plan de Visitas
+        </div>
+        <div style="overflow-x:auto;max-height:220px;">
+          <table class="t">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th style="text-align:center">Visitas Reales</th>
+                <th style="text-align:center">Meta</th>
+                <th style="text-align:center">Cumplimiento</th>
+                <th style="text-align:center">Acumulado Real</th>
+                <th style="text-align:center">Meta Acumulada</th>
+                <th style="text-align:center">Avance s/ 452</th>
+              </tr>
+            </thead>
+            <tbody id="tablero-tabla-meses-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Distribución de Actividades -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h4 style="margin:0;font-size:13px;font-weight:600;">Distribución de Actividades Realizadas</h4>
+          <span style="font-size:12px;color:var(--text-muted);">Total: <strong id="metric-total-acts">0</strong></span>
+        </div>
+        <div id="metric-lista-actividades" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;background:#F7F8F6;border-top:1px solid var(--border-table);display:flex;justify-content:space-between;align-items:center;">
+      <a id="tablero-btn-abrir-sheet" href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834" target="_blank" style="font-size:12px;color:var(--primary);font-weight:600;text-decoration:none;">
+        <i class="fa-solid fa-table"></i> Abrir Hoja Base en Google Sheets
+      </a>
+      <button type="button" class="chip" onclick="cerrarModal('modal-tablero-general')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CARPETAS MENSUALES EN DRIVE -->
+<div id="modal-carpetas-mensuales" class="modal-backdrop hidden" style="display:none;">
+  <div class="modal-window" style="width:600px;max-width:94vw;">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-folder-open" style="color:#A8470A;font-size:20px;"></i>
+        <div>
+          <h3 style="margin:0;">Carpetas Mensuales en Google Drive</h3>
+          <div style="font-size:11px;color:var(--rail-muted);">Organización directa por mes sin subcarpetas</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="cerrarModal('modal-carpetas-mensuales')">&times;</button>
+    </div>
+
+    <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+      <div style="background:#F7F8F6;border:1px solid var(--border-table);padding:10px 14px;font-size:12px;color:var(--text-muted);border-radius:2px;">
+        <i class="fa-solid fa-circle-info" style="color:var(--primary);margin-right:4px;"></i>
+        Cada mes agrupa todos los informes y comprobantes técnicos directamente, ideal para auditorías mensuales.
+      </div>
+      <div id="lista-carpetas-mensuales" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
+        <!-- Se inyectan las carpetas de Drive -->
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;background:#F7F8F6;border-top:1px solid var(--border-table);display:flex;justify-content:flex-end;">
+      <button type="button" class="chip" onclick="cerrarModal('modal-carpetas-mensuales')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1250,6 +1415,15 @@
     renderPanelActividades(est);
 
     if (modal) modal.style.display = 'flex';
+  }
+
+  // Abrir cualquier modal
+  function abrirModal(modalId) {
+    const m = document.getElementById(modalId);
+    if (m) {
+      m.classList.remove('hidden');
+      m.style.display = 'flex';
+    }
   }
 
   // Cerrar cualquier modal
