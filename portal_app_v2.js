@@ -346,10 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Restaurar módulo activo si fue guardado
   const savedModulo = localStorage.getItem(STORAGE_KEYS.MODULO_ACTIVO);
-  if (savedModulo && ['ficha', 'matriz', 'repositorio'].includes(savedModulo)) {
-    cambiarModulo(savedModulo, false);
+  if (savedModulo && ['sedes', 'metricas', 'matriz', 'repositorio'].includes(savedModulo)) {
+    cambiarVistaPrincipal(savedModulo);
   } else {
-    cambiarModulo('ficha', false);
+    cambiarVistaPrincipal('sedes');
   }
 
   // 3. Seleccionar por defecto el establecimiento guardado o el primero del listado
@@ -404,6 +404,19 @@ function getWebhookUrl() {
 
 // ==================== CONTROLADOR DE MÓDULOS (TABS) ====================
 function cambiarModulo(moduloId, guardar = true) {
+  if (moduloId === 'ficha' || moduloId === 'sedes') {
+    cambiarVistaPrincipal('sedes');
+    return;
+  }
+  if (moduloId === 'metricas') {
+    cambiarVistaPrincipal('metricas');
+    return;
+  }
+  if (moduloId === 'matriz' || moduloId === 'repositorio') {
+    cambiarVistaPrincipal(moduloId);
+    return;
+  }
+
   AppState.moduloActivo = moduloId;
   if (guardar) localStorage.setItem(STORAGE_KEYS.MODULO_ACTIVO, moduloId);
 
@@ -486,6 +499,9 @@ function cargarEstablecimientos() {
     const supInfo = AppState.superficies[id] || (est.nroEstab ? AppState.superficies[est.nroEstab] : null);
     if (supInfo && supInfo.superficie) {
       est.superficie = supInfo.superficie;
+      est.requiereMediciones = (Number(est.superficie) >= 1000);
+    } else if (est.data && est.data.establecimiento && (est.data.establecimiento.supCubierta || est.data.establecimiento.supTotal)) {
+      est.superficie = est.data.establecimiento.supCubierta || est.data.establecimiento.supTotal;
       est.requiereMediciones = (Number(est.superficie) >= 1000);
     } else {
       est.superficie = '';
@@ -6310,7 +6326,19 @@ function mostrarToast(msg) {
 // MÓDULO NUEVA INTERFAZ OFICIAL (MAQUETA 2026: PALETA #17202A / #0F4C5C)
 // ==========================================================================
 
-AppState.filtrosFaltantes = new Set(['pat', 'ruido']); // Activos por defecto según maqueta
+AppState.filtrosFaltantes = new Set(); // Vacío por defecto para mostrar las 452 sedes
+
+/**
+ * Compara dos fechas en formato DD/MM/AAAA o ISO devolviendo -1, 0 o 1
+ */
+function compararFechasDdmmaaa(f1, f2) {
+  if (!f1) return -1;
+  if (!f2) return 1;
+  const iso1 = typeof convertirDdmmaaaAIso === 'function' ? (convertirDdmmaaaAIso(f1) || f1) : f1;
+  const iso2 = typeof convertirDdmmaaaAIso === 'function' ? (convertirDdmmaaaAIso(f2) || f2) : f2;
+  return String(iso1).localeCompare(String(iso2));
+}
+window.compararFechasDdmmaaa = compararFechasDdmmaaa;
 
 /**
  * Conmuta la vista principal de la aplicación tipo SPA
@@ -6782,7 +6810,7 @@ function renderizarListaDetectadosLateral() {
   archivosDetectadosLateral.forEach((item, idx) => {
     const cat = CATALOGO_ACTIVIDADES[item.tipoActividad] || { nombre: item.tipoActividad, codigo: 'DOC' };
     const estCode = est && est.nroEstab ? String(est.nroEstab).padStart(3, '0') : '000';
-    const orgPrefix = obtenerPrefijoOrganismo(est ? est.organismo : '');
+    const orgPrefix = typeof obtenerAbreviaturaOrganismo === 'function' ? obtenerAbreviaturaOrganismo(est ? est.organismo : '') : 'ORG';
     const fechaClean = item.fecha ? item.fecha.replace(/[\/\-]/g, '') : '20261014';
     const stdName = `${orgPrefix}_${estCode}_${cat.codigo}_${fechaClean}.pdf`;
 
@@ -6833,6 +6861,93 @@ function corregirItemDetectadoLateral(idx) {
   renderizarListaDetectadosLateral();
 }
 window.corregirItemDetectadoLateral = corregirItemDetectadoLateral;
+
+/**
+ * Guarda y registra un documento cargado desde el panel lateral
+ */
+async function guardarActividadConArchivo(estId, tipoActividad, fecha, originalFileName, base64, mimeType) {
+  const est = AppState.establecimientos[estId];
+  if (!est) return;
+
+  const actInfo = CATALOGO_ACTIVIDADES[tipoActividad] || { codigo: 'DOC' };
+  const ext = (originalFileName && originalFileName.includes('.')) ? originalFileName.split('.').pop() : 'pdf';
+  const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, tipoActividad, fecha, 'Doc', ext);
+  const mInfo = parsearAnioMesCliente(fecha);
+
+  let cleanB64 = (base64 || '').trim();
+  if (cleanB64.includes(',')) cleanB64 = cleanB64.substring(cleanB64.indexOf(',') + 1);
+  cleanB64 = cleanB64.replace(/\s+/g, '');
+
+  const payload = {
+    tipoOperacion: 'upload_actividad_documento',
+    tipoActividad: tipoActividad,
+    fechaActividad: fecha,
+    estadoActividad: 'Completado',
+    detalle: 'Doc',
+    preventor: localStorage.getItem('hys_ultimo_preventor') || 'Preventor HyS',
+    observaciones: 'Subido desde panel lateral',
+    permitirReemplazo: true,
+    fileBase64: cleanB64,
+    originalFileName: originalFileName,
+    mimeType: mimeType || 'application/pdf',
+    establecimiento: {
+      id: est.id,
+      organismo: est.organismo,
+      razonSocial: est.razonSocial || est.organismo,
+      nombreEstablecimiento: est.nombreEstablecimiento,
+      domicilio: est.domicilio,
+      localidad: est.localidad,
+      nroEstab: est.nroEstab,
+      cuit: est.cuit
+    }
+  };
+
+  let driveUrl = '';
+  let driveFileId = '';
+  let registroId = 'ACT_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+
+  try {
+    const webhookUrl = getWebhookUrl();
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const resJson = await response.json();
+    if (resJson && resJson.status === 'success') {
+      driveUrl = resJson.fileUrl || '';
+      driveFileId = resJson.fileId || '';
+      registroId = resJson.registroId || registroId;
+    }
+  } catch (err) {
+    console.warn('Subida en background a Sheets:', err);
+  }
+
+  if (!AppState.actividadesRegistradas[est.id]) {
+    AppState.actividadesRegistradas[est.id] = [];
+  }
+
+  const nuevoRegistro = {
+    id: registroId,
+    tipoActividad: tipoActividad,
+    fechaActividad: fecha,
+    estadoActividad: 'Completado',
+    detalle: 'Doc',
+    preventor: localStorage.getItem('hys_ultimo_preventor') || 'Preventor HyS',
+    observaciones: 'Subido desde panel lateral',
+    fileName: codedFileName,
+    fileUrl: driveUrl,
+    fileId: driveFileId,
+    monthFolderUrl: (AppState.carpetasMensuales[mInfo.key] && AppState.carpetasMensuales[mInfo.key].url) || '',
+    monthKey: mInfo.key,
+    monthLabel: mInfo.label,
+    timestamp: new Date().toISOString()
+  };
+
+  AppState.actividadesRegistradas[est.id].push(nuevoRegistro);
+  guardarLegajoLocal();
+}
+window.guardarActividadConArchivo = guardarActividadConArchivo;
 
 /**
  * Guarda los documentos del panel lateral en Google Drive y actualiza el legajo
