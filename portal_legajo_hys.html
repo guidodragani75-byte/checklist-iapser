@@ -366,6 +366,151 @@
       border-radius: 2px;
     }
 
+    /* =========================================================
+       ESTILOS DEL TABLERO EJECUTIVO: PLAN Y AVANCE ANUAL
+       ========================================================= */
+    .metric-card-exec {
+      background: #fff;
+      border: 1px solid var(--border-table);
+      padding: 18px 20px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .badge-stock {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+    .badge-stock-consumido {
+      background: #E3EDEF;
+      color: #0F4C5C;
+      border: 1px solid #B8D5DB;
+    }
+    .badge-stock-residual {
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #CBD5E1;
+    }
+    .badge-stock-meta {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FCD34D;
+    }
+    .badge-stock-alert {
+      background: #FBEFE6;
+      color: #A8470A;
+      border: 1px solid #F3CCA8;
+    }
+    .badge-stock-success {
+      background: #DCFCE7;
+      color: #166534;
+      border: 1px solid #86EFAC;
+    }
+    .globito-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border-control);
+      background: #fff;
+      color: var(--text-main);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      transition: all 0.15s ease;
+    }
+    .globito-chip b {
+      font-weight: 700;
+    }
+    .globito-chip-primary {
+      background: #0F4C5C;
+      color: #fff;
+      border-color: #0F4C5C;
+    }
+    .globito-chip-accent {
+      background: #E3EDEF;
+      color: #0F4C5C;
+      border-color: #B8D5DB;
+      font-weight: 600;
+    }
+    .hbar-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .hbar-row:last-child {
+      border-bottom: none;
+    }
+    .hbar-label {
+      width: 250px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hbar-track {
+      flex: 1;
+      height: 18px;
+      background: #F1F5F9;
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hbar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.4s ease-out;
+    }
+    .hbar-stats {
+      width: 230px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      font-size: 12px;
+    }
+    .timeline-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 4px;
+      padding: 10px 4px 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .timeline-col:hover {
+      border-color: var(--primary);
+      background: #F0F9FF;
+    }
+    .timeline-col.on {
+      border-color: var(--primary);
+      background: #E3EDEF;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .org-card-exec {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 4px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     /* Adaptación responsiva */
     @media(max-width: 960px) {
       .shell { flex-direction: column; }
@@ -406,11 +551,8 @@
         <a class="nav on" id="nav-sedes" href="#" onclick="cambiarVistaPrincipal('sedes'); return false;">
           <i class="fa-solid fa-building" style="width:18px;margin-right:6px;opacity:0.85;"></i> Sedes
         </a>
-        <a class="nav" id="nav-metricas" href="#" onclick="cambiarVistaPrincipal('metricas'); return false;">
-          <i class="fa-solid fa-chart-line" style="width:18px;margin-right:6px;opacity:0.85;"></i> Plan y métricas
-        </a>
-        <a class="nav" id="nav-matriz" href="#" onclick="cambiarVistaPrincipal('matriz'); return false;">
-          <i class="fa-solid fa-table-cells" style="width:18px;margin-right:6px;opacity:0.85;"></i> Cumplimiento anual
+        <a class="nav" id="nav-metricas" href="#" onclick="cambiarVistaPrincipal('metricas'); return false;" title="Cuadro de mando ejecutivo: avance del plan, metas y stocks">
+          <i class="fa-solid fa-chart-pie" style="width:18px;margin-right:6px;opacity:0.85;"></i> Plan y avance anual
         </a>
         <a class="nav" id="nav-repositorio" href="#" onclick="cambiarVistaPrincipal('repositorio'); return false;">
           <i class="fa-solid fa-folder-tree" style="width:18px;margin-right:6px;opacity:0.85;"></i> Documentos
@@ -712,180 +854,229 @@
       </div>
     </div>
 
-    <!-- ==================== VISTA 2: PLAN Y MÉTRICAS ==================== -->
-    <div id="vista-metricas" class="vista-modulo" style="display:none;padding:20px 28px;">
+    <!-- ==================== VISTA 2: PLAN Y AVANCE ANUAL (UNIFICADA) ==================== -->
+    <div id="vista-metricas" class="vista-modulo" style="display:none;padding:22px 28px;">
       
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+      <!-- Encabezado y Barra de Filtro Principal -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:14px;">
         <div>
-          <h2 style="font-size:18px;font-weight:600;margin:0;">Estadística Mensual & Cumplimiento de Metas</h2>
-          <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">
-            Establecimientos visitados y porcentaje de participación por tarea técnica en el período evaluado.
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h2 style="font-size:18px;font-weight:700;margin:0;color:var(--text-main);">Plan y Avance Anual HyS</h2>
+            <span class="badge-stock badge-stock-meta">Ciclo Sep 2026 – Ago 2027</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:3px;">
+            Monitoreo ejecutivo del Plan Provincial: 370 sedes prioritarias, 1.000 visitas previstas y 30 sedes/mes.
           </div>
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
-            Mes:
-            <select id="metricas-filtro-mes" class="input-clean" onchange="actualizarVistaMetricas(this.value)">
-              <!-- Opciones de meses -->
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
+            Período:
+            <select id="metricas-filtro-mes" class="input-clean" onchange="actualizarVistaMetricas(this.value)" style="font-weight:600;min-width:240px;">
+              <option value="ciclo" selected>🗓️ Ciclo Anual Completo (Acumulado)</option>
+              <option value="09">09 - Septiembre (Inicio de Ciclo)</option>
+              <option value="10">10 - Octubre</option>
+              <option value="11">11 - Noviembre</option>
+              <option value="12">12 - Diciembre</option>
+              <option value="01">01 - Enero</option>
+              <option value="02">02 - Febrero</option>
+              <option value="03">03 - Marzo</option>
+              <option value="04">04 - Abril</option>
+              <option value="05">05 - Mayo</option>
+              <option value="06">06 - Junio</option>
+              <option value="07">07 - Julio</option>
+              <option value="08">08 - Agosto</option>
             </select>
           </label>
-          <button type="button" class="chip" onclick="generarReporteMensualPdf(document.getElementById('metricas-filtro-mes').value)" style="font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF de este mes">
+          <button type="button" class="btn-action-primary" onclick="generarReporteMensualConsultado()" title="Descargar o imprimir reporte ejecutivo en PDF para el mes o ciclo consultado (salto de página A4)">
             <i class="fa-solid fa-file-pdf"></i> Reporte PDF
           </button>
-          <button type="button" class="chip" onclick="abrirModalTableroGeneral()">
-            <i class="fa-solid fa-chart-pie" style="margin-right:6px;color:var(--primary)"></i> Métricas Provinciales
+          <button type="button" class="chip" onclick="exportarMetricasConsolidadas()" title="Exportar resumen consolidado en formato CSV">
+            <i class="fa-solid fa-file-csv" style="color:#107c41;margin-right:6px;"></i> Exportar CSV
           </button>
         </div>
       </div>
 
-      <!-- Resumen de Métricas del Mes -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:20px;">
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <div style="font-size:12px;color:var(--text-muted)">Total Tareas Realizadas</div>
-          <div id="stat-kpi-total-tareas" style="font-size:28px;font-weight:600;margin-top:4px;color:var(--text-main);">0</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Actividades registradas en el mes</div>
-        </div>
-
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <div style="font-size:12px;color:var(--text-muted)">Sedes Visitadas</div>
-          <div id="stat-kpi-sedes-visitadas" style="font-size:28px;font-weight:600;margin-top:4px;color:var(--primary);">0</div>
-          <div id="stat-kpi-sedes-meta-sub" style="font-size:12px;color:var(--text-muted);margin-top:4px;">Meta mensual: 25 a 30 sedes</div>
-        </div>
-
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <div style="font-size:12px;color:var(--text-muted)">Tarea Principal</div>
-          <div id="stat-kpi-top-tarea-nombre" style="font-size:16px;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div>
-          <div id="stat-kpi-top-tarea-pct" style="font-size:12px;color:var(--text-muted);margin-top:4px;">0% de participación</div>
-        </div>
-
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <div style="font-size:12px;color:var(--text-muted)">Sedes >1.000 m² con Mediciones</div>
-          <div id="stat-kpi-sup-con-med" style="font-size:28px;font-weight:600;margin-top:4px;color:var(--text-main);">0</div>
-          <div id="stat-kpi-sup-visitadas" style="font-size:12px;color:var(--text-muted);margin-top:4px;">0 visitadas en el mes</div>
-        </div>
-      </div>
-
-      <!-- Tablas de Distribución -->
-      <div style="display:grid;grid-template-columns:1fr;gap:20px;">
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;">Distribución de Tareas Técnicas en el Período</h3>
-          <div style="overflow-x:auto;">
-            <table class="t">
-              <thead>
-                <tr>
-                  <th>Tarea Técnica</th>
-                  <th class="m">Código</th>
-                  <th style="text-align:center;">Cantidad</th>
-                  <th style="text-align:center;">Participación</th>
-                  <th>Sedes que la recibieron</th>
-                </tr>
-              </thead>
-              <tbody id="stat-tabla-tareas-body">
-                <!-- Inyectado dinámicamente -->
-              </tbody>
-            </table>
+      <!-- PANEL DE SÍNTESIS INMEDIATA / GLOBITOS DEL PERÍODO CONSULTADO -->
+      <div id="panel-globitos-sintesis" style="background:#fff;border:1px solid var(--border-table);padding:14px 18px;border-radius:4px;margin-bottom:20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-tags" style="color:var(--primary);"></i> Síntesis Inmediata de Actuaciones · <span id="globitos-titulo-periodo">Período en Consulta</span>
+          </div>
+          <div id="globitos-total-sedes-container">
+            <!-- Globito principal -->
           </div>
         </div>
 
-        <div style="background:#fff;border:1px solid var(--border-table);padding:16px 20px;border-radius:2px;">
-          <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;">Establecimientos Visitados en el Período</h3>
-          <div style="overflow-x:auto;">
-            <table class="t">
-              <thead>
-                <tr>
-                  <th>N.º</th>
-                  <th>Establecimiento</th>
-                  <th>Organismo</th>
-                  <th>Localidad</th>
-                  <th>Actividades Realizadas</th>
-                </tr>
-              </thead>
-              <tbody id="stat-tabla-sedes-visitadas-body">
-                <!-- Inyectado dinámicamente -->
-              </tbody>
-            </table>
+        <!-- Fila de globitos por organismo ("las cantidades de cada uno") -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:var(--text-muted);min-width:90px;">Por Organismo:</span>
+          <div id="globitos-organismos" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Fila de globitos por tipo de actuación técnica -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px dashed #E2E8F0;padding-top:8px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text-muted);min-width:90px;">Actuaciones:</span>
+          <div id="globitos-actuaciones" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <!-- Inyectado dinámicamente -->
           </div>
         </div>
       </div>
 
-    </div>
-
-    <!-- ==================== VISTA 3: CUMPLIMIENTO ANUAL (MATRIZ) ==================== -->
-    <div id="vista-matriz" class="vista-modulo" style="display:none;padding:20px 28px;">
-      
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h2 style="font-size:18px;font-weight:600;margin:0;">Matriz de Cumplimiento Anual & Cronograma HyS</h2>
-          <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">
-            Seguimiento mensual de visitas y actividades técnicas en todas las 452 sedes de Entre Ríos.
+      <!-- NIVEL 1: MACROMÉTRICAS CONSOLIDADAS & STOCKS ANUALES (4 KPI CARDS) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:14px;margin-bottom:20px;">
+        
+        <!-- CARD 1: STOCK DE SEDES PRIORITARIAS (370) -->
+        <div class="metric-card-exec">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;">Stock Sedes Objetivo</div>
+              <div style="font-size:24px;font-weight:700;margin-top:4px;color:var(--primary);display:flex;align-items:baseline;gap:4px;">
+                <span id="kpi-sedes-consumidas">0</span>
+                <span style="font-size:14px;color:var(--text-muted);font-weight:500;">/ 370</span>
+              </div>
+            </div>
+            <div id="donut-sedes-container" style="width:52px;height:52px;flex-shrink:0;">
+              <!-- Anillo SVG dinámico -->
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="badge-stock badge-stock-consumido">Consumido: <b id="kpi-sedes-consumidas-badge">0</b></span>
+            <span class="badge-stock badge-stock-residual">Residual: <b id="kpi-sedes-residual-badge">370</b></span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Meta anual: 370 de 452 sedes totales (82 de reserva).
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <button type="button" class="chip" onclick="exportarMatrizExcel()">
-            <i class="fa-solid fa-file-excel" style="margin-right:6px;color:#107c41"></i> Exportar Excel
-          </button>
-          <button type="button" class="chip" onclick="window.print()">
-            <i class="fa-solid fa-print" style="margin-right:6px;"></i> Imprimir
-          </button>
+        <!-- CARD 2: STOCK DE VISITAS TÉCNICAS (1.000) -->
+        <div class="metric-card-exec">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;">Stock Visitas HyS</div>
+              <div style="font-size:24px;font-weight:700;margin-top:4px;color:var(--text-main);display:flex;align-items:baseline;gap:4px;">
+                <span id="kpi-visitas-consumidas">0</span>
+                <span style="font-size:14px;color:var(--text-muted);font-weight:500;">/ 1.000</span>
+              </div>
+            </div>
+            <div id="donut-visitas-container" style="width:52px;height:52px;flex-shrink:0;">
+              <!-- Anillo SVG dinámico -->
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="badge-stock badge-stock-consumido">Realizadas: <b id="kpi-visitas-consumidas-badge">0</b></span>
+            <span class="badge-stock badge-stock-residual">Residual: <b id="kpi-visitas-residual-badge">1000</b></span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Promedio: <b id="kpi-visitas-promedio">0</b> actividades por sede relevada.
+          </div>
+        </div>
+
+        <!-- CARD 3: RITMO Y CADENCIA MENSUAL (30/MES) -->
+        <div class="metric-card-exec">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;">Ritmo & Cadencia</div>
+              <div style="font-size:24px;font-weight:700;margin-top:4px;color:var(--text-main);display:flex;align-items:baseline;gap:4px;">
+                <span id="kpi-ritmo-mes">0</span>
+                <span style="font-size:13px;color:var(--text-muted);font-weight:500;">sedes en período</span>
+              </div>
+            </div>
+            <div style="font-size:26px;opacity:0.8;color:var(--primary);">
+              <i class="fa-solid fa-gauge-high"></i>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div id="kpi-desvio-container">
+              <!-- Badge de desvío temporal dinámico -->
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Cadencia prevista: ~30 sedes / mes (Inicio Sep 2026).
+          </div>
+        </div>
+
+        <!-- CARD 4: GRANDES SUPERFICIES CON MEDICIONES -->
+        <div class="metric-card-exec">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;">Sedes >1.000 m² & Mediciones</div>
+              <div style="font-size:24px;font-weight:700;margin-top:4px;color:var(--text-main);display:flex;align-items:baseline;gap:4px;">
+                <span id="kpi-sup-con-med">0</span>
+                <span style="font-size:14px;color:var(--text-muted);font-weight:500;">/ <span id="kpi-sup-total">0</span></span>
+              </div>
+            </div>
+            <div style="font-size:26px;opacity:0.8;color:#b45309;">
+              <i class="fa-solid fa-bolt-lightning"></i>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div style="width:100%;background:#F1F5F9;border-radius:9999px;height:8px;overflow:hidden;">
+              <div id="kpi-sup-bar" style="background:#b45309;height:100%;width:0%;border-radius:9999px;transition:width 0.4s ease;"></div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            Grandes superficies con PAT (Res. 900), Ruido o Iluminación.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- NIVEL 2: CRONOGRAMA & EVOLUCIÓN TEMPORAL DEL CICLO (SEP 2026 A AGO 2027) -->
+      <div style="background:#fff;border:1px solid var(--border-table);padding:18px 20px;border-radius:4px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="font-size:15px;font-weight:700;margin:0;color:var(--text-main);">Evolución Temporal del Ciclo Anual (Sep 2026 – Ago 2027)</h3>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+              Sedes relevadas mes a mes comparadas contra la meta programada de 30 sedes/mes.
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:var(--primary);border-radius:2px;display:inline-block;"></span> Sedes Reales</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:2px;background:#A8470A;display:inline-block;"></span> Meta 30/mes</span>
+          </div>
+        </div>
+
+        <div id="contenedor-evolucion-ciclo" style="display:grid;grid-template-columns:repeat(12, 1fr);gap:8px;padding-top:6px;">
+          <!-- 12 columnas mensuales generadas dinámicamente -->
         </div>
       </div>
 
-      <!-- Barra de Filtros de la Matriz -->
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
-        <label style="font-size:12px;color:var(--text-muted)">
-          Año
-          <select id="matriz-filtro-anio" class="input-clean" style="display:block;margin-top:4px;" onchange="cambiarFiltroAnioMatriz(this.value)">
-            <option value="2026" selected>Año 2026</option>
-            <option value="2027">Año 2027</option>
-            <option value="2025">Año 2025</option>
-            <option value="todos">Histórico Completo</option>
-          </select>
-        </label>
+      <!-- NIVEL 3: DESAGREGADO TÉCNICO - RANKING DE TAREAS TÉCNICAS (BARRAS HORIZONTALES) -->
+      <div style="background:#fff;border:1px solid var(--border-table);padding:18px 20px;border-radius:4px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="font-size:15px;font-weight:700;margin:0;color:var(--text-main);">Ranking de Tareas Técnicas HyS Ejecutadas</h3>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+              Cantidad total por tipo de tarea, porcentaje de participación y alcance de sedes cubiertas.
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);" id="stat-total-actividades-label">
+            Total actividades: 0
+          </div>
+        </div>
 
-        <label style="font-size:12px;color:var(--text-muted)">
-          Mes
-          <select id="matriz-filtro-mes" class="input-clean" style="display:block;margin-top:4px;" onchange="cambiarFiltroMesMatriz(this.value)">
-            <option value="todos" selected>🗓️ Todo el Año</option>
-            <option value="01">01 - Enero</option>
-            <option value="02">02 - Febrero</option>
-            <option value="03">03 - Marzo</option>
-            <option value="04">04 - Abril</option>
-            <option value="05">05 - Mayo</option>
-            <option value="06">06 - Junio</option>
-            <option value="07">07 - Julio</option>
-            <option value="08">08 - Agosto</option>
-            <option value="09">09 - Septiembre</option>
-            <option value="10">10 - Octubre</option>
-            <option value="11">11 - Noviembre</option>
-            <option value="12">12 - Diciembre</option>
-          </select>
-        </label>
-
-        <label style="font-size:12px;color:var(--text-muted)">
-          Organismo
-          <select id="matriz-filtro-org" class="input-clean" style="display:block;margin-top:4px;min-width:180px;" onchange="cambiarFiltroOrgMatriz(this.value)">
-            <option value="">Todos los Organismos</option>
-          </select>
-        </label>
-
-        <label style="font-size:12px;color:var(--text-muted)">
-          Localidad
-          <select id="matriz-filtro-loc" class="input-clean" style="display:block;margin-top:4px;min-width:160px;" onchange="cambiarFiltroLocMatriz(this.value)">
-            <option value="">Todas las Localidades</option>
-          </select>
-        </label>
-
-        <label style="flex:1;min-width:200px;font-size:12px;color:var(--text-muted)">
-          Buscar sede en la matriz
-          <input type="text" id="matriz-buscar-texto" placeholder="Buscar por nombre o N.°..." class="input-clean" style="display:block;width:100%;margin-top:4px;" oninput="cambiarFiltroTextoMatriz(this.value)">
-        </label>
+        <div id="contenedor-barras-tareas-horizontales">
+          <!-- Inyectado dinámicamente con barras horizontales de precisión -->
+        </div>
       </div>
 
-      <!-- Contenedor de la Tabla Matriz -->
-      <div id="matriz-tabla-container" style="background:#fff;border:1px solid var(--border-table);overflow-x:auto;padding:0 8px;">
-        <!-- Inyectado dinámicamente -->
+      <!-- NIVEL 4: DESAGREGADO INSTITUCIONAL - DISTRIBUCIÓN CONSOLIDADA POR ORGANISMO -->
+      <div style="background:#fff;border:1px solid var(--border-table);padding:18px 20px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="font-size:15px;font-weight:700;margin:0;color:var(--text-main);">Distribución Consolidada por Organismo Provincial</h3>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+              Universo asignado, sedes intervenidas y porcentaje de cobertura institucional (sin desglose individual).
+            </div>
+          </div>
+        </div>
+
+        <div id="contenedor-distribucion-organismos" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px;">
+          <!-- Inyectado dinámicamente con tarjetas consolidadas por organismo -->
+        </div>
       </div>
 
     </div>

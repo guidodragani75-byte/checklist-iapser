@@ -6463,13 +6463,18 @@ window.compararFechasDdmmaaa = compararFechasDdmmaaa;
  * Conmuta la vista principal de la aplicación tipo SPA
  */
 function cambiarVistaPrincipal(vistaId) {
+  // Compatibilidad: 'matriz' unificada en 'metricas'
+  if (vistaId === 'matriz') {
+    vistaId = 'metricas';
+  }
+
   // 1. Actualizar estado visual de los enlaces en el rail
   document.querySelectorAll('.rail .nav').forEach(el => el.classList.remove('on'));
   const activeNav = document.getElementById(`nav-${vistaId}`);
   if (activeNav) activeNav.classList.add('on');
 
   // 2. Ocultar todas las vistas principales
-  const vistas = ['sedes', 'metricas', 'matriz', 'repositorio'];
+  const vistas = ['sedes', 'metricas', 'repositorio'];
   vistas.forEach(v => {
     const el = document.getElementById(`vista-${v}`);
     if (el) el.style.display = 'none';
@@ -6488,9 +6493,7 @@ function cambiarVistaPrincipal(vistaId) {
       const anio = document.getElementById('filtro-anio-global')?.value || '2026';
       titleEl.textContent = `Sedes · Plan ${anio}`;
     } else if (vistaId === 'metricas') {
-      titleEl.textContent = 'Plan y Métricas Provinciales HyS';
-    } else if (vistaId === 'matriz') {
-      titleEl.textContent = 'Matriz de Cumplimiento Anual';
+      titleEl.textContent = 'Plan y Avance Anual HyS';
     } else if (vistaId === 'repositorio') {
       titleEl.textContent = 'Repositorio Central de Documentos';
     }
@@ -6502,9 +6505,6 @@ function cambiarVistaPrincipal(vistaId) {
     actualizarKPIsPlanMaqueta();
   } else if (vistaId === 'metricas') {
     renderVistaMetricasMaqueta();
-  } else if (vistaId === 'matriz') {
-    renderFiltrosMatriz();
-    renderMatrizAnual();
   } else if (vistaId === 'repositorio') {
     renderFiltrosRepositorio();
     renderRepositorioGlobal();
@@ -7272,121 +7272,519 @@ async function guardarDocumentosDetectadosLateral() {
 }
 window.guardarDocumentosDetectadosLateral = guardarDocumentosDetectadosLateral;
 
+// ==================== CONFIGURACIÓN Y MODELO DEL PLAN ANUAL HyS ====================
+const PLAN_HYS_CONFIG = {
+  UNIVERSO_TOTAL_SEDES: 452,
+  META_SEDES_ANUAL: 370,
+  META_SEDES_MENSUAL: 30,
+  META_VISITAS_ANUAL: 1000,
+  MES_INICIO_CICLO: 9, // Septiembre
+  ANIO_INICIO_CICLO: 2026
+};
+
+const CICLO_MESES_ANUAL = [
+  { cod: '09', anio: 2026, mes: 9, label: 'Sep 26', nombre: 'Septiembre' },
+  { cod: '10', anio: 2026, mes: 10, label: 'Oct 26', nombre: 'Octubre' },
+  { cod: '11', anio: 2026, mes: 11, label: 'Nov 26', nombre: 'Noviembre' },
+  { cod: '12', anio: 2026, mes: 12, label: 'Dic 26', nombre: 'Diciembre' },
+  { cod: '01', anio: 2027, mes: 1, label: 'Ene 27', nombre: 'Enero' },
+  { cod: '02', anio: 2027, mes: 2, label: 'Feb 27', nombre: 'Febrero' },
+  { cod: '03', anio: 2027, mes: 3, label: 'Mar 27', nombre: 'Marzo' },
+  { cod: '04', anio: 2027, mes: 4, label: 'Abr 27', nombre: 'Abril' },
+  { cod: '05', anio: 2027, mes: 5, label: 'May 27', nombre: 'Mayo' },
+  { cod: '06', anio: 2027, mes: 6, label: 'Jun 27', nombre: 'Junio' },
+  { cod: '07', anio: 2027, mes: 7, label: 'Jul 27', nombre: 'Julio' },
+  { cod: '08', anio: 2027, mes: 8, label: 'Ago 27', nombre: 'Agosto' }
+];
+
 /**
- * Renderiza la vista de Plan y Métricas con selector de mes y tablas
+ * Genera un anillo Donut SVG proporcional y estilizado
+ */
+function renderSvgDonut(porcentaje, colorPrimario = '#0F4C5C', colorResidual = '#E2E8F0', size = 52) {
+  const pct = Math.max(0, Math.min(100, parseFloat(porcentaje) || 0));
+  const radio = 20;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circ = 2 * Math.PI * radio;
+  const strokeOffset = circ - (pct / 100) * circ;
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${cx}" cy="${cy}" r="${radio}" fill="none" stroke="${colorResidual}" stroke-width="5" />
+      <circle cx="${cx}" cy="${cy}" r="${radio}" fill="none" stroke="${colorPrimario}" stroke-width="5"
+        stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${strokeOffset.toFixed(2)}"
+        stroke-linecap="round"
+        transform="rotate(-90 ${cx} ${cy})" style="transition: stroke-dashoffset 0.5s ease;" />
+      <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#17202A">${Math.round(pct)}%</text>
+    </svg>
+  `;
+}
+
+/**
+ * Normaliza y extrae mes y año de cualquier actividad o registro
+ */
+function extraerMesAnioActividad(act) {
+  if (!act) return { anio: null, mes: null, codMes: null };
+  const f = act.fechaActividad || (act.data && act.data.fecha);
+  if (f) {
+    const s = String(f).trim();
+    const mIso = s.match(/^(\d{4})-(\d{2})/);
+    if (mIso) return { anio: parseInt(mIso[1], 10), mes: parseInt(mIso[2], 10), codMes: mIso[2] };
+    const mDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mDmy) return { anio: parseInt(mDmy[3], 10), mes: parseInt(mDmy[2], 10), codMes: mDmy[2].padStart(2, '0') };
+  }
+  if (act.monthKey && act.monthKey.length === 7) {
+    const p = act.monthKey.split('-');
+    return { anio: parseInt(p[0], 10), mes: parseInt(p[1], 10), codMes: p[1] };
+  }
+  return { anio: null, mes: null, codMes: null };
+}
+
+/**
+ * Motor central de cálculo de indicadores de avance y stocks del Plan Anual
+ */
+function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
+  const allEsts = Object.values(AppState.establecimientos);
+  const sedesUnicasCiclo = new Set();
+  let totalVisitasCiclo = 0;
+
+  const conteoTareasTotal = {};
+  const sedesPorTareaTotal = {};
+
+  const timelineSedesMes = {};
+  const timelineVisitasMes = {};
+  CICLO_MESES_ANUAL.forEach(m => {
+    timelineSedesMes[m.cod] = new Set();
+    timelineVisitasMes[m.cod] = 0;
+  });
+
+  const sedesPeriodo = new Set();
+  let totalVisitasPeriodo = 0;
+  const conteoTareasPeriodo = {};
+  const sedesPorOrgPeriodo = {};
+
+  let totalSup1000 = 0;
+  let conMedSup1000 = 0;
+
+  const orgAgregado = {};
+
+  allEsts.forEach(est => {
+    const acts = obtenerActividadesDeSede(est) || [];
+    const tieneActividadCiclo = acts.length > 0 || !!est.data;
+
+    if (tieneActividadCiclo) {
+      sedesUnicasCiclo.add(est.id);
+    }
+
+    const orgNombre = (est.organismo || est.razonSocial || 'Otros Organismos').trim();
+    if (!orgAgregado[orgNombre]) {
+      orgAgregado[orgNombre] = { totalSedes: 0, sedesVisitadas: 0, totalVisitas: 0 };
+    }
+    orgAgregado[orgNombre].totalSedes++;
+    if (tieneActividadCiclo) orgAgregado[orgNombre].sedesVisitadas++;
+
+    const numSup = Number(est.superficie);
+    const esGranSup = numSup >= 1000;
+    if (esGranSup) {
+      totalSup1000++;
+      const tieneMed = acts.some(a => {
+        const norm = normalizarTipoActividad(a.tipoActividad);
+        return norm === 'medicion_pat' || norm === 'medicion_ruido' || norm === 'medicion_iluminacion';
+      });
+      if (tieneMed) conMedSup1000++;
+    }
+
+    acts.forEach(a => {
+      totalVisitasCiclo++;
+      orgAgregado[orgNombre].totalVisitas++;
+
+      const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
+      conteoTareasTotal[tNorm] = (conteoTareasTotal[tNorm] || 0) + 1;
+      if (!sedesPorTareaTotal[tNorm]) sedesPorTareaTotal[tNorm] = new Set();
+      sedesPorTareaTotal[tNorm].add(est.id);
+
+      const fInfo = extraerMesAnioActividad(a);
+      if (fInfo.codMes && timelineSedesMes[fInfo.codMes]) {
+        timelineSedesMes[fInfo.codMes].add(est.id);
+        timelineVisitasMes[fInfo.codMes]++;
+      }
+
+      // Evaluar filtro del período seleccionado
+      let coincidePeriodo = false;
+      if (periodoKey === 'ciclo' || periodoKey === 'todos') {
+        coincidePeriodo = true;
+      } else if (fInfo.codMes === periodoKey) {
+        coincidePeriodo = true;
+      }
+
+      if (coincidePeriodo) {
+        sedesPeriodo.add(est.id);
+        totalVisitasPeriodo++;
+        conteoTareasPeriodo[tNorm] = (conteoTareasPeriodo[tNorm] || 0) + 1;
+
+        const orgKey = obtenerAbreviaturaOrganismo(orgNombre);
+        if (!sedesPorOrgPeriodo[orgKey]) {
+          sedesPorOrgPeriodo[orgKey] = { nombre: orgNombre, count: 0 };
+        }
+      }
+    });
+
+    if (acts.length > 0 && (periodoKey === 'ciclo' || periodoKey === 'todos' || acts.some(a => extraerMesAnioActividad(a).codMes === periodoKey))) {
+      const orgKey = obtenerAbreviaturaOrganismo(orgNombre);
+      if (sedesPorOrgPeriodo[orgKey]) {
+        sedesPorOrgPeriodo[orgKey].count++;
+      }
+    }
+  });
+
+  // Stocks Anuales Oficiales
+  const stockSedesConsumido = sedesUnicasCiclo.size;
+  const stockSedesResidual = Math.max(0, PLAN_HYS_CONFIG.META_SEDES_ANUAL - stockSedesConsumido);
+  const pctSedesAvance = ((stockSedesConsumido / PLAN_HYS_CONFIG.META_SEDES_ANUAL) * 100).toFixed(1);
+
+  const stockVisitasConsumido = totalVisitasCiclo;
+  const stockVisitasResidual = Math.max(0, PLAN_HYS_CONFIG.META_VISITAS_ANUAL - stockVisitasConsumido);
+  const pctVisitasAvance = ((stockVisitasConsumido / PLAN_HYS_CONFIG.META_VISITAS_ANUAL) * 100).toFixed(1);
+
+  const promedioVisitas = stockSedesConsumido > 0 ? (stockVisitasConsumido / stockSedesConsumido).toFixed(1) : '0';
+
+  // Cadencia y desvío temporal desde septiembre 2026
+  const ahora = new Date();
+  let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
+  if (mesesTranscurridos < 1) mesesTranscurridos = 1;
+  if (mesesTranscurridos > 12) mesesTranscurridos = 12;
+
+  const metaEsperadaALaFecha = mesesTranscurridos * PLAN_HYS_CONFIG.META_SEDES_MENSUAL;
+  const desvioTemporal = stockSedesConsumido - metaEsperadaALaFecha;
+
+  // Ranking de tareas ordenadas
+  let maxCountTarea = 1;
+  const rankingTareas = Object.keys(CATALOGO_ACTIVIDADES).map(key => {
+    const cat = CATALOGO_ACTIVIDADES[key] || { nombre: key, codigo: key, icono: '📋', color: '#4f46e5' };
+    const count = conteoTareasTotal[key] || 0;
+    if (count > maxCountTarea) maxCountTarea = count;
+    const sedesRecibieron = sedesPorTareaTotal[key] ? sedesPorTareaTotal[key].size : 0;
+    const sharePct = totalVisitasCiclo > 0 ? ((count / totalVisitasCiclo) * 100).toFixed(1) : '0';
+    return {
+      key,
+      nombre: cat.nombre,
+      codigo: cat.codigo || key.toUpperCase(),
+      icono: cat.icono || '📋',
+      color: cat.color || '#4f46e5',
+      count,
+      sharePct,
+      sedesRecibieron
+    };
+  }).sort((a, b) => b.count - a.count);
+
+  // Resumen por organismo consolidado
+  const resumenOrganismos = Object.entries(orgAgregado).map(([nombre, datos]) => {
+    const coberturaPct = datos.totalSedes > 0 ? Math.round((datos.sedesVisitadas / datos.totalSedes) * 100) : 0;
+    return {
+      organismo: nombre,
+      totalSedes: datos.totalSedes,
+      sedesVisitadas: datos.sedesVisitadas,
+      coberturaPct,
+      totalVisitas: datos.totalVisitas
+    };
+  }).sort((a, b) => b.totalSedes - a.totalSedes);
+
+  return {
+    stockSedesConsumido,
+    stockSedesResidual,
+    pctSedesAvance,
+    stockVisitasConsumido,
+    stockVisitasResidual,
+    pctVisitasAvance,
+    promedioVisitas,
+    ritmoMes: sedesPeriodo.size,
+    totalVisitasPeriodo,
+    desvioTemporal,
+    mesesTranscurridos,
+    metaEsperadaALaFecha,
+    totalSup1000,
+    conMedSup1000,
+    pctSup1000: totalSup1000 > 0 ? Math.round((conMedSup1000 / totalSup1000) * 100) : 0,
+    sedesPeriodo,
+    conteoTareasPeriodo,
+    sedesPorOrgPeriodo,
+    timelineSedesMes,
+    timelineVisitasMes,
+    rankingTareas,
+    maxCountTarea,
+    resumenOrganismos,
+    totalVisitasCiclo
+  };
+}
+window.calcularMetricasPlanAnual = calcularMetricasPlanAnual;
+
+/**
+ * Renderiza la vista ejecutiva de Plan y Avance Anual
  */
 function renderVistaMetricasMaqueta() {
   const selMes = document.getElementById('metricas-filtro-mes');
-  if (selMes && selMes.options.length === 0) {
-    const meses = [
-      { key: 'todos', label: '🗓️ Todo el Año (Acumulado)' },
-      { key: '01', label: '01 - Enero' },
-      { key: '02', label: '02 - Febrero' },
-      { key: '03', label: '03 - Marzo' },
-      { key: '04', label: '04 - Abril' },
-      { key: '05', label: '05 - Mayo' },
-      { key: '06', label: '06 - Junio' },
-      { key: '07', label: '07 - Julio' },
-      { key: '08', label: '08 - Agosto' },
-      { key: '09', label: '09 - Septiembre' },
-      { key: '10', label: '10 - Octubre' },
-      { key: '11', label: '11 - Noviembre' },
-      { key: '12', label: '12 - Diciembre' }
-    ];
-    meses.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.key;
-      opt.textContent = m.label;
-      if (m.key === '10') opt.selected = true; // Por defecto octubre
-      selMes.appendChild(opt);
-    });
-  }
-
-  const mesSeleccionado = selMes ? selMes.value : '10';
+  const mesSeleccionado = selMes ? selMes.value : 'ciclo';
   actualizarVistaMetricas(mesSeleccionado);
 }
 window.renderVistaMetricasMaqueta = renderVistaMetricasMaqueta;
 
-function actualizarVistaMetricas(mesKey) {
-  const anio = AppState.matrizAnio || '2026';
-  const mes = mesKey || '05';
-  const targetMes = String(mes).padStart(2, '0');
+/**
+ * Actualiza todos los componentes jerárquicos del tablero
+ */
+function actualizarVistaMetricas(periodoKey = 'ciclo') {
+  const data = calcularMetricasPlanAnual(periodoKey);
 
-  let totalTareas = 0;
-  const sedesVisitadas = new Set();
-  const conteoTareas = {};
-  let sedesMayor1000 = 0;
-  let sedesMayor1000ConMed = 0;
+  // 1. NIVEL 1: Macrométricas & Stocks
+  const elSedesCons = document.getElementById('kpi-sedes-consumidas');
+  const elSedesConsBadge = document.getElementById('kpi-sedes-consumidas-badge');
+  const elSedesResBadge = document.getElementById('kpi-sedes-residual-badge');
+  const donutSedes = document.getElementById('donut-sedes-container');
 
-  Object.values(AppState.establecimientos).forEach(est => {
-    const acts = obtenerActividadesDeSede(est);
-    const actsMes = acts.filter(a => {
-      if (anio !== 'todos') {
-        const aAnio = extraerAnioDeFecha(a.fechaActividad);
-        if (aAnio && aAnio !== anio) return false;
+  if (elSedesCons) elSedesCons.textContent = data.stockSedesConsumido;
+  if (elSedesConsBadge) elSedesConsBadge.textContent = `${data.stockSedesConsumido} (${data.pctSedesAvance}%)`;
+  if (elSedesResBadge) elSedesResBadge.textContent = `${data.stockSedesResidual} sedes`;
+  if (donutSedes) donutSedes.innerHTML = renderSvgDonut(data.pctSedesAvance, '#0F4C5C', '#E2E8F0', 52);
+
+  const elVisCons = document.getElementById('kpi-visitas-consumidas');
+  const elVisConsBadge = document.getElementById('kpi-visitas-consumidas-badge');
+  const elVisResBadge = document.getElementById('kpi-visitas-residual-badge');
+  const elVisProm = document.getElementById('kpi-visitas-promedio');
+  const donutVisitas = document.getElementById('donut-visitas-container');
+
+  if (elVisCons) elVisCons.textContent = data.stockVisitasConsumido;
+  if (elVisConsBadge) elVisConsBadge.textContent = `${data.stockVisitasConsumido} (${data.pctVisitasAvance}%)`;
+  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} visitas`;
+  if (elVisProm) elVisProm.textContent = data.promedioVisitas;
+  if (donutVisitas) donutVisitas.innerHTML = renderSvgDonut(data.pctVisitasAvance, '#17202A', '#E2E8F0', 52);
+
+  // Ritmo mensual & Desvío
+  const elRitmo = document.getElementById('kpi-ritmo-mes');
+  const elDesvioCont = document.getElementById('kpi-desvio-container');
+  if (elRitmo) elRitmo.textContent = data.ritmoMes;
+
+  if (elDesvioCont) {
+    if (periodoKey === 'ciclo' || periodoKey === 'todos') {
+      if (data.desvioTemporal >= 0) {
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-success"><i class="fa-solid fa-circle-check"></i> Al día (+${data.desvioTemporal} sedes vs meta acum.)</span>`;
+      } else {
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-alert"><i class="fa-solid fa-triangle-exclamation"></i> Con retraso (${data.desvioTemporal} sedes vs meta acum.)</span>`;
       }
-      const d = String(a.fechaActividad || '');
-      if (d.includes(`-${targetMes}-`) || d.includes(`/${targetMes}/`)) return true;
-      if (a.monthKey && (a.monthKey.endsWith(`-${targetMes}`) || a.monthKey.endsWith(`/${targetMes}`))) return true;
-      return false;
-    });
-
-    if (actsMes.length > 0) {
-      sedesVisitadas.add(est.id);
-      const sup = Number(est.superficie);
-      if (sup >= 1000) {
-        sedesMayor1000++;
-        const hasMed = acts.some(a => {
-          const t = normalizarTipoActividad(a.tipoActividad);
-          return t === 'medicion_pat' || t === 'medicion_ruido' || t === 'medicion_iluminacion';
-        });
-        if (hasMed) sedesMayor1000ConMed++;
+    } else {
+      const faltanMes = Math.max(0, PLAN_HYS_CONFIG.META_SEDES_MENSUAL - data.ritmoMes);
+      if (data.ritmoMes >= PLAN_HYS_CONFIG.META_SEDES_MENSUAL) {
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-success"><i class="fa-solid fa-circle-check"></i> Meta mensual cumplida (${data.ritmoMes}/30)</span>`;
+      } else {
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-meta"><i class="fa-solid fa-hourglass-half"></i> En curso: faltan ${faltanMes} para la meta de 30</span>`;
       }
-
-      actsMes.forEach(a => {
-        totalTareas++;
-        const tNorm = normalizarTipoActividad(a.tipoActividad);
-        conteoTareas[tNorm] = (conteoTareas[tNorm] || 0) + 1;
-      });
     }
-  });
-
-  const elTot = document.getElementById('stat-kpi-total-tareas');
-  const elVis = document.getElementById('stat-kpi-sedes-visitadas');
-  const elSub = document.getElementById('stat-kpi-sedes-meta-sub');
-  const elTopNom = document.getElementById('stat-kpi-top-tarea-nombre');
-  const elTopPct = document.getElementById('stat-kpi-top-tarea-pct');
-  const elSupMed = document.getElementById('stat-kpi-sup-con-med');
-  const elSupVis = document.getElementById('stat-kpi-sup-visitadas');
-
-  if (elTot) elTot.textContent = totalTareas;
-  if (elVis) elVis.textContent = sedesVisitadas.size;
-  if (elSub) {
-    elSub.textContent = sedesVisitadas.size >= 25 
-      ? `✓ Meta mensual cumplida (mín. 25 a 30 sedes)` 
-      : `Meta 25 a 30 sedes (faltan ${Math.max(0, 25 - sedesVisitadas.size)} para el mínimo)`;
   }
 
-  // Tarea con mayor participación
-  let topNom = '-';
-  let topMax = 0;
-  Object.entries(conteoTareas).forEach(([t, cant]) => {
-    if (cant > topMax) {
-      topMax = cant;
-      const cat = CATALOGO_ACTIVIDADES[t] || { nombre: t };
-      topNom = cat.nombre;
-    }
-  });
-  if (elTopNom) elTopNom.textContent = topNom;
-  if (elTopPct) {
-    const pct = totalTareas > 0 ? Math.round((topMax / totalTareas) * 100) : 0;
-    elTopPct.textContent = `${pct}% de participación (${topMax} tareas)`;
+  // Grandes superficies
+  const elSupMed = document.getElementById('kpi-sup-con-med');
+  const elSupTot = document.getElementById('kpi-sup-total');
+  const elSupBar = document.getElementById('kpi-sup-bar');
+  if (elSupMed) elSupMed.textContent = data.conMedSup1000;
+  if (elSupTot) elSupTot.textContent = data.totalSup1000;
+  if (elSupBar) elSupBar.style.width = `${data.pctSup1000}%`;
+
+  // 2. PANEL DE GLOBITOS / SÍNTESIS INMEDIATA
+  const elPeriodoNom = document.getElementById('globitos-titulo-periodo');
+  const elGlobTotCont = document.getElementById('globitos-total-sedes-container');
+  const elGlobOrgs = document.getElementById('globitos-organismos');
+  const elGlobActs = document.getElementById('globitos-actuaciones');
+
+  const mActualObj = CICLO_MESES_ANUAL.find(m => m.cod === periodoKey);
+  const periodoLabel = (periodoKey === 'ciclo' || periodoKey === 'todos')
+    ? 'Ciclo Anual Acumulado (Sep 26 – Ago 27)' 
+    : (mActualObj ? `Mes de ${mActualObj.nombre} ${mActualObj.anio}` : `Mes ${periodoKey}`);
+
+  if (elPeriodoNom) elPeriodoNom.textContent = periodoLabel;
+
+  if (elGlobTotCont) {
+    elGlobTotCont.innerHTML = `
+      <span class="globito-chip globito-chip-primary">
+        <i class="fa-solid fa-building-circle-check"></i> <b>${data.ritmoMes}</b> sedes intervenidas
+      </span>
+    `;
   }
 
-  if (elSupMed) elSupMed.textContent = sedesMayor1000ConMed;
-  if (elSupVis) elSupVis.textContent = `${sedesMayor1000} sedes >1.000 m² relevadas`;
+  // Globitos por organismo ("las cantidades de cada uno")
+  if (elGlobOrgs) {
+    const orgEntries = Object.entries(data.sedesPorOrgPeriodo);
+    if (orgEntries.length === 0) {
+      elGlobOrgs.innerHTML = `<span class="globito-chip" style="background:#F1F5F9;color:#64748B;font-size:11px;">Sin actuaciones registradas en este período</span>`;
+    } else {
+      elGlobOrgs.innerHTML = orgEntries.map(([orgAbbr, item]) => {
+        let icono = '🏛️';
+        if (orgAbbr.includes('CGE') || orgAbbr.includes('EDU')) icono = '🎓';
+        else if (orgAbbr.includes('POL')) icono = '👮';
+        else if (orgAbbr.includes('SALUD') || orgAbbr.includes('HOSP')) icono = '🏥';
+        else if (orgAbbr.includes('VIAL')) icono = '🚜';
+        return `
+          <span class="globito-chip globito-chip-accent" title="${escapeHtml(item.nombre)}">
+            ${icono} <b>${orgAbbr}:</b> ${item.count} sedes
+          </span>
+        `;
+      }).join('');
+    }
+  }
+
+  // Globitos por tipo de actuación técnica
+  if (elGlobActs) {
+    const actEntries = Object.entries(data.conteoTareasPeriodo).sort((a, b) => b[1] - a[1]);
+    if (actEntries.length === 0) {
+      elGlobActs.innerHTML = `<span class="globito-chip" style="background:#F1F5F9;color:#64748B;font-size:11px;">Sin tareas técnicas registradas en este período</span>`;
+    } else {
+      elGlobActs.innerHTML = actEntries.map(([tKey, count]) => {
+        const cat = CATALOGO_ACTIVIDADES[tKey] || { nombre: tKey, codigo: tKey, color: '#0F4C5C' };
+        return `
+          <span class="globito-chip" title="${escapeHtml(cat.nombre)}">
+            <span style="width:8px;height:8px;border-radius:50%;background:${cat.color || '#0F4C5C'};display:inline-block;"></span>
+            <b>${cat.codigo || tKey}:</b> ${count}
+          </span>
+        `;
+      }).join('');
+    }
+  }
+
+  // 3. NIVEL 2: Timeline de Evolución Temporal (12 columnas Sep a Ago)
+  const elTimeline = document.getElementById('contenedor-evolucion-ciclo');
+  if (elTimeline) {
+    elTimeline.innerHTML = CICLO_MESES_ANUAL.map(m => {
+      const cantSedes = data.timelineSedesMes[m.cod] ? data.timelineSedesMes[m.cod].size : 0;
+      const isSelected = (periodoKey === m.cod);
+      const pctAltura = Math.min(100, Math.round((cantSedes / 35) * 100));
+      return `
+        <div class="timeline-col ${isSelected ? 'on' : ''}" onclick="seleccionarMesEnTimeline('${m.cod}')" title="${m.nombre}: ${cantSedes} sedes relevadas">
+          <div style="font-size:11px;font-weight:700;color:var(--text-main);">${cantSedes}</div>
+          <div style="width:100%;height:54px;display:flex;align-items:flex-end;justify-content:center;margin:6px 0;position:relative;">
+            <!-- Línea meta 30 sedes (85% de 35) -->
+            <div style="position:absolute;left:0;right:0;bottom:85%;border-top:1px dashed #A8470A;opacity:0.4;"></div>
+            <div style="width:14px;height:${pctAltura}%;background:${isSelected ? 'var(--alert)' : 'var(--primary)'};border-radius:2px;transition:height 0.3s ease;"></div>
+          </div>
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);">${m.label}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 4. NIVEL 3: Ranking de Tareas Técnicas (Barras Horizontales)
+  const elTotActLabel = document.getElementById('stat-total-actividades-label');
+  if (elTotActLabel) elTotActLabel.textContent = `Total actividades: ${data.totalVisitasCiclo}`;
+
+  const elHbarsCont = document.getElementById('contenedor-barras-tareas-horizontales');
+  if (elHbarsCont) {
+    elHbarsCont.innerHTML = data.rankingTareas.map(t => {
+      const fillPct = Math.min(100, Math.round((t.count / data.maxCountTarea) * 100));
+      return `
+        <div class="hbar-row">
+          <div class="hbar-label">
+            <span style="font-size:16px;">${t.icono}</span>
+            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;margin-right:4px;">${t.codigo}</span>
+              <span style="font-weight:600;font-size:13px;color:var(--text-main);" title="${escapeHtml(t.nombre)}">${escapeHtml(t.nombre)}</span>
+            </div>
+          </div>
+          <div class="hbar-track">
+            <div class="hbar-fill" style="width:${fillPct}%;background:${t.color};"></div>
+          </div>
+          <div class="hbar-stats">
+            <span class="badge-stock badge-stock-consumido"><b>${t.count}</b> tareas</span>
+            <span class="badge-stock badge-stock-residual">${t.sharePct}%</span>
+            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${t.sedesRecibieron} sedes</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 5. NIVEL 4: Distribución Consolidada por Organismo
+  const elOrgsCont = document.getElementById('contenedor-distribucion-organismos');
+  if (elOrgsCont) {
+    elOrgsCont.innerHTML = data.resumenOrganismos.slice(0, 6).map(o => {
+      let icon = '🏛️';
+      if (o.organismo.includes('EDUCACION') || o.organismo.includes('CGE')) icon = '🎓';
+      else if (o.organismo.includes('POLICIA')) icon = '👮';
+      else if (o.organismo.includes('SALUD')) icon = '🏥';
+      else if (o.organismo.includes('VIALIDAD')) icon = '🚜';
+
+      return `
+        <div class="org-card-exec">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);">
+              <span>${icon}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${escapeHtml(o.organismo)}">${escapeHtml(o.organismo)}</span>
+            </div>
+            <span class="badge-stock ${o.coberturaPct >= 50 ? 'badge-stock-success' : 'badge-stock-meta'}">${o.coberturaPct}% cobertura</span>
+          </div>
+          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:7px;overflow:hidden;">
+            <div style="width:${o.coberturaPct}%;background:var(--primary);height:100%;border-radius:9999px;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+            <span><b>${o.sedesVisitadas}</b> de ${o.totalSedes} sedes</span>
+            <span><b>${o.totalVisitas}</b> actividades</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 window.actualizarVistaMetricas = actualizarVistaMetricas;
+
+/**
+ * Selecciona un mes desde el gráfico de evolución temporal
+ */
+function seleccionarMesEnTimeline(codMes) {
+  const selMes = document.getElementById('metricas-filtro-mes');
+  if (selMes) selMes.value = codMes;
+  actualizarVistaMetricas(codMes);
+}
+window.seleccionarMesEnTimeline = seleccionarMesEnTimeline;
+
+/**
+ * Genera el informe PDF oficial sincronizado con el mes seleccionado
+ */
+function generarReporteMensualConsultado() {
+  const selMes = document.getElementById('metricas-filtro-mes')?.value;
+  if (!selMes || selMes === 'ciclo' || selMes === 'todos') {
+    // Tomar el mes actual o mes más activo
+    const ahoraCod = String(new Date().getMonth() + 1).padStart(2, '0');
+    generarReporteMensualPdf(ahoraCod);
+  } else {
+    generarReporteMensualPdf(selMes);
+  }
+}
+window.generarReporteMensualConsultado = generarReporteMensualConsultado;
+
+/**
+ * Exporta un resumen consolidado de indicadores en CSV
+ */
+function exportarMetricasConsolidadas() {
+  const metricas = calcularMetricasPlanAnual(document.getElementById('metricas-filtro-mes')?.value || 'ciclo');
+  let csv = "data:text/csv;charset=utf-8,\uFEFF";
+  csv += "INDICADOR;VALOR;META;RESIDUAL;PORCENTAJE\n";
+  csv += `Stock Sedes Objetivo;${metricas.stockSedesConsumido};${PLAN_HYS_CONFIG.META_SEDES_ANUAL};${metricas.stockSedesResidual};${metricas.pctSedesAvance}%\n`;
+  csv += `Stock Visitas HyS;${metricas.stockVisitasConsumido};${PLAN_HYS_CONFIG.META_VISITAS_ANUAL};${metricas.stockVisitasResidual};${metricas.pctVisitasAvance}%\n`;
+  csv += `Ritmo Mensual;${metricas.ritmoMes};${PLAN_HYS_CONFIG.META_SEDES_MENSUAL};-;-\n\n`;
+
+  csv += "TAREA TECNICA;CODIGO;CANTIDAD;PARTICIPACION;SEDES CUBIERTAS\n";
+  metricas.rankingTareas.forEach(t => {
+    csv += `"${t.nombre}";${t.codigo};${t.count};${t.sharePct}%;${t.sedesRecibieron}\n`;
+  });
+
+  csv += "\nORGANISMO;SEDES TOTALES;SEDES VISITADAS;COBERTURA;TOTAL VISITAS\n";
+  metricas.resumenOrganismos.forEach(o => {
+    csv += `"${o.organismo}";${o.totalSedes};${o.sedesVisitadas};${o.coberturaPct}%;${o.totalVisitas}\n`;
+  });
+
+  const encodedUri = encodeURI(csv);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Metricas_Plan_HyS_${new Date().toISOString().substring(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+window.exportarMetricasConsolidadas = exportarMetricasConsolidadas;
 
 /**
  * Genera y descarga/imprime el informe ejecutivo oficial del mes en formato PDF
@@ -7486,8 +7884,8 @@ function generarReporteMensualPdf(mesParam, anioParam) {
   });
 
   const totalSedesVisitadas = sedesData.length;
-  const pctMeta = Math.min(100, Math.round((totalSedesVisitadas / 25) * 100));
-  const cumpleMeta = totalSedesVisitadas >= 25;
+  const pctMeta = Math.min(100, Math.round((totalSedesVisitadas / 30) * 100));
+  const cumpleMeta = totalSedesVisitadas >= 30;
   const estadoMetaCls = cumpleMeta ? 'color:#0F4C5C;background:#E3EDEF;' : 'color:#A8470A;background:#FBEFE6;';
 
   const ahora = new Date();
@@ -7790,7 +8188,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
           <div class="kpi-title">Sedes Visitadas</div>
           <div class="kpi-val">${totalSedesVisitadas}</div>
           <div style="font-size:10px;margin-top:4px;font-weight:600;padding:2px 4px;border-radius:2px;display:inline-block;${estadoMetaCls}">
-            ${cumpleMeta ? '✓ Meta Cumplida' : `Meta 25-30 (${pctMeta}%)`}
+            ${cumpleMeta ? '✓ Meta Cumplida (30 sedes)' : `Meta 30 sedes (${pctMeta}%)`}
           </div>
         </div>
 
