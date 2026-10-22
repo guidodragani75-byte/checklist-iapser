@@ -423,6 +423,9 @@
         <a class="nav" href="portal_legajo_clasico.html" style="color:#F9A825;font-weight:600;" title="Abrir versión anterior clásica 100% operativa">
           <i class="fa-solid fa-clock-rotate-left" style="width:18px;margin-right:6px;"></i> Versión Clásica
         </a>
+        <a class="nav" href="#" onclick="abrirModalCarpetasMensuales(); return false;" title="Abrir carpetas mensuales y por organismo en Google Drive">
+          <i class="fa-solid fa-folder-open" style="width:18px;margin-right:6px;color:#F9A825;"></i> Carpetas en Drive
+        </a>
         <a class="nav" href="#" onclick="abrirModalConfiguracion(); return false;">
           <i class="fa-solid fa-cloud-arrow-up" style="width:18px;margin-right:6px;opacity:0.85;"></i> Conexión y Drive
         </a>
@@ -455,6 +458,14 @@
       </label>
 
       <span id="status-sincronizacion" style="font-size:13px;color:var(--text-muted)">Sincronizado hoy</span>
+
+      <button type="button" class="chip" onclick="abrirModalCarpetasMensuales()" title="Abrir carpetas mensuales y por organismo en Google Drive">
+        <i class="fa-solid fa-folder-open" style="margin-right:6px;color:var(--primary);"></i> Carpetas Drive
+      </button>
+
+      <button type="button" class="chip" onclick="generarReporteMensualPdf()" style="font-weight:600;color:var(--alert);border-color:var(--alert);" title="Descargar o imprimir reporte ejecutivo del mes seleccionado en PDF">
+        <i class="fa-solid fa-file-pdf" style="margin-right:6px;"></i> Reporte PDF del Mes
+      </button>
 
       <button type="button" class="chip" onclick="sincronizarConSheets()" title="Sincronizar historial con Google Sheets y Drive">
         <i class="fa-solid fa-arrows-rotate" style="margin-right:6px;"></i> Sincronizar
@@ -559,21 +570,26 @@
 
             <label style="font-size:12px;color:var(--text-muted)">
               Mes de visita
-              <select id="filtro-mes" class="input-clean" style="display:block;margin-top:4px;min-width:130px;">
-                <option value="todos">Todo el año</option>
-                <option value="01">Enero</option>
-                <option value="02">Febrero</option>
-                <option value="03">Marzo</option>
-                <option value="04">Abril</option>
-                <option value="05">Mayo</option>
-                <option value="06">Junio</option>
-                <option value="07">Julio</option>
-                <option value="08">Agosto</option>
-                <option value="09">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
-              </select>
+              <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+                <select id="filtro-mes" class="input-clean" style="min-width:130px;">
+                  <option value="todos">Todo el año</option>
+                  <option value="01">Enero</option>
+                  <option value="02">Febrero</option>
+                  <option value="03">Marzo</option>
+                  <option value="04">Abril</option>
+                  <option value="05">Mayo</option>
+                  <option value="06">Junio</option>
+                  <option value="07">Julio</option>
+                  <option value="08">Agosto</option>
+                  <option value="09">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+                <button type="button" class="chip" onclick="generarReporteMensualPdf()" style="min-height:36px;padding:4px 10px;font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF del mes seleccionado">
+                  <i class="fa-solid fa-file-pdf"></i> PDF
+                </button>
+              </div>
             </label>
           </div>
 
@@ -707,13 +723,16 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
             Mes:
             <select id="metricas-filtro-mes" class="input-clean" onchange="actualizarVistaMetricas(this.value)">
               <!-- Opciones de meses -->
             </select>
           </label>
+          <button type="button" class="chip" onclick="generarReporteMensualPdf(document.getElementById('metricas-filtro-mes').value)" style="font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF de este mes">
+            <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+          </button>
           <button type="button" class="chip" onclick="abrirModalTableroGeneral()">
             <i class="fa-solid fa-chart-pie" style="margin-right:6px;color:var(--primary)"></i> Métricas Provinciales
           </button>
@@ -1335,27 +1354,56 @@
   </div>
 </div>
 
-<!-- MODAL: CARPETAS MENSUALES EN DRIVE -->
+<!-- MODAL: CARPETAS MENSUALES Y POR ORGANISMO EN DRIVE -->
 <div id="modal-carpetas-mensuales" class="modal-backdrop hidden" style="display:none;">
-  <div class="modal-window" style="width:600px;max-width:94vw;">
+  <div class="modal-window" style="width:720px;max-width:95vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:10px;">
         <i class="fa-solid fa-folder-open" style="color:#A8470A;font-size:20px;"></i>
         <div>
-          <h3 style="margin:0;">Carpetas Mensuales en Google Drive</h3>
-          <div style="font-size:11px;color:var(--rail-muted);">Organización directa por mes sin subcarpetas</div>
+          <h3 style="margin:0;">Carpetas y Documentos en Google Drive</h3>
+          <div style="font-size:11px;color:var(--rail-muted);">Organización por mes cronológico y por organismo provincial</div>
         </div>
       </div>
       <button type="button" class="modal-close-btn" onclick="cerrarModal('modal-carpetas-mensuales')">&times;</button>
     </div>
 
-    <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+    <!-- Pestañas del Modal -->
+    <div style="display:flex;border-bottom:1px solid var(--border-table);background:#F7F8F6;padding:8px 20px 0;">
+      <button type="button" id="tab-drive-meses" class="chip on" onclick="cambiarTabDriveModal('meses')" style="border-bottom:none;border-bottom-left-radius:0;border-bottom-right-radius:0;font-size:12px;font-weight:600;min-height:36px;">
+        <i class="fa-solid fa-calendar-days" style="margin-right:6px;color:var(--primary);"></i> Carpetas por Mes
+      </button>
+      <button type="button" id="tab-drive-organismos" class="chip" onclick="cambiarTabDriveModal('organismos')" style="border-bottom:none;border-bottom-left-radius:0;border-bottom-right-radius:0;font-size:12px;font-weight:600;min-height:36px;margin-left:4px;">
+        <i class="fa-solid fa-building-shield" style="margin-right:6px;color:var(--primary);"></i> Documentos por Organismo
+      </button>
+    </div>
+
+    <!-- Contenido Pestaña 1: Meses -->
+    <div id="panel-drive-meses" style="padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;max-height:450px;">
+      <div style="background:#F7F8F6;border:1px solid var(--border-table);padding:10px 14px;font-size:12px;color:var(--text-muted);border-radius:2px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <i class="fa-solid fa-circle-info" style="color:var(--primary);margin-right:4px;"></i>
+          Cada mes agrupa todos los informes y protocolos técnicos del período en Google Drive.
+        </div>
+        <button type="button" class="chip" onclick="abrirCarpetaParentMensualDrive()" style="font-size:11px;padding:3px 8px;font-weight:600;white-space:nowrap;">
+          <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right:4px;"></i> Abrir Raíz Drive
+        </button>
+      </div>
+
+      <div id="lista-carpetas-mensuales" style="display:flex;flex-direction:column;gap:8px;">
+        <!-- Se inyectan las carpetas de Drive dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Contenido Pestaña 2: Organismos -->
+    <div id="panel-drive-organismos" style="padding:18px 20px;overflow-y:auto;display:none;flex-direction:column;gap:12px;max-height:450px;">
       <div style="background:#F7F8F6;border:1px solid var(--border-table);padding:10px 14px;font-size:12px;color:var(--text-muted);border-radius:2px;">
         <i class="fa-solid fa-circle-info" style="color:var(--primary);margin-right:4px;"></i>
-        Cada mes agrupa todos los informes y comprobantes técnicos directamente, ideal para auditorías mensuales.
+        Los archivos en Google Drive llevan el prefijo oficial de cada organismo (ej: <code>POL_</code>, <code>CGE_</code>, <code>COP_</code>, <code>SAL_</code>). Podés verlos en el repositorio o filtrar la tabla de sedes.
       </div>
-      <div id="lista-carpetas-mensuales" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
-        <!-- Se inyectan las carpetas de Drive -->
+
+      <div id="lista-organismos-drive" style="display:flex;flex-direction:column;gap:8px;">
+        <!-- Se inyectan los organismos dinámicamente -->
       </div>
     </div>
 
@@ -1415,6 +1463,29 @@
     renderPanelActividades(est);
 
     if (modal) modal.style.display = 'flex';
+  }
+
+  // Cambiar entre pestañas de Meses y Organismos en el modal de Drive
+  function cambiarTabDriveModal(tab) {
+    const btnMeses = document.getElementById('tab-drive-meses');
+    const btnOrgs = document.getElementById('tab-drive-organismos');
+    const panelMeses = document.getElementById('panel-drive-meses');
+    const panelOrgs = document.getElementById('panel-drive-organismos');
+
+    if (tab === 'organismos') {
+      if (btnOrgs) btnOrgs.classList.add('on');
+      if (btnMeses) btnMeses.classList.remove('on');
+      if (panelOrgs) panelOrgs.style.display = 'flex';
+      if (panelMeses) panelMeses.style.display = 'none';
+      if (typeof renderOrganismosDriveModal === 'function') {
+        renderOrganismosDriveModal();
+      }
+    } else {
+      if (btnMeses) btnMeses.classList.add('on');
+      if (btnOrgs) btnOrgs.classList.remove('on');
+      if (panelMeses) panelMeses.style.display = 'flex';
+      if (panelOrgs) panelOrgs.style.display = 'none';
+    }
   }
 
   // Abrir cualquier modal

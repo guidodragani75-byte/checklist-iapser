@@ -6164,78 +6164,165 @@ window.guardarSuperficieEstablecimiento = guardarSuperficieEstablecimiento;
 
 function abrirModalCarpetasMensuales() {
   const modal = document.getElementById('modal-carpetas-mensuales');
-  const container = document.getElementById('lista-carpetas-mensuales-modal');
-  if (!modal || !container) return;
+  const container = document.getElementById('lista-carpetas-mensuales') || document.getElementById('lista-carpetas-mensuales-modal');
+  if (!modal) return;
 
-  container.innerHTML = '';
+  if (container) {
+    container.innerHTML = '';
 
-  // Contar documentos por mes a partir de todas las actividades cargadas
-  const conteoMeses = {};
-  Object.values(AppState.actividadesRegistradas).forEach(acts => {
-    acts.forEach(a => {
-      const mInfo = parsearAnioMesCliente(a.fechaActividad);
-      if (!conteoMeses[mInfo.key]) {
-        conteoMeses[mInfo.key] = { label: mInfo.label, count: 0, docsConUrl: 0 };
-      }
-      conteoMeses[mInfo.key].count++;
-      if (a.fileUrl) conteoMeses[mInfo.key].docsConUrl++;
+    // Contar documentos por mes a partir de todas las actividades cargadas
+    const conteoMeses = {};
+    Object.values(AppState.actividadesRegistradas).forEach(acts => {
+      acts.forEach(a => {
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        if (!conteoMeses[mInfo.key]) {
+          conteoMeses[mInfo.key] = { label: mInfo.label, count: 0, docsConUrl: 0 };
+        }
+        conteoMeses[mInfo.key].count++;
+        if (a.fileUrl) conteoMeses[mInfo.key].docsConUrl++;
+      });
     });
-  });
 
-  // Asegurar que los meses presentes en AppState.carpetasMensuales aparezcan
-  Object.keys(AppState.carpetasMensuales).forEach(k => {
-    if (!conteoMeses[k]) {
-      conteoMeses[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0, docsConUrl: 0 };
+    // Asegurar que los meses presentes en AppState.carpetasMensuales aparezcan
+    Object.keys(AppState.carpetasMensuales).forEach(k => {
+      if (!conteoMeses[k]) {
+        conteoMeses[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0, docsConUrl: 0 };
+      }
+    });
+
+    // Si no hay meses aún, incluir el mes actual
+    const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
+    if (!conteoMeses[mActual.key]) {
+      conteoMeses[mActual.key] = { label: mActual.label, count: 0, docsConUrl: 0 };
     }
-  });
 
-  // Si no hay meses aún, incluir el mes actual
-  const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
-  if (!conteoMeses[mActual.key]) {
-    conteoMeses[mActual.key] = { label: mActual.label, count: 0, docsConUrl: 0 };
-  }
+    const sortedKeys = Object.keys(conteoMeses).sort().reverse();
 
-  const sortedKeys = Object.keys(conteoMeses).sort().reverse();
+    sortedKeys.forEach(k => {
+      const info = conteoMeses[k];
+      const folderData = AppState.carpetasMensuales[k] || {};
+      const url = folderData.url || '';
 
-  sortedKeys.forEach(k => {
-    const info = conteoMeses[k];
-    const folderData = AppState.carpetasMensuales[k] || {};
-    const url = folderData.url || '';
-
-    const card = document.createElement('div');
-    card.className = 'flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition shadow-sm';
-    card.innerHTML = `
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm">
-          <i class="fa-solid fa-folder-open"></i>
-        </div>
-        <div>
-          <div class="font-bold text-slate-800 text-xs">${escapeHtml(info.label)}</div>
-          <div class="text-[11px] text-slate-500">
-            ${info.count} informe(s) relevados • ${info.docsConUrl} con archivo directo
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#fff;border:1px solid var(--border-table);padding:10px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:2px;background:#FBEFE6;color:var(--alert);display:flex;align-items:center;justify-content:center;font-size:16px;">
+            <i class="fa-solid fa-folder-open"></i>
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--text-main);">${escapeHtml(info.label)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+              ${info.count} informe(s) relevados · ${info.docsConUrl} con acceso directo
+            </div>
           </div>
         </div>
-      </div>
-      <div class="flex items-center gap-2">
-        ${url ? `
-          <a href="${url}" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            <span>Abrir en Drive</span>
-          </a>
-        ` : `
-          <button onclick="abrirCarpetaMensualParaClave('${k}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-semibold text-xs flex items-center gap-1.5 transition">
-            <i class="fa-brands fa-google-drive text-blue-600"></i>
-            <span>Ver en Drive</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${url ? `
+            <a href="${url}" target="_blank" style="background:#0F4C5C;color:#fff;font-size:11px;font-weight:600;padding:5px 10px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir carpeta mensual en Google Drive">
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i>
+              <span>Abrir en Drive</span>
+            </a>
+          ` : `
+            <button type="button" onclick="abrirCarpetaMensualParaClave('${k}')" class="chip" style="min-height:30px;padding:3px 8px;font-size:11px;display:inline-flex;align-items:center;gap:4px;">
+              <i class="fa-brands fa-google-drive" style="color:var(--primary);"></i>
+              <span>Ver en Drive</span>
+            </button>
+          `}
+          <button type="button" class="chip" onclick="generarReporteMensualPdf('${k.split('-')[1]}', '${k.split('-')[0]}')" style="min-height:30px;padding:3px 8px;font-size:11px;color:var(--alert);" title="Exportar reporte PDF de este mes">
+            <i class="fa-solid fa-file-pdf"></i> PDF
           </button>
-        `}
-      </div>
-    `;
-    container.appendChild(card);
-  });
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // Pre-renderizar también la lista de organismos
+  renderOrganismosDriveModal();
 
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
 }
+window.abrirModalCarpetasMensuales = abrirModalCarpetasMensuales;
+
+function renderOrganismosDriveModal() {
+  const container = document.getElementById('lista-organismos-drive');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const orgsMap = new Map();
+  Object.values(AppState.establecimientos).forEach(e => {
+    const org = e.organismo || 'Sin Organismo';
+    if (!orgsMap.has(org)) {
+      orgsMap.set(org, { nombre: org, sedes: 0, docs: 0 });
+    }
+    const item = orgsMap.get(org);
+    item.sedes++;
+    const acts = obtenerActividadesDeSede(e);
+    item.docs += acts.length;
+  });
+
+  const sortedOrgs = Array.from(orgsMap.values()).sort((a,b) => b.sedes - a.sedes);
+
+  sortedOrgs.forEach(item => {
+    const prefijo = obtenerAbreviaturaOrganismo(item.nombre);
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid var(--border-table);padding:10px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="m" style="background:#E3EDEF;color:#0F4C5C;font-size:11px;font-weight:700;padding:4px 7px;border-radius:2px;letter-spacing:0.04em;">
+          ${prefijo}_
+        </span>
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-main);">${escapeHtml(item.nombre)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+            ${item.sedes} sedes provinciales · ${item.docs} documentos cargados
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button type="button" class="chip" onclick="filtrarSedesPorOrganismoDesdeModal('${escapeHtml(item.nombre)}')" style="min-height:30px;padding:3px 8px;font-size:11px;" title="Ver todas las sedes de este organismo">
+          <i class="fa-solid fa-building" style="margin-right:4px;"></i> Sedes
+        </button>
+        <button type="button" class="chip" onclick="verRepositorioPorOrganismoDesdeModal('${escapeHtml(item.nombre)}')" style="min-height:30px;padding:3px 8px;font-size:11px;" title="Ver todos los documentos de este organismo">
+          <i class="fa-solid fa-folder-tree" style="margin-right:4px;"></i> Documentos
+        </button>
+        <button type="button" class="chip" onclick="buscarEnDrivePorOrganismo('${escapeHtml(item.nombre)}')" style="min-height:30px;padding:3px 8px;font-size:11px;" title="Buscar archivos de este organismo en Google Drive">
+          <i class="fa-brands fa-google-drive" style="color:var(--primary);margin-right:4px;"></i> Drive
+        </button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+window.renderOrganismosDriveModal = renderOrganismosDriveModal;
+
+function filtrarSedesPorOrganismoDesdeModal(org) {
+  cerrarModal('modal-carpetas-mensuales');
+  cambiarVistaPrincipal('sedes');
+  AppState.filtroOrganismo = org;
+  const sel = document.getElementById('filtro-organismo');
+  if (sel) sel.value = org;
+  renderListaEstablecimientos();
+}
+window.filtrarSedesPorOrganismoDesdeModal = filtrarSedesPorOrganismoDesdeModal;
+
+function verRepositorioPorOrganismoDesdeModal(org) {
+  cerrarModal('modal-carpetas-mensuales');
+  cambiarVistaPrincipal('repositorio');
+  AppState.repoFiltroOrg = org;
+  const sel = document.getElementById('repo-filtro-org');
+  if (sel) sel.value = org;
+  filtrarRepositorio();
+}
+window.verRepositorioPorOrganismoDesdeModal = verRepositorioPorOrganismoDesdeModal;
+
+function buscarEnDrivePorOrganismo(org) {
+  const prefijo = obtenerAbreviaturaOrganismo(org);
+  window.open(`https://drive.google.com/drive/search?q=${encodeURIComponent(prefijo + '_')}`, '_blank');
+}
+window.buscarEnDrivePorOrganismo = buscarEnDrivePorOrganismo;
 
 function abrirCarpetaMensualSeleccionada() {
   const mesSeleccionado = AppState.repoFiltroMes;
@@ -7221,11 +7308,564 @@ function renderVistaMetricasMaqueta() {
 window.renderVistaMetricasMaqueta = renderVistaMetricasMaqueta;
 
 function actualizarVistaMetricas(mesKey) {
-  if (typeof poblarDatosModalEstadisticaMensual === 'function') {
-    poblarDatosModalEstadisticaMensual(mesKey || '10');
+  const anio = AppState.matrizAnio || '2026';
+  const mes = mesKey || '05';
+  const targetMes = String(mes).padStart(2, '0');
+
+  let totalTareas = 0;
+  const sedesVisitadas = new Set();
+  const conteoTareas = {};
+  let sedesMayor1000 = 0;
+  let sedesMayor1000ConMed = 0;
+
+  Object.values(AppState.establecimientos).forEach(est => {
+    const acts = obtenerActividadesDeSede(est);
+    const actsMes = acts.filter(a => {
+      if (anio !== 'todos') {
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        if (aAnio && aAnio !== anio) return false;
+      }
+      const d = String(a.fechaActividad || '');
+      if (d.includes(`-${targetMes}-`) || d.includes(`/${targetMes}/`)) return true;
+      if (a.monthKey && (a.monthKey.endsWith(`-${targetMes}`) || a.monthKey.endsWith(`/${targetMes}`))) return true;
+      return false;
+    });
+
+    if (actsMes.length > 0) {
+      sedesVisitadas.add(est.id);
+      const sup = Number(est.superficie);
+      if (sup >= 1000) {
+        sedesMayor1000++;
+        const hasMed = acts.some(a => {
+          const t = normalizarTipoActividad(a.tipoActividad);
+          return t === 'medicion_pat' || t === 'medicion_ruido' || t === 'medicion_iluminacion';
+        });
+        if (hasMed) sedesMayor1000ConMed++;
+      }
+
+      actsMes.forEach(a => {
+        totalTareas++;
+        const tNorm = normalizarTipoActividad(a.tipoActividad);
+        conteoTareas[tNorm] = (conteoTareas[tNorm] || 0) + 1;
+      });
+    }
+  });
+
+  const elTot = document.getElementById('stat-kpi-total-tareas');
+  const elVis = document.getElementById('stat-kpi-sedes-visitadas');
+  const elSub = document.getElementById('stat-kpi-sedes-meta-sub');
+  const elTopNom = document.getElementById('stat-kpi-top-tarea-nombre');
+  const elTopPct = document.getElementById('stat-kpi-top-tarea-pct');
+  const elSupMed = document.getElementById('stat-kpi-sup-con-med');
+  const elSupVis = document.getElementById('stat-kpi-sup-visitadas');
+
+  if (elTot) elTot.textContent = totalTareas;
+  if (elVis) elVis.textContent = sedesVisitadas.size;
+  if (elSub) {
+    elSub.textContent = sedesVisitadas.size >= 25 
+      ? `✓ Meta mensual cumplida (mín. 25 a 30 sedes)` 
+      : `Meta 25 a 30 sedes (faltan ${Math.max(0, 25 - sedesVisitadas.size)} para el mínimo)`;
   }
+
+  // Tarea con mayor participación
+  let topNom = '-';
+  let topMax = 0;
+  Object.entries(conteoTareas).forEach(([t, cant]) => {
+    if (cant > topMax) {
+      topMax = cant;
+      const cat = CATALOGO_ACTIVIDADES[t] || { nombre: t };
+      topNom = cat.nombre;
+    }
+  });
+  if (elTopNom) elTopNom.textContent = topNom;
+  if (elTopPct) {
+    const pct = totalTareas > 0 ? Math.round((topMax / totalTareas) * 100) : 0;
+    elTopPct.textContent = `${pct}% de participación (${topMax} tareas)`;
+  }
+
+  if (elSupMed) elSupMed.textContent = sedesMayor1000ConMed;
+  if (elSupVis) elSupVis.textContent = `${sedesMayor1000} sedes >1.000 m² relevadas`;
 }
 window.actualizarVistaMetricas = actualizarVistaMetricas;
+
+/**
+ * Genera y descarga/imprime el informe ejecutivo oficial del mes en formato PDF
+ * @param {string} mesParam Código de mes '01' a '12' (opcional)
+ * @param {string} anioParam Año '2026' (opcional)
+ */
+function generarReporteMensualPdf(mesParam, anioParam) {
+  // 1. Determinar el mes seleccionado
+  let mes = mesParam;
+  if (!mes || mes === 'todos') {
+    const selMes = document.getElementById('filtro-mes')?.value;
+    const selMetr = document.getElementById('metricas-filtro-mes')?.value;
+    mes = (selMes && selMes !== 'todos') ? selMes : ((selMetr && selMetr !== 'todos') ? selMetr : AppState.filtroMes);
+  }
+  if (!mes || mes === 'todos') {
+    // Buscar el mes con mayor actividad registrada
+    let maxAct = 0;
+    let bestMes = '05'; // Default Mayo
+    for (let m = 1; m <= 12; m++) {
+      const cod = String(m).padStart(2, '0');
+      let c = 0;
+      Object.values(AppState.actividadesRegistradas).forEach(acts => {
+        acts.forEach(a => {
+          const d = String(a.fechaActividad || '');
+          if (d.includes(`-${cod}-`) || d.includes(`/${cod}/`)) c++;
+        });
+      });
+      if (c > maxAct) {
+        maxAct = c;
+        bestMes = cod;
+      }
+    }
+    mes = bestMes;
+  }
+
+  const anio = anioParam || AppState.matrizAnio || '2026';
+  const mesNum = parseInt(mes, 10);
+  const mesIdx = isNaN(mesNum) ? 4 : mesNum - 1;
+  const mesNombre = MESES_NOMBRES[mesIdx] || `Mes ${mes}`;
+  const targetMesStr = String(mes).padStart(2, '0');
+
+  // 2. Recopilar datos de sedes y tareas del mes
+  const sedesData = [];
+  const conteoTareas = {};
+  const conteoPorOrganismo = {};
+  let totalTareasMes = 0;
+  let sedesMayor1000 = 0;
+  let sedesMayor1000ConMed = 0;
+
+  Object.values(AppState.establecimientos).forEach(est => {
+    const acts = obtenerActividadesDeSede(est);
+    const actsMes = acts.filter(a => {
+      if (anio !== 'todos') {
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        if (aAnio && aAnio !== anio) return false;
+      }
+      const d = String(a.fechaActividad || '');
+      if (d.includes(`-${targetMesStr}-`) || d.includes(`/${targetMesStr}/`)) return true;
+      if (a.monthKey && (a.monthKey.endsWith(`-${targetMesStr}`) || a.monthKey.endsWith(`/${targetMesStr}`))) return true;
+      return false;
+    });
+
+    if (actsMes.length > 0) {
+      const supNum = Number(est.superficie);
+      if (supNum >= 1000) {
+        sedesMayor1000++;
+        const hasMed = acts.some(a => {
+          const t = normalizarTipoActividad(a.tipoActividad);
+          return t === 'medicion_pat' || t === 'medicion_ruido' || t === 'medicion_iluminacion';
+        });
+        if (hasMed) sedesMayor1000ConMed++;
+      }
+
+      actsMes.forEach(a => {
+        totalTareasMes++;
+        const tNorm = normalizarTipoActividad(a.tipoActividad);
+        conteoTareas[tNorm] = (conteoTareas[tNorm] || 0) + 1;
+      });
+
+      const org = est.organismo || 'Sin Organismo';
+      conteoPorOrganismo[org] = (conteoPorOrganismo[org] || 0) + 1;
+
+      sedesData.push({
+        est,
+        acts: actsMes,
+        ultimaFecha: actsMes[actsMes.length - 1].fechaActividad,
+        preventor: actsMes.find(a => a.preventor)?.preventor || 'Lic. HyS Asignado'
+      });
+    }
+  });
+
+  // Ordenar sedes por Organismo y luego Nombre
+  sedesData.sort((a, b) => {
+    const orgComp = (a.est.organismo || '').localeCompare(b.est.organismo || '');
+    if (orgComp !== 0) return orgComp;
+    return (a.est.nombreEstablecimiento || '').localeCompare(b.est.nombreEstablecimiento || '');
+  });
+
+  const totalSedesVisitadas = sedesData.length;
+  const pctMeta = Math.min(100, Math.round((totalSedesVisitadas / 25) * 100));
+  const cumpleMeta = totalSedesVisitadas >= 25;
+  const estadoMetaCls = cumpleMeta ? 'color:#0F4C5C;background:#E3EDEF;' : 'color:#A8470A;background:#FBEFE6;';
+
+  const ahora = new Date();
+  const fechaEmision = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
+                       ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  // Filas tabla detallada de sedes
+  let filasSedesHtml = '';
+  if (sedesData.length === 0) {
+    filasSedesHtml = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:24px;color:#5B6670;font-style:italic;">
+          No se registraron visitas ni tareas técnicas en el mes de ${mesNombre} ${anio}.
+        </td>
+      </tr>
+    `;
+  } else {
+    sedesData.forEach((item) => {
+      const e = item.est;
+      const nro = e.nroEstab ? String(e.nroEstab).padStart(3, '0') : '-';
+      const sup = Number(e.superficie) > 0 ? Number(e.superficie).toLocaleString('es-AR') + ' m²' : 's/d';
+
+      const tareasBadges = item.acts.map(a => {
+        const cat = CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
+        return `<span style="display:inline-block;background:#E3EDEF;color:#0F4C5C;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:2px;margin:1px;">${cat.codigo || 'DOC'}</span>`;
+      }).join(' ');
+
+      const fechaFmt = item.ultimaFecha ? formatearFechaDdmmaaa(item.ultimaFecha) : '-';
+
+      filasSedesHtml += `
+        <tr style="border-bottom:1px solid #E3E5E1;">
+          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;">${nro}</td>
+          <td style="padding:6px 8px;">
+            <strong>${escapeHtml(e.nombreEstablecimiento)}</strong>
+            <div style="font-size:10px;color:#5B6670;">${escapeHtml(e.domicilio || '')}</div>
+          </td>
+          <td style="padding:6px 8px;font-size:10.5px;">${escapeHtml(e.organismo || '-')}</td>
+          <td style="padding:6px 8px;font-size:10.5px;">${escapeHtml(e.localidad || '-')}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10px;">${sup}</td>
+          <td style="padding:6px 8px;">${tareasBadges}</td>
+          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap;">${fechaFmt}</td>
+        </tr>
+      `;
+    });
+  }
+
+  // Filas tabla de desglose por organismo
+  let filasOrgHtml = '';
+  Object.entries(conteoPorOrganismo).sort((a,b) => b[1] - a[1]).forEach(([org, cant]) => {
+    const pct = totalSedesVisitadas > 0 ? ((cant / totalSedesVisitadas) * 100).toFixed(1) : 0;
+    filasOrgHtml += `
+      <tr style="border-bottom:1px solid #E3E5E1;">
+        <td style="padding:5px 8px;"><strong>${escapeHtml(org)}</strong></td>
+        <td style="padding:5px 8px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;">${cant}</td>
+        <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;">${pct}%</td>
+      </tr>
+    `;
+  });
+
+  // Filas tabla de desglose por tarea
+  let filasTareasHtml = '';
+  Object.values(CATALOGO_ACTIVIDADES).forEach(cat => {
+    const cant = conteoTareas[cat.id] || 0;
+    if (cant > 0 || totalTareasMes > 0) {
+      const pct = totalTareasMes > 0 ? ((cant / totalTareasMes) * 100).toFixed(1) : 0;
+      filasTareasHtml += `
+        <tr style="border-bottom:1px solid #E3E5E1;">
+          <td style="padding:5px 8px;">${cat.icono || '📋'} ${escapeHtml(cat.nombre)}</td>
+          <td style="padding:5px 8px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;">${cat.codigo}</td>
+          <td style="padding:5px 8px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;">${cant}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;">${pct}%</td>
+        </tr>
+      `;
+    }
+  });
+
+  // Abrir ventana de impresión optimizada para PDF
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    mostrarToast('Habilitá los pop-ups en tu navegador para ver y descargar el reporte PDF.');
+    return;
+  }
+
+  const reportHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte HyS — ${mesNombre} ${anio} · IAPSER ART</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #17202A;
+      background: #fff;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .no-print {
+      background: #17202A;
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .btn {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 0;
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-print { background: #0F4C5C; color: #fff; }
+    .btn-close { background: #fff; color: #17202A; }
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0; background: #fff; }
+      .page-break { page-break-before: always; }
+      tr { page-break-inside: avoid; }
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 20px;
+    }
+    .header-doc {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #17202A;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .kpi-box {
+      border: 1px solid #D5D8D3;
+      padding: 10px 12px;
+      background: #FAFAFA;
+      border-radius: 2px;
+    }
+    .kpi-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #5B6670;
+    }
+    .kpi-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: #17202A;
+      margin-top: 2px;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      margin-top: 6px;
+    }
+    .report-table th {
+      background: #F0F1EE;
+      color: #17202A;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #17202A;
+      text-align: left;
+    }
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 36px;
+      padding-top: 14px;
+      page-break-inside: avoid;
+    }
+    .sig-line {
+      border-top: 1px dashed #17202A;
+      padding-top: 6px;
+      text-align: center;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print">
+    <div>
+      <strong>Informe Mensual HyS · ${mesNombre} ${anio}</strong>
+      <span style="font-size:11px;opacity:0.8;margin-left:8px;">Listo para guardar como PDF o imprimir</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-close" onclick="window.close()">✕ Cerrar</button>
+      <button class="btn btn-print" onclick="window.print()">
+        <i class="fa-solid fa-file-pdf"></i> Imprimir / Guardar en PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <!-- Encabezado Oficial -->
+    <div class="header-doc">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#0F4C5C;letter-spacing:0.05em;text-transform:uppercase;">IAPSER ART · Prevención y Salud Laboral</div>
+        <h1 style="font-size:20px;font-weight:700;margin:2px 0;color:#17202A;">Informe Ejecutivo de Cumplimiento HyS</h1>
+        <div style="font-size:13px;color:#5B6670;font-weight:500;">
+          Período: <strong style="color:#17202A;">${mesNombre.toUpperCase()} ${anio}</strong> · Seguimiento Operativo del Plan de Visitas
+        </div>
+      </div>
+      <div style="text-align:right;font-size:10.5px;color:#5B6670;">
+        <div><strong>Legajo Digital HyS</strong></div>
+        <div>Emisión: ${fechaEmision}</div>
+        <div>Entre Ríos, Argentina</div>
+      </div>
+    </div>
+
+    <!-- Franja de KPIs Principales -->
+    <div class="kpis-grid">
+      <div class="kpi-box">
+        <div class="kpi-title">Sedes Visitadas</div>
+        <div class="kpi-val">${totalSedesVisitadas}</div>
+        <div style="font-size:10px;margin-top:4px;font-weight:600;padding:2px 4px;border-radius:2px;display:inline-block;${estadoMetaCls}">
+          ${cumpleMeta ? '✓ Meta Cumplida' : `Meta 25-30 (${pctMeta}%)`}
+        </div>
+      </div>
+
+      <div class="kpi-box">
+        <div class="kpi-title">Tareas Realizadas</div>
+        <div class="kpi-val">${totalTareasMes}</div>
+        <div style="font-size:10px;color:#5B6670;margin-top:4px;">
+          ${totalSedesVisitadas > 0 ? (totalTareasMes / totalSedesVisitadas).toFixed(1) : 0} tareas / sede
+        </div>
+      </div>
+
+      <div class="kpi-box">
+        <div class="kpi-title">Sedes > 1.000 m²</div>
+        <div class="kpi-val">${sedesMayor1000}</div>
+        <div style="font-size:10px;color:${sedesMayor1000ConMed === sedesMayor1000 ? '#0F4C5C' : '#A8470A'};margin-top:4px;font-weight:600;">
+          ${sedesMayor1000ConMed} con mediciones completas
+        </div>
+      </div>
+
+      <div class="kpi-box">
+        <div class="kpi-title">Organismos con Visita</div>
+        <div class="kpi-val">${Object.keys(conteoPorOrganismo).length}</div>
+        <div style="font-size:10px;color:#5B6670;margin-top:4px;">
+          Alcance provincial
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen en 2 Columnas: Tareas y Organismos -->
+    <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;margin-bottom:20px;">
+      
+      <!-- Tabla de Tareas del Mes -->
+      <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
+        <h3 style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
+          Actividades Técnicas Ejecutadas en el Mes
+        </h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Actividad Técnica</th>
+              <th style="text-align:center;">Cód.</th>
+              <th style="text-align:center;">Cant.</th>
+              <th style="text-align:right;">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filasTareasHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tabla por Organismo -->
+      <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
+        <h3 style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
+          Distribución por Organismo
+        </h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Organismo</th>
+              <th style="text-align:center;">Sedes</th>
+              <th style="text-align:right;">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filasOrgHtml}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Nómina Detallada de Sedes Visitadas -->
+    <div style="border:1px solid #D5D8D3;padding:12px 14px;border-radius:2px;background:#fff;">
+      <h3 style="font-size:12px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span>Nómina Detallada de Establecimientos Relevados (${totalSedesVisitadas} sedes)</span>
+        <span style="font-size:10px;font-weight:500;color:#5B6670;">Ordenado por Organismo</span>
+      </h3>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width:35px;">N.º</th>
+            <th>Establecimiento / Domicilio</th>
+            <th>Organismo</th>
+            <th>Localidad</th>
+            <th style="text-align:right;width:60px;">m²</th>
+            <th>Tareas Realizadas</th>
+            <th style="width:65px;">Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filasSedesHtml}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Firmas Oficiales -->
+    <div class="signatures">
+      <div class="sig-line">
+        <strong>Lic. Responsable HyS / Preventor Actuante</strong><br>
+        <span style="color:#5B6670;font-size:10px;">Colegio de Profesionales HyS de Entre Ríos</span>
+      </div>
+      <div class="sig-line">
+        <strong>Gerencia Técnica / Coordinación de Prevención</strong><br>
+        <span style="color:#5B6670;font-size:10px;">IAPSER ART</span>
+      </div>
+    </div>
+
+    <!-- Pie institucional -->
+    <div style="margin-top:24px;border-top:1px solid #E3E5E1;padding-top:8px;font-size:9.5px;color:#5B6670;display:flex;justify-content:space-between;">
+      <span>Sistema Legajo Digital HyS — Cumplimiento Ley 19.587 · Dec. 351/79 · Res. SRT 900/15, 85/12, 84/12, 886/15</span>
+      <span>Página 1 de 1</span>
+    </div>
+
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(() => {
+        window.print();
+      }, 600);
+    };
+  <\/script>
+</body>
+</html>`;
+
+  printWindow.document.open();
+  printWindow.document.write(reportHtml);
+  printWindow.document.close();
+}
+window.generarReporteMensualPdf = generarReporteMensualPdf;
 
 function cambiarFiltroAnioGlobal(anio) {
   AppState.matrizAnio = anio;
