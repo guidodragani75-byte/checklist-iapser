@@ -7589,9 +7589,10 @@ function generarReporteMensualPdf(mesParam, anioParam) {
     body {
       font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #17202A;
-      background: #fff;
+      background: #E5E7EB;
       font-size: 11px;
       line-height: 1.4;
+      padding-bottom: 40px;
     }
     .no-print {
       background: #17202A;
@@ -7619,17 +7620,62 @@ function generarReporteMensualPdf(mesParam, anioParam) {
     }
     .btn-print { background: #0F4C5C; color: #fff; }
     .btn-close { background: #fff; color: #17202A; }
+
+    /* Contenedor de Hoja A4 estándar (210mm x 297mm) */
+    .page-sheet {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 14mm 12mm;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .page-break-divider {
+      text-align: center;
+      margin: 10px 0;
+      color: #5B6670;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
     @media print {
-      .no-print { display: none !important; }
-      body { padding: 0; background: #fff; }
-      .page-break { page-break-before: always; }
-      tr { page-break-inside: avoid; }
+      .no-print, .page-break-divider { display: none !important; }
+      body {
+        background: #fff !important;
+        padding: 0 !important;
+      }
+      .page-sheet {
+        width: 100% !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .page-sheet:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+      table.report-table thead {
+        display: table-header-group !important;
+      }
+      table.report-table tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .signatures {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
     }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 16px 20px;
-    }
+
     .header-doc {
       display: flex;
       justify-content: space-between;
@@ -7642,7 +7688,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .kpi-box {
       border: 1px solid #D5D8D3;
@@ -7665,7 +7711,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
     .report-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10.5px;
+      font-size: 10px;
       margin-top: 6px;
     }
     .report-table th {
@@ -7682,7 +7728,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 40px;
-      margin-top: 36px;
+      margin-top: 30px;
       padding-top: 14px;
       page-break-inside: avoid;
     }
@@ -7690,165 +7736,211 @@ function generarReporteMensualPdf(mesParam, anioParam) {
       border-top: 1px dashed #17202A;
       padding-top: 6px;
       text-align: center;
-      font-size: 11px;
+      font-size: 10.5px;
+    }
+    .page-footer {
+      border-top: 1px solid #E3E5E1;
+      padding-top: 8px;
+      font-size: 9.5px;
+      color: #5B6670;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
     }
   </style>
 </head>
 <body>
 
+  <!-- Barra Superior de Control (Oculta al imprimir) -->
   <div class="no-print">
     <div>
       <strong>Informe Mensual HyS · ${mesNombre} ${anio}</strong>
-      <span style="font-size:11px;opacity:0.8;margin-left:8px;">Listo para guardar como PDF o imprimir</span>
+      <span style="font-size:11px;opacity:0.8;margin-left:8px;">Diagramado con salto de página oficial para hoja A4</span>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-close" onclick="window.close()">✕ Cerrar</button>
       <button class="btn btn-print" onclick="window.print()">
-        <i class="fa-solid fa-file-pdf"></i> Imprimir / Guardar en PDF
+        <i class="fa-solid fa-file-pdf"></i> Imprimir / Guardar como PDF
       </button>
     </div>
   </div>
 
-  <div class="container">
-    
-    <!-- Encabezado Oficial -->
-    <div class="header-doc">
-      <div>
-        <div style="font-size:12px;font-weight:700;color:#0F4C5C;letter-spacing:0.05em;text-transform:uppercase;">IAPSER ART · Prevención y Salud Laboral</div>
-        <h1 style="font-size:20px;font-weight:700;margin:2px 0;color:#17202A;">Informe Ejecutivo de Cumplimiento HyS</h1>
-        <div style="font-size:13px;color:#5B6670;font-weight:500;">
-          Período: <strong style="color:#17202A;">${mesNombre.toUpperCase()} ${anio}</strong> · Seguimiento Operativo del Plan de Visitas
+  <!-- ==================== PÁGINA 1: RESUMEN EJECUTIVO Y MÉTRICAS ==================== -->
+  <div class="page-sheet">
+    <div>
+      <!-- Encabezado Oficial -->
+      <div class="header-doc">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#0F4C5C;letter-spacing:0.05em;text-transform:uppercase;">IAPSER ART · Prevención y Salud Laboral</div>
+          <h1 style="font-size:20px;font-weight:700;margin:2px 0;color:#17202A;">Informe Ejecutivo de Cumplimiento HyS</h1>
+          <div style="font-size:13px;color:#5B6670;font-weight:500;">
+            Período: <strong style="color:#17202A;">${mesNombre.toUpperCase()} ${anio}</strong> · Seguimiento Operativo del Plan Anual de Visitas
+          </div>
+        </div>
+        <div style="text-align:right;font-size:10.5px;color:#5B6670;">
+          <div><strong>Legajo Digital HyS</strong></div>
+          <div>Emisión: ${fechaEmision}</div>
+          <div>Entre Ríos, Argentina</div>
         </div>
       </div>
-      <div style="text-align:right;font-size:10.5px;color:#5B6670;">
-        <div><strong>Legajo Digital HyS</strong></div>
-        <div>Emisión: ${fechaEmision}</div>
-        <div>Entre Ríos, Argentina</div>
+
+      <!-- Franja de KPIs Principales -->
+      <div class="kpis-grid">
+        <div class="kpi-box">
+          <div class="kpi-title">Sedes Visitadas</div>
+          <div class="kpi-val">${totalSedesVisitadas}</div>
+          <div style="font-size:10px;margin-top:4px;font-weight:600;padding:2px 4px;border-radius:2px;display:inline-block;${estadoMetaCls}">
+            ${cumpleMeta ? '✓ Meta Cumplida' : `Meta 25-30 (${pctMeta}%)`}
+          </div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-title">Tareas Realizadas</div>
+          <div class="kpi-val">${totalTareasMes}</div>
+          <div style="font-size:10px;color:#5B6670;margin-top:4px;">
+            ${totalSedesVisitadas > 0 ? (totalTareasMes / totalSedesVisitadas).toFixed(1) : 0} tareas / sede
+          </div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-title">Sedes > 1.000 m²</div>
+          <div class="kpi-val">${sedesMayor1000}</div>
+          <div style="font-size:10px;color:${sedesMayor1000ConMed === sedesMayor1000 ? '#0F4C5C' : '#A8470A'};margin-top:4px;font-weight:600;">
+            ${sedesMayor1000ConMed} con mediciones completas
+          </div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-title">Organismos con Visita</div>
+          <div class="kpi-val">${Object.keys(conteoPorOrganismo).length}</div>
+          <div style="font-size:10px;color:#5B6670;margin-top:4px;">
+            Alcance provincial
+          </div>
+        </div>
       </div>
+
+      <!-- Resumen en 2 Columnas: Tareas y Organismos -->
+      <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;margin-bottom:18px;">
+        
+        <!-- Tabla de Tareas del Mes -->
+        <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
+          <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
+            Actividades Técnicas Ejecutadas en el Mes
+          </h3>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Actividad Técnica</th>
+                <th style="text-align:center;">Cód.</th>
+                <th style="text-align:center;">Cant.</th>
+                <th style="text-align:right;">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasTareasHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tabla por Organismo -->
+        <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
+          <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
+            Distribución por Organismo
+          </h3>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Organismo</th>
+                <th style="text-align:center;">Sedes</th>
+                <th style="text-align:right;">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasOrgHtml}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Dictamen Ejecutivo del Período -->
+      <div style="border:1px solid #D5D8D3;background:#F7F8F6;padding:12px 14px;border-radius:2px;">
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;color:#0F4C5C;margin-bottom:4px;">
+          <i class="fa-solid fa-circle-check" style="margin-right:4px;"></i> Estado General de Cumplimiento del Período
+        </h4>
+        <p style="font-size:10.5px;color:#17202A;line-height:1.45;">
+          En el período <strong>${mesNombre} ${anio}</strong> se concretaron <strong>${totalSedesVisitadas} visitas</strong> en establecimientos oficiales con un total de <strong>${totalTareasMes} tareas técnicas</strong> ejecutadas (constancias de visita, relevamientos de riesgos laborales, protocolos de agua, mediciones de puesta a tierra, ruido e iluminación). 
+          ${cumpleMeta ? 'El plan operativo mensual alcanza el rango de cumplimiento previsto (meta de 25 a 30 sedes).' : `El mes registra un grado de avance del ${pctMeta}% sobre el piso objetivo de 25 sedes mensuales.`}
+        </p>
+      </div>
+
     </div>
 
-    <!-- Franja de KPIs Principales -->
-    <div class="kpis-grid">
-      <div class="kpi-box">
-        <div class="kpi-title">Sedes Visitadas</div>
-        <div class="kpi-val">${totalSedesVisitadas}</div>
-        <div style="font-size:10px;margin-top:4px;font-weight:600;padding:2px 4px;border-radius:2px;display:inline-block;${estadoMetaCls}">
-          ${cumpleMeta ? '✓ Meta Cumplida' : `Meta 25-30 (${pctMeta}%)`}
-        </div>
-      </div>
-
-      <div class="kpi-box">
-        <div class="kpi-title">Tareas Realizadas</div>
-        <div class="kpi-val">${totalTareasMes}</div>
-        <div style="font-size:10px;color:#5B6670;margin-top:4px;">
-          ${totalSedesVisitadas > 0 ? (totalTareasMes / totalSedesVisitadas).toFixed(1) : 0} tareas / sede
-        </div>
-      </div>
-
-      <div class="kpi-box">
-        <div class="kpi-title">Sedes > 1.000 m²</div>
-        <div class="kpi-val">${sedesMayor1000}</div>
-        <div style="font-size:10px;color:${sedesMayor1000ConMed === sedesMayor1000 ? '#0F4C5C' : '#A8470A'};margin-top:4px;font-weight:600;">
-          ${sedesMayor1000ConMed} con mediciones completas
-        </div>
-      </div>
-
-      <div class="kpi-box">
-        <div class="kpi-title">Organismos con Visita</div>
-        <div class="kpi-val">${Object.keys(conteoPorOrganismo).length}</div>
-        <div style="font-size:10px;color:#5B6670;margin-top:4px;">
-          Alcance provincial
-        </div>
-      </div>
+    <!-- Pie institucional Página 1 -->
+    <div class="page-footer">
+      <span>Sistema Legajo Digital HyS — IAPSER ART · Resumen Ejecutivo y Métricas Mensuales</span>
+      <span style="font-weight:600;">Página 1 de 2</span>
     </div>
+  </div>
 
-    <!-- Resumen en 2 Columnas: Tareas y Organismos -->
-    <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;margin-bottom:20px;">
-      
-      <!-- Tabla de Tareas del Mes -->
-      <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
-        <h3 style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
-          Actividades Técnicas Ejecutadas en el Mes
-        </h3>
+  <div class="page-break-divider no-print">
+    <i class="fa-solid fa-scissors" style="margin-right:6px;"></i> SALTO DE PÁGINA A4 (PÁGINA 2 A CONTINUACIÓN)
+  </div>
+
+  <!-- ==================== PÁGINA 2: NÓMINA DETALLADA Y FIRMAS OFICIALES ==================== -->
+  <div class="page-sheet">
+    <div>
+      <!-- Encabezado de Continuación -->
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #17202A;padding-bottom:8px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#0F4C5C;text-transform:uppercase;">IAPSER ART · Legajo Digital HyS</div>
+          <h2 style="font-size:14px;font-weight:700;margin:1px 0;color:#17202A;">
+            Nómina Detallada de Establecimientos Relevados (${totalSedesVisitadas} sedes)
+          </h2>
+        </div>
+        <div style="text-align:right;font-size:10.5px;color:#5B6670;">
+          <span>Período: <strong>${mesNombre.toUpperCase()} ${anio}</strong></span>
+        </div>
+      </div>
+
+      <!-- Tabla Detallada con Salto de Página Controlado -->
+      <div style="border:1px solid #D5D8D3;background:#fff;border-radius:2px;">
         <table class="report-table">
           <thead>
             <tr>
-              <th>Actividad Técnica</th>
-              <th style="text-align:center;">Cód.</th>
-              <th style="text-align:center;">Cant.</th>
-              <th style="text-align:right;">%</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filasTareasHtml}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Tabla por Organismo -->
-      <div style="border:1px solid #D5D8D3;padding:10px 12px;border-radius:2px;background:#fff;">
-        <h3 style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;border-bottom:1px solid #E3E5E1;padding-bottom:4px;">
-          Distribución por Organismo
-        </h3>
-        <table class="report-table">
-          <thead>
-            <tr>
+              <th style="width:35px;">N.º</th>
+              <th>Establecimiento / Domicilio</th>
               <th>Organismo</th>
-              <th style="text-align:center;">Sedes</th>
-              <th style="text-align:right;">%</th>
+              <th>Localidad</th>
+              <th style="text-align:right;width:60px;">m²</th>
+              <th>Tareas Realizadas</th>
+              <th style="width:70px;">Fecha</th>
             </tr>
           </thead>
           <tbody>
-            ${filasOrgHtml}
+            ${filasSedesHtml}
           </tbody>
         </table>
       </div>
 
-    </div>
-
-    <!-- Nómina Detallada de Sedes Visitadas -->
-    <div style="border:1px solid #D5D8D3;padding:12px 14px;border-radius:2px;background:#fff;">
-      <h3 style="font-size:12px;font-weight:700;text-transform:uppercase;color:#17202A;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-        <span>Nómina Detallada de Establecimientos Relevados (${totalSedesVisitadas} sedes)</span>
-        <span style="font-size:10px;font-weight:500;color:#5B6670;">Ordenado por Organismo</span>
-      </h3>
-
-      <table class="report-table">
-        <thead>
-          <tr>
-            <th style="width:35px;">N.º</th>
-            <th>Establecimiento / Domicilio</th>
-            <th>Organismo</th>
-            <th>Localidad</th>
-            <th style="text-align:right;width:60px;">m²</th>
-            <th>Tareas Realizadas</th>
-            <th style="width:65px;">Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${filasSedesHtml}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Firmas Oficiales -->
-    <div class="signatures">
-      <div class="sig-line">
-        <strong>Lic. Responsable HyS / Preventor Actuante</strong><br>
-        <span style="color:#5B6670;font-size:10px;">Colegio de Profesionales HyS de Entre Ríos</span>
-      </div>
-      <div class="sig-line">
-        <strong>Gerencia Técnica / Coordinación de Prevención</strong><br>
-        <span style="color:#5B6670;font-size:10px;">IAPSER ART</span>
+      <!-- Firmas Oficiales al pie de la nómina -->
+      <div class="signatures">
+        <div class="sig-line">
+          <strong>Lic. Responsable HyS / Preventor Actuante</strong><br>
+          <span style="color:#5B6670;font-size:9.5px;">Colegio de Profesionales HyS de Entre Ríos</span>
+        </div>
+        <div class="sig-line">
+          <strong>Gerencia Técnica / Coordinación de Prevención</strong><br>
+          <span style="color:#5B6670;font-size:9.5px;">IAPSER ART</span>
+        </div>
       </div>
     </div>
 
-    <!-- Pie institucional -->
-    <div style="margin-top:24px;border-top:1px solid #E3E5E1;padding-top:8px;font-size:9.5px;color:#5B6670;display:flex;justify-content:space-between;">
+    <!-- Pie institucional Página 2 -->
+    <div class="page-footer">
       <span>Sistema Legajo Digital HyS — Cumplimiento Ley 19.587 · Dec. 351/79 · Res. SRT 900/15, 85/12, 84/12, 886/15</span>
-      <span>Página 1 de 1</span>
+      <span style="font-weight:600;">Página 2 de 2</span>
     </div>
-
   </div>
 
   <script>
