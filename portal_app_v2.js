@@ -6732,7 +6732,9 @@ function abrirCarpetaMensualSeleccionada() {
 }
 
 function abrirCarpetaMensualParaClave(monthKey) {
-  const data = AppState.carpetasMensuales[monthKey];
+  const cleanKey = String(monthKey || '').trim();
+  const altKey = cleanKey.includes('-') ? cleanKey.replace('-', '') : (cleanKey.length === 6 ? `${cleanKey.substring(0, 4)}-${cleanKey.substring(4, 6)}` : '');
+  const data = AppState.carpetasMensuales[cleanKey] || (altKey ? AppState.carpetasMensuales[altKey] : null);
   if (data && data.url) {
     window.open(data.url, '_blank');
     return;
@@ -6741,7 +6743,7 @@ function abrirCarpetaMensualParaClave(monthKey) {
     window.open(AppState.parentMensualUrl, '_blank');
   } else {
     abrirModalCarpetasMensuales();
-    mostrarToast(`La carpeta para el mes ${monthKey} se generará automáticamente en Google Drive al subir el primer archivo.`);
+    mostrarToast(`La carpeta para el mes ${cleanKey} se generará automáticamente en Google Drive al subir el primer archivo.`);
   }
 }
 
@@ -6749,7 +6751,8 @@ function abrirCarpetaParentMensualDrive() {
   if (AppState.parentMensualUrl) {
     window.open(AppState.parentMensualUrl, '_blank');
   } else {
-    window.open('https://drive.google.com/drive/search?q=Carpetas_Mensuales', '_blank');
+    abrirModalCarpetasMensuales();
+    mostrarToast('Consultando carpetas en Google Drive...');
   }
 }
 
@@ -6764,14 +6767,28 @@ async function consultarCarpetasMensualesDrive() {
       }
       if (Array.isArray(json.carpetas)) {
         json.carpetas.forEach(c => {
-          const match = c.name.match(/^(\d{4}-\d{2})/);
-          const key = match ? match[1] : c.name;
-          AppState.carpetasMensuales[key] = {
+          const name = (c.name || '').trim();
+          let key = name;
+          let altKey = '';
+
+          const m6 = name.match(/^(\d{4})(\d{2})$/);
+          const mDash = name.match(/^(\d{4})-(\d{2})/);
+          if (m6) {
+            key = m6[1] + m6[2];
+            altKey = m6[1] + '-' + m6[2];
+          } else if (mDash) {
+            key = mDash[1] + '-' + mDash[2];
+            altKey = mDash[1] + mDash[2];
+          }
+
+          const item = {
             key: key,
-            label: c.name,
+            label: name,
             url: c.url,
             id: c.id
           };
+          AppState.carpetasMensuales[key] = item;
+          if (altKey) AppState.carpetasMensuales[altKey] = item;
         });
         guardarCarpetasMensualesLocal();
         actualizarBotonCarpetaMes();
@@ -6779,9 +6796,42 @@ async function consultarCarpetasMensualesDrive() {
       }
     }
   } catch(e) {
-    // Silencioso si no hay red
+    console.warn('Aviso al consultar carpetas mensuales en Drive:', e);
   }
 }
+
+/**
+ * Función de mantenimiento: Solicita a Apps Script consolidar carpetas duplicadas en Google Drive
+ */
+async function consolidarCarpetasDuplicadasDrive() {
+  const webhookUrl = getWebhookUrl();
+  if (!webhookUrl || webhookUrl.includes('TU_WEBHOOK_URL_AQUI')) {
+    mostrarToast('URL de webhook no configurada.');
+    return;
+  }
+  mostrarToast('Consolidando carpetas duplicadas en Google Drive... aguarde.');
+  try {
+    const res = await fetch(`${webhookUrl}?action=consolidar_carpetas_drive`);
+    const json = await res.json();
+    if (json && json.status === 'success') {
+      const stats = json.stats || {};
+      mostrarToast(`✓ Consolidación lista: ${stats.duplicadosUnificados || 0} carpetas unificadas, ${stats.archivosMovidos || 0} archivos movidos.`);
+      // Refrescar caché de carpetas locales
+      AppState.carpetasEstablecimientos = {};
+      localStorage.removeItem(STORAGE_KEYS.CARPETAS_ESTABLECIMIENTOS);
+      if (AppState.establecimientoSeleccionado) {
+        actualizarFichaLateralMaqueta(AppState.establecimientoSeleccionado);
+      }
+      return json;
+    } else {
+      mostrarToast('⚠️ Aviso al consolidar: ' + (json.message || 'Error en la respuesta'));
+    }
+  } catch(err) {
+    console.error('Error al invocar consolidación de carpetas:', err);
+    mostrarToast('⚠️ Error al contactar webhook para consolidar carpetas.');
+  }
+}
+window.consolidarCarpetasDuplicadasDrive = consolidarCarpetasDuplicadasDrive;
 
 // ==================== CONFIGURACIÓN ====================
 
@@ -7250,10 +7300,8 @@ async function abrirCarpetaEstablecimientoActual(event) {
     if (newTab) newTab.location.href = data.url;
     mostrarToast('✓ Carpeta institucional abierta en Drive.');
   } else {
-    // Si no se pudo contactar el webhook o tardó demasiado, derivar a búsqueda directa en Google Drive
-    const searchUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(folderName)}`;
-    if (newTab) newTab.location.href = searchUrl;
-    mostrarToast('Buscando carpeta en Google Drive...');
+    if (newTab) newTab.close();
+    mostrarToast('⚠️ No se pudo obtener la carpeta en Google Drive. Verificá la conexión con el Webhook de Apps Script.');
   }
 }
 window.abrirCarpetaEstablecimientoActual = abrirCarpetaEstablecimientoActual;

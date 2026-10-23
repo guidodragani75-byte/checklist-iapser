@@ -44,11 +44,50 @@ function getOrCreateRootFolder() {
 function getOrCreateSubfolder(parentFolder, name) {
   var cleanName = (name || "Sin_Nombre").toString().replace(/[\\/:*?"<>|]/g, "_").trim();
   if (!cleanName) cleanName = "General";
+  
   var folders = parentFolder.getFoldersByName(cleanName);
-  if (folders.hasNext()) {
-    return folders.next();
+  var activeFolders = [];
+  while (folders.hasNext()) {
+    var f = folders.next();
+    try {
+      if (!f.isTrashed()) {
+        activeFolders.push(f);
+      }
+    } catch(e) {
+      activeFolders.push(f);
+    }
   }
-  return parentFolder.createFolder(cleanName);
+
+  if (activeFolders.length > 0) {
+    var primary = activeFolders[0];
+    // Consolidar automáticamente si existieran carpetas duplicadas con el mismo nombre en este padre
+    if (activeFolders.length > 1) {
+      for (var i = 1; i < activeFolders.length; i++) {
+        var dup = activeFolders[i];
+        try {
+          var dupFiles = dup.getFiles();
+          while (dupFiles.hasNext()) {
+            var file = dupFiles.next();
+            try {
+              file.moveTo(primary);
+            } catch(eMove) {
+              try { file.makeCopy(file.getName(), primary); file.setTrashed(true); } catch(eC) {}
+            }
+          }
+          dup.setTrashed(true);
+        } catch(eDup) {
+          Logger.log("Aviso al consolidar carpeta duplicada (" + cleanName + "): " + eDup.toString());
+        }
+      }
+    }
+    return primary;
+  }
+
+  var newFolder = parentFolder.createFolder(cleanName);
+  try {
+    newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(eShare) {}
+  return newFolder;
 }
 
 var MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -97,26 +136,25 @@ function parsearAnioMes(fecha) {
   }
   var mesStr = (mes < 10 ? "0" : "") + mes;
   var mesNombre = MESES_NOMBRES[mes - 1] || "Mes";
+  var codigoAAAAMM = String(anio) + String(mesStr);
   return {
     anio: anio,
     mes: mes,
     mesStr: mesStr,
-    key: anio + "-" + mesStr,
-    label: anio + "-" + mesStr + " (" + mesNombre + ")"
+    key: codigoAAAAMM,
+    label: codigoAAAAMM,
+    displayLabel: codigoAAAAMM + " (" + mesNombre + ")",
+    legacyKey: anio + "-" + mesStr
   };
 }
 
 function getOrCreateMonthlyFolder(rootFolder, fecha) {
   var mInfo = parsearAnioMes(fecha);
-  var parentMensual = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
-  try {
-    parentMensual.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch(e) {}
-  
-  var monthFolder = getOrCreateSubfolder(parentMensual, mInfo.label);
+  // Estructura mensual directa bajo la raíz oficial: AAAAMM (ej: 202610)
+  var monthFolder = getOrCreateSubfolder(rootFolder, mInfo.key);
   try {
     monthFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch(e2) {}
+  } catch(e) {}
 
   return {
     folder: monthFolder,
@@ -124,8 +162,8 @@ function getOrCreateMonthlyFolder(rootFolder, fecha) {
     id: monthFolder.getId(),
     key: mInfo.key,
     label: mInfo.label,
-    parentUrl: parentMensual.getUrl(),
-    parentId: parentMensual.getId()
+    parentUrl: rootFolder.getUrl(),
+    parentId: rootFolder.getId()
   };
 }
 
@@ -429,23 +467,50 @@ function doGet(e) {
     // 3b. Obtener Listado de Carpetas Mensuales en Google Drive
     if (action === "get_carpetas_mensuales") {
       var rootF = getOrCreateRootFolder();
-      var parentM = getOrCreateSubfolder(rootF, "Carpetas_Mensuales");
-      try {
-        parentM.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      } catch(eShare) {}
-      var subs = parentM.getFolders();
       var listCarpetas = [];
-      while (subs.hasNext()) {
-        var sub = subs.next();
-        listCarpetas.push({
-          name: sub.getName(),
-          id: sub.getId(),
-          url: sub.getUrl()
-        });
+      var seenIds = {};
+
+      // 1. Carpetas directas AAAAMM en la raíz (ej: 202610, 202410)
+      var rootSubs = rootF.getFolders();
+      while (rootSubs.hasNext()) {
+        var sub = rootSubs.next();
+        try {
+          if (!sub.isTrashed()) {
+            var subName = sub.getName().trim();
+            if (/^\d{6}$/.test(subName) || /^\d{4}-\d{2}/.test(subName)) {
+              seenIds[sub.getId()] = true;
+              listCarpetas.push({
+                name: subName,
+                id: sub.getId(),
+                url: sub.getUrl()
+              });
+            }
+          }
+        } catch(eSub) {}
       }
+
+      // 2. Compatibilidad con carpetas preexistentes en 'Carpetas_Mensuales'
+      var legacyParent = rootF.getFoldersByName("Carpetas_Mensuales");
+      if (legacyParent.hasNext()) {
+        var pM = legacyParent.next();
+        var legSubs = pM.getFolders();
+        while (legSubs.hasNext()) {
+          var legSub = legSubs.next();
+          try {
+            if (!legSub.isTrashed() && !seenIds[legSub.getId()]) {
+              listCarpetas.push({
+                name: legSub.getName().trim(),
+                id: legSub.getId(),
+                url: legSub.getUrl()
+              });
+            }
+          } catch(eLeg) {}
+        }
+      }
+
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "success", 
-        parentMensualUrl: parentM.getUrl(), 
+        parentMensualUrl: rootF.getUrl(), 
         carpetas: listCarpetas 
       })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -474,6 +539,17 @@ function doGet(e) {
         folderName: estabFolderNameGet,
         orgFolderUrl: orgFolderGet.getUrl(),
         orgFolderName: orgNomGet
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3d. Consolidar carpetas duplicadas en Google Drive (Mantenimiento)
+    if (action === "consolidar_carpetas_drive") {
+      var rootConsol = getOrCreateRootFolder();
+      var statsConsol = consolidarCarpetasDuplicadasDrive(rootConsol);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Consolidación de carpetas duplicadas completada exitosamente.",
+        stats: statsConsol
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -930,6 +1006,17 @@ function doPost(e) {
         folderName: estabFolderNamePost,
         orgFolderUrl: orgFolderPost.getUrl(),
         orgFolderName: orgNomPost
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CASO 1.10: CONSOLIDAR CARPETAS DUPLICADAS EN GOOGLE DRIVE
+    if (data.tipoOperacion === "consolidar_carpetas_drive") {
+      var rootConsolPost = getOrCreateRootFolder();
+      var statsPost = consolidarCarpetasDuplicadasDrive(rootConsolPost);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Consolidación de carpetas duplicadas completada exitosamente.",
+        stats: statsPost
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1458,4 +1545,95 @@ function guardarSuperficieSede(ss, id, nroEstab, nombreEstab, m2) {
     return { status: "success", row: targetRow, m2: m2 };
   }
   return { status: "not_found" };
+}
+
+// ========================================================
+// MANTENIMIENTO: CONSOLIDAR CARPETAS DUPLICADAS EN DRIVE
+// ========================================================
+
+function consolidarCarpetasDuplicadasDrive(rootFolder) {
+  if (!rootFolder) rootFolder = getOrCreateRootFolder();
+  var stats = {
+    organismosAnalizados: 0,
+    carpetasRevisadas: 0,
+    duplicadosUnificados: 0,
+    archivosMovidos: 0,
+    carpetasPapelera: 0
+  };
+
+  function consolidarEnContenedor(parentF) {
+    if (!parentF) return;
+    var subIter = parentF.getFolders();
+    var carpetasPorNombre = {};
+
+    while (subIter.hasNext()) {
+      var f = subIter.next();
+      try {
+        if (!f.isTrashed()) {
+          var fNom = f.getName().trim();
+          if (!carpetasPorNombre[fNom]) {
+            carpetasPorNombre[fNom] = [];
+          }
+          carpetasPorNombre[fNom].push(f);
+          stats.carpetasRevisadas++;
+        }
+      } catch(e) {}
+    }
+
+    for (var nom in carpetasPorNombre) {
+      var lista = carpetasPorNombre[nom];
+      if (lista.length > 1) {
+        var targetF = lista[0]; // La primera activa es la principal
+        for (var i = 1; i < lista.length; i++) {
+          var dupF = lista[i];
+          try {
+            var files = dupF.getFiles();
+            while (files.hasNext()) {
+              var fl = files.next();
+              try {
+                fl.moveTo(targetF);
+                stats.archivosMovidos++;
+              } catch(eMove) {
+                try {
+                  fl.makeCopy(fl.getName(), targetF);
+                  fl.setTrashed(true);
+                  stats.archivosMovidos++;
+                } catch(eC) {}
+              }
+            }
+            // Enviar la carpeta duplicada a papelera una vez vacía
+            dupF.setTrashed(true);
+            stats.carpetasPapelera++;
+            stats.duplicadosUnificados++;
+          } catch(eDup) {
+            Logger.log("Error al consolidar carpeta duplicada " + nom + ": " + eDup.toString());
+          }
+        }
+      }
+    }
+  }
+
+  // Recorrer todas las subcarpetas del root (organismos y meses)
+  var rootSubs = rootFolder.getFolders();
+  while (rootSubs.hasNext()) {
+    var orgOrMonth = rootSubs.next();
+    try {
+      if (!orgOrMonth.isTrashed()) {
+        stats.organismosAnalizados++;
+        consolidarEnContenedor(orgOrMonth);
+
+        var deepSubs = orgOrMonth.getFolders();
+        while (deepSubs.hasNext()) {
+          var deep = deepSubs.next();
+          try {
+            if (!deep.isTrashed()) {
+              consolidarEnContenedor(deep);
+            }
+          } catch(eD) {}
+        }
+      }
+    } catch(eM) {}
+  }
+
+  return stats;
 }

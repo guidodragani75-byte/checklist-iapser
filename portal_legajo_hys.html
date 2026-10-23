@@ -1326,8 +1326,11 @@
             <div id="side-detected-preview-nombres" class="m" style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5"></div>
           </div>
 
-          <div style="font-size:11px;color:var(--text-muted);margin-top:22px;">
-            Gestión oficial integrada con Google Drive y Sheets corporativo.
+          <div style="font-size:11px;color:var(--text-muted);margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>Gestión oficial integrada con Google Drive.</span>
+            <button type="button" onclick="consolidarCarpetasDuplicadasDrive()" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;font-size:11px;padding:2px 4px;font-family:inherit;display:inline-flex;align-items:center;gap:4px;" title="Unifica carpetas homónimas y traslada archivos a la carpeta principal en Google Drive">
+              <i class="fa-solid fa-broom"></i> Consolidar duplicados
+            </button>
           </div>
 
         </aside>
