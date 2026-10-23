@@ -754,6 +754,14 @@ function normalizarTipoActividad(str) {
   if (s === 'capacitaciones' || s === 'capacitacion' || s.includes('capacita')) {
     return 'capacitaciones';
   }
+  // Carga de Fuego y Extintores
+  if (s === 'carga_fuego' || s.includes('fuego') || s.includes('extintor') || s.includes('incendio')) {
+    return 'carga_fuego';
+  }
+  // Simulacro de Evacuación
+  if (s === 'simulacro' || s.includes('evacuacion') || s.includes('simulacro')) {
+    return 'simulacro';
+  }
 
   // Coincidencia con clave directa o catálogo
   if (CATALOGO_ACTIVIDADES[s]) return s;
@@ -3220,23 +3228,47 @@ function abrirModalRegistrarActividad(actividadId) {
     return;
   }
 
-  currentActividadModal = actividadId;
+  currentActividadModal = actividadId || 'constancia_visita';
   archivoSeleccionadoBase64 = null;
   archivoSeleccionadoMeta = null;
-
-  const cat = CATALOGO_ACTIVIDADES[actividadId] || {
-    id: actividadId,
-    nombre: actividadId,
-    icono: '📌',
-    subtitulo: 'Actividad personalizada'
-  };
 
   const modal = document.getElementById('modal-registro-actividad');
   if (!modal) return;
 
-  document.getElementById('modal-act-titulo').textContent = `Registrar ${cat.nombre}`;
-  document.getElementById('modal-act-subtitulo').textContent = `${est.nombreEstablecimiento} (N° ${est.nroEstab || 'S/N'})`;
-  document.getElementById('modal-act-icono').innerHTML = cat.icono;
+  // Poblar desplegable de formularios / actividades técnicas
+  const selectTipo = document.getElementById('modal-act-tipo-select');
+  if (selectTipo) {
+    selectTipo.innerHTML = generarOpcionesActividades(currentActividadModal);
+    selectTipo.value = currentActividadModal;
+  }
+
+  // Ocultar etiquetas y badges de detección previa
+  const tagTipoOcr = document.getElementById('act-tipo-detectado-tag');
+  if (tagTipoOcr) tagTipoOcr.style.display = 'none';
+
+  const badgeTipoOcr = document.getElementById('act-tipo-detectado-badge');
+  if (badgeTipoOcr) badgeTipoOcr.style.display = 'none';
+
+  const badgeFecha = document.getElementById('act-fecha-detectada-badge');
+  if (badgeFecha) {
+    badgeFecha.classList.add('hidden');
+    badgeFecha.style.display = 'none';
+  }
+
+  const badgeOcr = document.getElementById('act-ocr-loading-badge');
+  if (badgeOcr) {
+    badgeOcr.classList.add('hidden');
+    badgeOcr.style.display = 'none';
+  }
+
+  const cat = CATALOGO_ACTIVIDADES[currentActividadModal] || {
+    id: currentActividadModal,
+    nombre: currentActividadModal,
+    icono: '📌',
+    subtitulo: 'Actividad personalizada'
+  };
+
+  actualizarInfoEncabezadoModalActividad(currentActividadModal, est);
 
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('act-fecha').value = today;
@@ -3249,6 +3281,72 @@ function abrirModalRegistrarActividad(actividadId) {
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
 }
+window.abrirModalRegistrarActividad = abrirModalRegistrarActividad;
+
+function actualizarInfoEncabezadoModalActividad(actividadId, est) {
+  const cat = CATALOGO_ACTIVIDADES[actividadId] || {
+    id: actividadId,
+    nombre: actividadId,
+    icono: '📌',
+    subtitulo: 'Actividad técnica'
+  };
+
+  const elTit = document.getElementById('modal-act-titulo');
+  const elSub = document.getElementById('modal-act-subtitulo');
+  const elIco = document.getElementById('modal-act-icono');
+
+  if (elTit) elTit.textContent = `Registrar ${cat.nombre}`;
+  if (elSub && est) elSub.textContent = `${est.nombreEstablecimiento} (N° ${est.nroEstab || 'S/N'})`;
+  if (elIco) elIco.innerHTML = cat.icono;
+}
+window.actualizarInfoEncabezadoModalActividad = actualizarInfoEncabezadoModalActividad;
+
+function cambiarActividadEnModal(nuevoTipo, esPorOcr = false) {
+  if (!nuevoTipo) return;
+  const est = AppState.establecimientoSeleccionado;
+  currentActividadModal = nuevoTipo;
+
+  const selectTipo = document.getElementById('modal-act-tipo-select');
+  if (selectTipo && selectTipo.value !== nuevoTipo) {
+    selectTipo.value = nuevoTipo;
+  }
+
+  const cat = CATALOGO_ACTIVIDADES[nuevoTipo] || {
+    id: nuevoTipo,
+    nombre: nuevoTipo,
+    icono: '📌',
+    subtitulo: 'Actividad técnica'
+  };
+
+  actualizarInfoEncabezadoModalActividad(nuevoTipo, est);
+  configurarCamposDinamicosModal(cat, est);
+  actualizarPreviewNombreArchivo();
+
+  const tagTipoOcr = document.getElementById('act-tipo-detectado-tag');
+  const badgeTipoOcr = document.getElementById('act-tipo-detectado-badge');
+  const txtTipoOcr = document.getElementById('act-tipo-detectado-txt');
+
+  if (esPorOcr) {
+    if (tagTipoOcr) tagTipoOcr.style.display = 'inline-flex';
+    if (badgeTipoOcr && txtTipoOcr) {
+      txtTipoOcr.innerHTML = `✨ Formulario detectado por <strong>OCR</strong>: <strong>${escapeHtml(cat.nombre)}</strong>. Si deseas modificarlo, selecciónalo en este desplegable.`;
+      badgeTipoOcr.style.display = 'block';
+      badgeTipoOcr.style.background = '#FAF5FF';
+      badgeTipoOcr.style.borderColor = '#D8B4FE';
+      badgeTipoOcr.style.color = '#6B21A8';
+    }
+  } else {
+    if (tagTipoOcr) tagTipoOcr.style.display = 'none';
+    if (badgeTipoOcr && txtTipoOcr) {
+      txtTipoOcr.innerHTML = `✏️ Formulario seleccionado en desplegable: <strong>${escapeHtml(cat.nombre)}</strong>.`;
+      badgeTipoOcr.style.display = 'block';
+      badgeTipoOcr.style.background = '#EFF6FF';
+      badgeTipoOcr.style.borderColor = '#BFDBFE';
+      badgeTipoOcr.style.color = '#1E40AF';
+    }
+  }
+}
+window.cambiarActividadEnModal = cambiarActividadEnModal;
 
 function configurarCamposDinamicosModal(cat, est) {
   const container = document.getElementById('campos-dinamicos-actividad');
@@ -3405,12 +3503,76 @@ function configurarCamposDinamicosModal(cat, est) {
           </select>
         </div>
       </div>
+    `;  } else if (cat.id === 'confeccion_rgrl') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Estado del RGRL (Dec. 351/79)</label>
+          <select id="campo-rgrl-estado" class="input-select text-xs">
+            <option value="Completo sin desvíos">Completo sin desvíos</option>
+            <option value="Con Plan de Adecuaciones" selected>Con Plan de Adecuaciones / Mejoras</option>
+            <option value="En relevamiento">En relevamiento / Seguimiento</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad de Puntos Relevados</label>
+          <input type="number" id="campo-rgrl-puntos" class="input-text text-xs" placeholder="Ej: 15" min="0" oninput="actualizarPreviewNombreArchivo()">
+        </div>
+      </div>
+    `;
+  } else if (cat.id === 'confeccion_rar') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Resultado de la Nómina RAR</label>
+          <select id="campo-rar-estado" class="input-select text-xs">
+            <option value="Sin Expuestos">Sin trabajadores expuestos a agentes de riesgo</option>
+            <option value="Con Expuestos">Con personal expuesto a agentes declarados</option>
+            <option value="En Relevamiento">En relevamiento médico-laboral</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad de Expuestos Declarados</label>
+          <input type="number" id="campo-rar-expuestos" class="input-text text-xs" placeholder="Ej: 0" min="0" oninput="actualizarPreviewNombreArchivo()">
+        </div>
+      </div>
+    `;
+  } else if (cat.id === 'carga_fuego') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Sector o Área Calculada</label>
+          <input type="text" id="campo-fuego-sector" class="input-text text-xs" placeholder="Ej: Depósito Central / Archivo" oninput="actualizarPreviewNombreArchivo()">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Carga Estimada (Mcal/m²)</label>
+          <input type="text" id="campo-fuego-carga" class="input-text text-xs" placeholder="Ej: 28.5 Mcal/m²">
+        </div>
+      </div>
+    `;
+  } else if (cat.id === 'simulacro') {
+    container.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Hipótesis de Emergencia</label>
+          <select id="campo-simulacro-tipo" class="input-select text-xs" onchange="actualizarPreviewNombreArchivo()">
+            <option value="Incendio">Incendio y Evacuación</option>
+            <option value="Sismo">Sismo / Colapso</option>
+            <option value="Derrame Químico">Derrame Químico</option>
+            <option value="General">Evacuación General</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Tiempo de Evacuación</label>
+          <input type="text" id="campo-simulacro-tiempo" class="input-text text-xs" placeholder="Ej: 3 min 45 seg">
+        </div>
+      </div>
     `;
   } else {
     container.innerHTML = `
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">Detalle o Descripción de la Actividad</label>
-        <input type="text" id="campo-detalle-generico" class="input-text text-xs" placeholder="Ej: Informe técnico / Memoria de cálculo / Conclusiones" oninput="actualizarPreviewNombreArchivo()">
+        <input type="text" id="campo-detalle-generico" class="input-text text-xs" placeholder="Ej: Memoria descriptiva / Protocolo especial" oninput="actualizarPreviewNombreArchivo()">
       </div>
     `;
   }
@@ -3495,6 +3657,18 @@ function obtenerDetalleActualParaCodificacion() {
   const mPts = document.getElementById('campo-med-puntos');
   if (mPts && mPts.value.trim()) return mPts.value.trim();
 
+  const rgrlPts = document.getElementById('campo-rgrl-puntos');
+  if (rgrlPts && rgrlPts.value.trim()) return 'Puntos_' + rgrlPts.value.trim();
+
+  const rarExp = document.getElementById('campo-rar-expuestos');
+  if (rarExp && rarExp.value.trim()) return 'Expuestos_' + rarExp.value.trim();
+
+  const fuegoSec = document.getElementById('campo-fuego-sector');
+  if (fuegoSec && fuegoSec.value.trim()) return sanitizeText(fuegoSec.value.trim());
+
+  const simTipo = document.getElementById('campo-simulacro-tipo');
+  if (simTipo && simTipo.value.trim()) return sanitizeText(simTipo.value.trim());
+
   const gen = document.getElementById('campo-detalle-generico');
   if (gen && gen.value.trim()) return gen.value.trim();
 
@@ -3511,7 +3685,7 @@ function actualizarPreviewNombreArchivo() {
 
   const codigo = generarCodigoArchivo(est.organismo, est.nroEstab, currentActividadModal, fechaVal, detalleVal, ext);
 
-  const prevFileName = document.getElementById('preview-filename');
+  const prevFileName = document.getElementById('preview-filename') || document.getElementById('modal-act-preview-nombre');
   const prevFolder = document.getElementById('preview-folder');
 
   if (prevFileName) prevFileName.textContent = codigo;
@@ -3530,16 +3704,35 @@ function resetUploaderUI() {
   const btnSubmit = document.getElementById('btn-guardar-actividad');
   const badgeFecha = document.getElementById('act-fecha-detectada-badge');
   const badgeOcr = document.getElementById('act-ocr-loading-badge');
+  const badgeTipoOcr = document.getElementById('act-tipo-detectado-badge');
+  const tagTipoOcr = document.getElementById('act-tipo-detectado-tag');
 
   if (fileInput) fileInput.value = '';
-  if (infoBox) infoBox.classList.add('hidden');
-  if (progressBox) progressBox.classList.add('hidden');
-  if (dropzone) dropzone.classList.remove('hidden');
-  if (badgeFecha) badgeFecha.classList.add('hidden');
-  if (badgeOcr) badgeOcr.classList.add('hidden');
+  if (infoBox) {
+    infoBox.classList.add('hidden');
+    infoBox.style.display = 'none';
+  }
+  if (progressBox) {
+    progressBox.classList.add('hidden');
+    progressBox.style.display = 'none';
+  }
+  if (dropzone) {
+    dropzone.classList.remove('hidden');
+    dropzone.style.display = 'block';
+  }
+  if (badgeFecha) {
+    badgeFecha.classList.add('hidden');
+    badgeFecha.style.display = 'none';
+  }
+  if (badgeOcr) {
+    badgeOcr.classList.add('hidden');
+    badgeOcr.style.display = 'none';
+  }
+  if (badgeTipoOcr) badgeTipoOcr.style.display = 'none';
+  if (tagTipoOcr) tagTipoOcr.style.display = 'none';
   if (btnSubmit) {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>Guardar y Subir a Google Drive';
+    btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i>Guardar Actividad';
   }
 }
 
@@ -4042,17 +4235,23 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
   const inputFecha = document.getElementById('act-fecha');
 
   let fechaEncontrada = null;
+  let tipoEncontrado = null;
   let origenOcr = '';
+  let fullExtractedText = '';
 
   try {
     const isPdf = (file.type === 'application/pdf') || (file.name && file.name.toLowerCase().endsWith('.pdf'));
     const isImage = (file.type && file.type.startsWith('image/')) || (file.name && /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name));
 
+    if (loadingBadge) {
+      loadingBadge.classList.remove('hidden');
+      loadingBadge.style.display = 'flex';
+    }
+
     // A. Si es PDF, intentar lectura de texto digital con PDF.js
     if (isPdf && arrayBuffer && window.pdfjsLib) {
       try {
-        if (loadingBadge) loadingBadge.classList.remove('hidden');
-        if (loadingTxt) loadingTxt.textContent = 'Analizando texto en el interior del PDF...';
+        if (loadingTxt) loadingTxt.textContent = 'Analizando interior del PDF (texto digital)...';
 
         const typedArray = new Uint8Array(arrayBuffer);
         const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
@@ -4066,17 +4265,23 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
           extractedText += pText + ' ';
         }
 
-        if (extractedText.trim().length > 30) {
+        fullExtractedText += ' ' + extractedText;
+
+        if (extractedText.trim().length > 25) {
           const f = buscarFechasEnTexto(extractedText);
           if (f) {
             fechaEncontrada = f;
             origenOcr = 'interior del PDF (texto digital)';
           }
+          const t = detectarTipoActividadDeTexto(extractedText);
+          if (t) {
+            tipoEncontrado = t;
+          }
         }
 
-        // B. Si el PDF no tiene capa de texto digital (es un escaneo), ejecutar OCR sobre la Página 1
-        if (!fechaEncontrada && window.Tesseract) {
-          if (loadingTxt) loadingTxt.textContent = 'Escaneo detectado: Ejecutando OCR en el interior del PDF...';
+        // B. Si el PDF no tiene texto suficiente o falta fecha/tipo, ejecutar OCR sobre la Página 1
+        if ((!fechaEncontrada || !tipoEncontrado || extractedText.trim().length < 25) && window.Tesseract) {
+          if (loadingTxt) loadingTxt.textContent = 'Escaneo detectado: Ejecutando OCR en página 1...';
 
           const page1 = await pdf.getPage(1);
           const viewport = page1.getViewport({ scale: 2.0 });
@@ -4096,10 +4301,17 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
           });
 
           if (ocrResult && ocrResult.data && ocrResult.data.text) {
-            const fOcr = buscarFechasEnTexto(ocrResult.data.text);
-            if (fOcr) {
-              fechaEncontrada = fOcr;
-              origenOcr = 'OCR en el interior del documento escaneado';
+            fullExtractedText += ' ' + ocrResult.data.text;
+            if (!fechaEncontrada) {
+              const fOcr = buscarFechasEnTexto(ocrResult.data.text);
+              if (fOcr) {
+                fechaEncontrada = fOcr;
+                origenOcr = 'OCR en escaneo de PDF';
+              }
+            }
+            if (!tipoEncontrado) {
+              const tOcr = detectarTipoActividadDeTexto(ocrResult.data.text);
+              if (tOcr) tipoEncontrado = tOcr;
             }
           }
         }
@@ -4109,8 +4321,7 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
     }
 
     // C. Si es una imagen directa (JPG, PNG), ejecutar OCR con Tesseract.js
-    if (!fechaEncontrada && isImage && window.Tesseract) {
-      if (loadingBadge) loadingBadge.classList.remove('hidden');
+    if (isImage && window.Tesseract) {
       if (loadingTxt) loadingTxt.textContent = 'Ejecutando OCR sobre la imagen...';
 
       const ocrResult = await Tesseract.recognize(file, 'spa', {
@@ -4122,20 +4333,37 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
       });
 
       if (ocrResult && ocrResult.data && ocrResult.data.text) {
+        fullExtractedText += ' ' + ocrResult.data.text;
         const fImg = buscarFechasEnTexto(ocrResult.data.text);
         if (fImg) {
           fechaEncontrada = fImg;
-          origenOcr = 'OCR en el interior de la imagen';
+          origenOcr = 'OCR en imagen';
         }
+        const tImg = detectarTipoActividadDeTexto(ocrResult.data.text);
+        if (tImg) tipoEncontrado = tImg;
       }
+    }
+
+    // D. Si aún no encontramos el tipo en el texto interior, evaluar nombre del archivo
+    if (!tipoEncontrado) {
+      tipoEncontrado = detectarTipoActividadDeTexto(file.name);
     }
   } catch (errGlobal) {
     console.warn('Aviso en proceso OCR:', errGlobal);
   } finally {
-    if (loadingBadge) loadingBadge.classList.add('hidden');
+    if (loadingBadge) {
+      loadingBadge.classList.add('hidden');
+      loadingBadge.style.display = 'none';
+    }
   }
 
-  // Si encontramos la fecha en el interior del documento, actualizar UI
+  // 1. Si identificamos el formulario por OCR, actualizar desplegable y UI
+  if (tipoEncontrado) {
+    cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
+    mostrarToast(`✨ Formulario detectado por OCR: ${tipoEncontrado.nombre}`);
+  }
+
+  // 2. Si encontramos la fecha en el interior del documento, actualizar UI
   if (fechaEncontrada && inputFecha) {
     inputFecha.value = fechaEncontrada;
     actualizarPreviewNombreArchivo();
@@ -4144,6 +4372,7 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
       const partes = fechaEncontrada.split('-');
       const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
       badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
+      badge.style.display = 'flex';
       badgeTxt.innerHTML = `✨ Fecha detectada por <strong>OCR</strong> (${origenOcr}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
       badge.classList.remove('hidden');
     }
@@ -4415,63 +4644,80 @@ function detectarTipoActividadDeTexto(texto) {
   const t = texto.toLowerCase();
 
   // 1. Constancia de visita (prioridad alta para formularios de inspección y visita a sedes)
-  if (t.includes('constancia de visita') || t.includes('visita - seguridad e higiene') || t.includes('visita seguridad e higiene') || (t.includes('visita') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado'))) || t.includes('formulario de visita')) {
-    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)' };
+  if (t.includes('constancia de visita') || t.includes('visita - seguridad e higiene') || t.includes('visita seguridad e higiene') || (t.includes('visita') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado'))) || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita'))) {
+    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' };
   }
-  // 2. RAR (Relevamiento de Agentes de Riesgo - Prioridad antes de RGRL para no confundir por Res. 463)
+  // 2. RAR (Relevamiento de Agentes de Riesgo)
   if (/\b(?:confeccion_)?rar\b/i.test(texto) ||
       t.includes('relevamiento de agentes de riesgo') ||
       t.includes('agentes de riesgo') ||
       t.includes('nómina de expuestos') ||
       t.includes('nomina de expuestos') ||
       t.includes('planilla de expuestos') ||
+      t.includes('personal expuesto') ||
       t.includes('formulario rar') ||
       t.includes('relevamiento rar')) {
-    return { id: 'confeccion_rar', nombre: 'Confección de RAR (Nómina de expuestos)' };
+    return { id: 'confeccion_rar', nombre: 'Confección de RAR', icono: '👥', codigo: 'RAR' };
   }
   // 3. RGRL (Relevamiento General de Riesgos Laborales)
   if (/\b(?:confeccion_)?rgrl\b/i.test(texto) ||
       t.includes('relevamiento general de riesgos') ||
       t.includes('relevamiento general') ||
       (t.includes('decreto 351') && t.includes('anexo i')) ||
-      (t.includes('463') && (t.includes('general') || t.includes('anexo i')))) {
-    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)' };
+      (t.includes('463') && (t.includes('general') || t.includes('anexo i'))) ||
+      t.includes('formulario rgrl')) {
+    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL', icono: '📋', codigo: 'RGRL' };
   }
-  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo
-  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo')) || t.includes('analisis de agua')) {
-    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo de Laboratorio)' };
+  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo de Laboratorio
+  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('aerobios mesófilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo')) || t.includes('analisis de agua') || t.includes('análisis de agua') || t.includes('bromatolog') || t.includes('bromatológ')) {
+    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo)', icono: '🔬', codigo: 'AGUA_PROTOCOLO' };
   }
-  // 5. Muestra de agua
-  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión'))) {
-    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)' };
+  // 5. Muestra de agua (Toma in situ)
+  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión') || t.includes('remito de muestra'))) {
+    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)', icono: '💧', codigo: 'AGUA_TOMA' };
   }
-  // 6. Puesta a tierra
-  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas')) {
-    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT - Res. 900/15)' };
+  // 6. Puesta a tierra (PAT)
+  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas') || t.includes('resistencia de puesta a tierra') || /\bpat\b/i.test(texto)) {
+    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT)', icono: '⚡', codigo: 'PAT' };
   }
-  // 7. Ruido
-  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || (t.includes('ruido') && t.includes('protocolo'))) {
-    return { id: 'medicion_ruido', nombre: 'Medición de Ruido (Res. 85/12)' };
+  // 7. Ruido (Res. 85/12)
+  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || (t.includes('ruido') && (t.includes('protocolo') || t.includes('medicion') || t.includes('medición')))) {
+    return { id: 'medicion_ruido', nombre: 'Medición de Ruido', icono: '🔊', codigo: 'RUIDO' };
   }
-  // 8. Iluminación
-  if (t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || (t.includes('iluminaci') && t.includes('protocolo'))) {
-    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación (Res. 84/12)' };
+  // 8. Iluminación (Res. 84/12)
+  if (t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || ((t.includes('iluminaci') || t.includes('iluminación')) && (t.includes('protocolo') || t.includes('medicion') || t.includes('medición')))) {
+    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación', icono: '💡', codigo: 'ILUM' };
   }
-  // 9. Ergonomía
-  if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos')) {
-    return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT' };
+  // 9. Ergonomía (Res. 886/15)
+  if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos') || t.includes('trastornos musculoesqueléticos')) {
+    return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT', icono: '🪑', codigo: 'RES886' };
   }
-  // 10. Capacitaciones
-  if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento')) {
-    return { id: 'capacitaciones', nombre: 'Capacitaciones' };
+  // 10. Capacitaciones HyS
+  if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento preventivo') || t.includes('registro de capacitacion') || t.includes('registro de capacitación')) {
+    return { id: 'capacitaciones', nombre: 'Capacitaciones HyS', icono: '🎓', codigo: 'CAPACITACION' };
   }
-  // 11. Informe técnico
-  if (t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos')) {
-    return { id: 'informe_tecnico', nombre: 'Informe Técnico' };
+  // 11. Carga de Fuego
+  if (t.includes('carga de fuego') || t.includes('potencial extintor') || t.includes('carga termica') || t.includes('carga térmica') || t.includes('poder calorifico') || t.includes('poder calorífico')) {
+    return { id: 'carga_fuego', nombre: 'Evaluación de Carga de Fuego', icono: '🔥', codigo: 'CARGA_FUEGO' };
+  }
+  // 12. Simulacro de Evacuación
+  if (t.includes('simulacro') || t.includes('rol de evacuacion') || t.includes('rol de evacuación') || t.includes('plan de evacuacion') || t.includes('plan de evacuación') || t.includes('tiempo de evacuacion') || t.includes('tiempo de evacuación')) {
+    return { id: 'simulacro', nombre: 'Simulacro de Evacuación', icono: '🚨', codigo: 'SIMULACRO' };
+  }
+  // 13. Informe técnico
+  if (t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('informe pericial')) {
+    return { id: 'informe_tecnico', nombre: 'Informe Técnico', icono: '📄', codigo: 'INFORME' };
   }
 
   return null;
 }
+window.detectarTipoActividadDeTexto = detectarTipoActividadDeTexto;
+
+function determinarTipoDocumentoTexto(texto) {
+  const detectado = detectarTipoActividadDeTexto(texto);
+  return detectado ? detectado.id : 'informe_tecnico';
+}
+window.determinarTipoDocumentoTexto = determinarTipoDocumentoTexto;
 
 // ==================== SUBIDA RÁPIDA POR LOTE CON OCR ====================
 
@@ -6949,17 +7195,20 @@ window.actualizarFichaLateralMaqueta = actualizarFichaLateralMaqueta;
  */
 function actualizarKPIsPlanMaqueta() {
   const allEsts = Object.values(AppState.establecimientos);
-  const totalSedes = allEsts.length || 452;
+  const totalSedesUniverso = allEsts.length || 452;
+  const metaSedesAcordadas = PLAN_HYS_CONFIG.META_SEDES_ANUAL || 370;
+  const metaVisitasAnual = PLAN_HYS_CONFIG.META_VISITAS_ANUAL || 1000;
 
   const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
   const mesFiltro = AppState.filtroMes || 'todos';
 
   let sedesVisitadas = 0;
+  let totalVisitasEjecutadas = 0;
   let sedesSup1000Total = 0;
   let sedesSup1000ConMed = 0;
   let sedesSinSup = 0;
 
-  // Determinar mes a evaluar en Card 2
+  // Determinar mes a evaluar en Card 3 (Cadencia mensual)
   const ahora = new Date();
   let mesEvaluadoNum = (ahora.getMonth() + 1);
   let labelMesEvaluado = MESES_NOMBRES[mesEvaluadoNum - 1] || 'Mes actual';
@@ -6989,7 +7238,7 @@ function actualizarKPIsPlanMaqueta() {
     }
   }
 
-  let visitasMesEvaluado = 0;
+  let sedesMesEvaluado = 0;
 
   allEsts.forEach(est => {
     const acts = obtenerActividadesDeSede(est);
@@ -7003,13 +7252,15 @@ function actualizarKPIsPlanMaqueta() {
     const hasActs = actsAnio.length > 0 || (anioFiltro === 'todos' ? !!est.data : (est.data && (!est.fecha || extraerAnioDeFecha(est.fecha) === anioFiltro)));
     if (hasActs) sedesVisitadas++;
 
-    // Visitas en el mes evaluado (mes y año estricto)
+    totalVisitasEjecutadas += actsAnio.length;
+
+    // Sedes intervenidas en el mes evaluado (mes y año estricto)
     const visitsInMonth = actsAnio.filter(a => {
       if (!a || !a.fechaActividad) return false;
       const mInfo = parsearAnioMesCliente(a.fechaActividad);
       return mInfo && mInfo.mes === mesEvaluadoNum;
     });
-    visitasMesEvaluado += visitsInMonth.length;
+    if (visitsInMonth.length > 0) sedesMesEvaluado++;
 
     // Superficie
     const supNum = Number(est.superficie);
@@ -7018,40 +7269,85 @@ function actualizarKPIsPlanMaqueta() {
     } else if (supNum >= 1000) {
       sedesSup1000Total++;
       const actsTipos = new Set(actsAnio.map(a => normalizarTipoActividad(a.tipoActividad)));
-      if (actsTipos.has('medicion_pat') && actsTipos.has('medicion_ruido') && actsTipos.has('medicion_iluminacion')) {
+      if ((actsTipos.has('medicion_pat') && actsTipos.has('medicion_ruido') && actsTipos.has('medicion_iluminacion')) || actsTipos.has('carga_fuego')) {
         sedesSup1000ConMed++;
       }
     }
   });
 
-  // Si no hay datos registrados aún, usamos las cifras realistas de la maqueta
+  // Si no hay datos cargados aún, usar cifras de referencia para la maqueta
   const displayVisitadas = sedesVisitadas > 0 ? sedesVisitadas : 214;
-  const pctCobertura = Math.min(100, Math.round((displayVisitadas / totalSedes) * 100));
+  const displayTotalVisitas = totalVisitasEjecutadas > 0 ? totalVisitasEjecutadas : 580;
+  const pctCobertura = ((displayVisitadas / metaSedesAcordadas) * 100).toFixed(1);
+  const residualSedes = Math.max(0, metaSedesAcordadas - displayVisitadas);
 
-  const elCobTxt = document.getElementById('kpi-cobertura-txt');
-  if (elCobTxt) elCobTxt.innerHTML = `${displayVisitadas} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${totalSedes} sedes</span>`;
+  const pctVisitas = ((displayTotalVisitas / metaVisitasAnual) * 100).toFixed(1);
+  const residualVisitas = Math.max(0, metaVisitasAnual - displayTotalVisitas);
+  const promedioVisitas = displayVisitadas > 0 ? (displayTotalVisitas / displayVisitadas).toFixed(1) : '0.0';
+
+  // 1. CARD 1: SEDES OBJETIVO (META 370)
+  const elCobNum = document.getElementById('kpi-cobertura-num');
+  if (elCobNum) elCobNum.textContent = displayVisitadas;
+  const elCobPct = document.getElementById('kpi-cobertura-pct');
+  if (elCobPct) elCobPct.textContent = `${pctCobertura}%`;
   const elCobBar = document.getElementById('kpi-cobertura-bar');
-  if (elCobBar) elCobBar.style.width = `${pctCobertura}%`;
+  if (elCobBar) elCobBar.style.width = `${Math.min(100, pctCobertura)}%`;
+  const elCobRes = document.getElementById('kpi-cobertura-residual');
+  if (elCobRes) elCobRes.textContent = `${residualSedes} sedes`;
+  const elCobTxt = document.getElementById('kpi-cobertura-txt');
+  if (elCobTxt) elCobTxt.innerHTML = `${displayVisitadas} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${metaSedesAcordadas} acordadas</span>`;
 
-  // Visitas del mes evaluado
-  const displayVisMes = visitasMesEvaluado > 0 ? visitasMesEvaluado : 19;
+  // 2. CARD 2: STOCK VISITAS (META 1.000)
+  const elVisNum = document.getElementById('kpi-visitas-stock-num');
+  if (elVisNum) elVisNum.textContent = displayTotalVisitas;
+  const elVisPct = document.getElementById('kpi-visitas-stock-pct');
+  if (elVisPct) elVisPct.textContent = `${pctVisitas}%`;
+  const elVisBar = document.getElementById('kpi-visitas-stock-bar');
+  if (elVisBar) elVisBar.style.width = `${Math.min(100, pctVisitas)}%`;
+  const elVisRes = document.getElementById('kpi-visitas-stock-residual');
+  if (elVisRes) elVisRes.textContent = `${residualVisitas} visitas`;
+  const elVisProm = document.getElementById('kpi-visitas-stock-prom');
+  if (elVisProm) elVisProm.textContent = promedioVisitas;
+
+  // 3. CARD 3: CADENCIA MENSUAL (META 25-30)
+  const displaySedesMes = sedesMesEvaluado > 0 ? sedesMesEvaluado : 26;
   const elVisMesTitulo = document.getElementById('kpi-visitas-titulo');
-  if (elVisMesTitulo) elVisMesTitulo.textContent = `Visitas de ${labelMesEvaluado} · meta 25 a 30`;
-  const elVisTxt = document.getElementById('kpi-visitas-txt');
-  const faltanMin = Math.max(0, 25 - displayVisMes);
-  const msgVis = faltanMin > 0 ? `<span style="font-size:15px;font-weight:400;color:var(--alert)">faltan ${faltanMin} para el mínimo</span>` : `<span style="font-size:15px;font-weight:400;color:var(--primary)">meta mensual alcanzada</span>`;
-  if (elVisTxt) elVisTxt.innerHTML = `${displayVisMes} ${msgVis}`;
-  const elVisBar = document.getElementById('kpi-visitas-bar');
-  if (elVisBar) elVisBar.style.width = `${Math.min(100, Math.round((displayVisMes / 30) * 100))}%`;
+  if (elVisMesTitulo) elVisMesTitulo.textContent = `Mes de ${labelMesEvaluado}`;
+  const elVisMesNum = document.getElementById('kpi-visitas-mes-num');
+  if (elVisMesNum) elVisMesNum.textContent = displaySedesMes;
+  const elVisMesSub = document.getElementById('kpi-visitas-mes-sub');
+  if (elVisMesSub) elVisMesSub.textContent = `sedes relevadas (${Math.round((displaySedesMes / 30) * 100)}%)`;
+  const elVisMesBar = document.getElementById('kpi-visitas-bar');
+  if (elVisMesBar) elVisMesBar.style.width = `${Math.min(100, Math.round((displaySedesMes / 30) * 100))}%`;
 
-  // Sedes > 1000 m²
+  const faltanMin = Math.max(0, 25 - displaySedesMes);
+  const elVisMesStatus = document.getElementById('kpi-visitas-mes-status');
+  if (elVisMesStatus) {
+    if (displaySedesMes >= 25) {
+      elVisMesStatus.innerHTML = `Meta 25-30 cumplida · <strong style="color:var(--primary);">Al día</strong>`;
+    } else {
+      elVisMesStatus.innerHTML = `Meta 25-30/mes · <strong style="color:var(--alert);">Faltan ${faltanMin} para el mín.</strong>`;
+    }
+  }
+  const elVisTxt = document.getElementById('kpi-visitas-txt');
+  if (elVisTxt) elVisTxt.innerHTML = `${displaySedesMes} sedes`;
+
+  // 4. CARD 4: SUPERFICIE ≥ 1.000 m²
   const displaySupTotal = sedesSup1000Total > 0 ? sedesSup1000Total : 58;
   const displaySupConMed = sedesSup1000Total > 0 ? sedesSup1000ConMed : 31;
   const displaySupSinMed = Math.max(0, displaySupTotal - displaySupConMed);
+  const pctSup = Math.round((displaySupConMed / Math.max(1, displaySupTotal)) * 100);
+
+  const elSupNum = document.getElementById('kpi-sup1000-num');
+  if (elSupNum) elSupNum.textContent = displaySupConMed;
+  const elSupTot = document.getElementById('kpi-sup1000-tot');
+  if (elSupTot) elSupTot.textContent = displaySupTotal;
+  const elSupBar = document.getElementById('kpi-sup1000-bar');
+  if (elSupBar) elSupBar.style.width = `${pctSup}%`;
   const elSup1000Txt = document.getElementById('kpi-sup1000-txt');
   if (elSup1000Txt) elSup1000Txt.innerHTML = `${displaySupConMed} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${displaySupTotal} con mediciones</span>`;
   const elSup1000Alerta = document.getElementById('kpi-sup1000-alerta');
-  if (elSup1000Alerta) elSup1000Alerta.textContent = `${displaySupSinMed} sin PAT, ruido o iluminación`;
+  if (elSup1000Alerta) elSup1000Alerta.textContent = `${displaySupSinMed} sin mediciones completas`;
 
   // Sedes sin superficie
   const displaySinSup = sedesSinSup > 0 ? sedesSinSup : 12;
@@ -7221,13 +7517,28 @@ function renderizarListaDetectadosLateral() {
     previewNombresHtml += `${stdName}<br>`;
 
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--border-table);align-items:center;';
+    div.style.cssText = 'padding:10px;border-bottom:1px solid var(--border-table);background:#fff;border-radius:2px;margin-bottom:6px;';
     div.innerHTML = `
-      <div style="min-width:0;flex:1;">
-        <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
-        <div style="font-size:12px;color:var(--text-muted);">${escapeHtml(cat.nombre)} · ${item.fecha}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px;">
+        <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;" title="${escapeHtml(item.name)}">
+          <i class="fa-solid fa-file-pdf" style="color:#A8470A;margin-right:4px;"></i>${escapeHtml(item.name)}
+        </div>
+        <span style="font-size:10px;color:#6B21A8;background:#FAF5FF;border:1px solid #D8B4FE;padding:1px 6px;border-radius:10px;font-weight:600;flex-shrink:0;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> OCR
+        </span>
       </div>
-      <button type="button" style="font-size:13px;color:var(--primary);border:none;background:none;cursor:pointer;font-weight:600;flex-shrink:0;" onclick="corregirItemDetectadoLateral(${idx})">Corregir</button>
+      <div style="display:grid;grid-template-columns:1fr 105px;gap:6px;">
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:2px;">Formulario (Desplegable):</label>
+          <select class="input-clean" style="font-size:11px;padding:3px 6px;width:100%;font-weight:600;" onchange="cambiarTipoDetectadoLateral(${idx}, this.value)">
+            ${generarOpcionesActividades(item.tipoActividad)}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:2px;">Fecha:</label>
+          <input type="text" class="input-clean" style="font-size:11px;padding:3px 6px;width:100%;text-align:center;font-weight:600;" value="${item.fecha}" placeholder="DD/MM/AAAA" onchange="cambiarFechaDetectadoLateral(${idx}, this.value)">
+        </div>
+      </div>
     `;
     listEl.appendChild(div);
   });
@@ -7242,26 +7553,29 @@ function renderizarListaDetectadosLateral() {
   }
 }
 
-/**
- * Permite corregir manualmente el tipo o fecha de un documento detectado
- */
+function cambiarTipoDetectadoLateral(idx, nuevoTipo) {
+  if (archivosDetectadosLateral[idx]) {
+    archivosDetectadosLateral[idx].tipoActividad = nuevoTipo;
+    renderizarListaDetectadosLateral();
+  }
+}
+window.cambiarTipoDetectadoLateral = cambiarTipoDetectadoLateral;
+
+function cambiarFechaDetectadoLateral(idx, nuevaFecha) {
+  if (archivosDetectadosLateral[idx]) {
+    archivosDetectadosLateral[idx].fecha = nuevaFecha;
+    renderizarListaDetectadosLateral();
+  }
+}
+window.cambiarFechaDetectadoLateral = cambiarFechaDetectadoLateral;
+
 function corregirItemDetectadoLateral(idx) {
   const item = archivosDetectadosLateral[idx];
   if (!item) return;
-
   const nuevaFecha = prompt('Ingresá la fecha correcta (DD/MM/AAAA):', item.fecha || '');
   if (nuevaFecha && nuevaFecha.trim()) {
     item.fecha = nuevaFecha.trim();
   }
-
-  const tiposDisponibles = Object.keys(CATALOGO_ACTIVIDADES);
-  const opcionesTexto = tiposDisponibles.map((k, i) => `${i + 1}) ${CATALOGO_ACTIVIDADES[k].nombre}`).join('\n');
-  const seleccion = prompt(`Seleccioná el número de la actividad:\n${opcionesTexto}`, '1');
-  const num = parseInt(seleccion, 10);
-  if (!isNaN(num) && num >= 1 && num <= tiposDisponibles.length) {
-    item.tipoActividad = tiposDisponibles[num - 1];
-  }
-
   renderizarListaDetectadosLateral();
 }
 window.corregirItemDetectadoLateral = corregirItemDetectadoLateral;
@@ -7474,6 +7788,7 @@ function extraerMesAnioActividad(act) {
 
 /**
  * Motor central de cálculo de indicadores de avance y stocks del Plan Anual
+ * Metas: 370 sedes acordadas, 1.000 visitas anuales, cadencia 25 a 30 sedes/mes
  */
 function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const anioEvaluado = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
@@ -7486,9 +7801,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
   const timelineSedesMes = {};
   const timelineVisitasMes = {};
+  const detallesMes = {};
+
   CICLO_MESES_ANUAL.forEach(m => {
     timelineSedesMes[m.key] = new Set();
     timelineVisitasMes[m.key] = 0;
+    detallesMes[m.key] = { mediciones: 0, ergoFuego: 0, aguaRgrl: 0, sedes1000: new Set() };
   });
 
   const sedesPeriodo = new Set();
@@ -7499,6 +7817,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
   let totalSup1000 = 0;
   let conMedSup1000 = 0;
+  let sedesMenoresTotal = 0;
+  let sedesMenoresVisitadas = 0;
+
+  let totMedicionesCiclo = 0;
+  let totErgoFuegoCiclo = 0;
+  let totAguaRgrlCiclo = 0;
 
   const orgAgregado = {};
 
@@ -7532,9 +7856,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       totalSup1000++;
       const tieneMed = actsDelCiclo.some(a => {
         const norm = normalizarTipoActividad(a.tipoActividad);
-        return norm === 'medicion_pat' || norm === 'medicion_ruido' || norm === 'medicion_iluminacion';
+        return norm === 'medicion_pat' || norm === 'medicion_ruido' || norm === 'medicion_iluminacion' || norm === 'carga_fuego';
       });
       if (tieneMed) conMedSup1000++;
+    } else if (numSup > 0) {
+      sedesMenoresTotal++;
+      if (tieneActividadCiclo) sedesMenoresVisitadas++;
     }
 
     // Acumuladores del consolidado oficial del ciclo
@@ -7546,6 +7873,14 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       conteoTareasTotal[tNorm] = (conteoTareasTotal[tNorm] || 0) + 1;
       if (!sedesPorTareaTotal[tNorm]) sedesPorTareaTotal[tNorm] = new Set();
       sedesPorTareaTotal[tNorm].add(est.id);
+
+      if (tNorm === 'medicion_pat' || tNorm === 'medicion_ruido' || tNorm === 'medicion_iluminacion') {
+        totMedicionesCiclo++;
+      } else if (tNorm === 'res_886' || tNorm === 'carga_fuego') {
+        totErgoFuegoCiclo++;
+      } else if (tNorm === 'muestra_agua' || tNorm === 'analisis_agua' || tNorm === 'confeccion_rgrl' || tNorm === 'confeccion_rar') {
+        totAguaRgrlCiclo++;
+      }
     });
 
     // Alimentación estricta de la línea de tiempo por año y mes
@@ -7554,6 +7889,20 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       if (fInfo.key && timelineSedesMes[fInfo.key]) {
         timelineSedesMes[fInfo.key].add(est.id);
         timelineVisitasMes[fInfo.key]++;
+
+        const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
+        if (detallesMes[fInfo.key]) {
+          if (tNorm === 'medicion_pat' || tNorm === 'medicion_ruido' || tNorm === 'medicion_iluminacion') {
+            detallesMes[fInfo.key].mediciones++;
+          } else if (tNorm === 'res_886' || tNorm === 'carga_fuego') {
+            detallesMes[fInfo.key].ergoFuego++;
+          } else if (tNorm === 'muestra_agua' || tNorm === 'analisis_agua' || tNorm === 'confeccion_rgrl' || tNorm === 'confeccion_rar') {
+            detallesMes[fInfo.key].aguaRgrl++;
+          }
+          if (esGranSup) {
+            detallesMes[fInfo.key].sedes1000.add(est.id);
+          }
+        }
       }
 
       // Evaluar si coincide con el período seleccionado (periodoKey)
@@ -7639,6 +7988,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     if (count > maxCountTarea) maxCountTarea = count;
     const sedesRecibieron = fuenteSedesTareas[key] ? fuenteSedesTareas[key].size : 0;
     const sharePct = totalVisitasRef > 0 ? ((count / totalVisitasRef) * 100).toFixed(1) : '0';
+    const cupoAnualPct = ((count / PLAN_HYS_CONFIG.META_VISITAS_ANUAL) * 100).toFixed(1);
     return {
       key,
       nombre: cat.nombre,
@@ -7647,6 +7997,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       color: cat.color || '#4f46e5',
       count,
       sharePct,
+      cupoAnualPct,
       sedesRecibieron
     };
   }).filter(t => !esPeriodoFiltro || t.count > 0).sort((a, b) => b.count - a.count);
@@ -7679,6 +8030,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     totalSup1000,
     conMedSup1000,
     pctSup1000: totalSup1000 > 0 ? Math.round((conMedSup1000 / totalSup1000) * 100) : 0,
+    sedesMenoresTotal,
+    sedesMenoresVisitadas,
+    totMedicionesCiclo,
+    totErgoFuegoCiclo,
+    totAguaRgrlCiclo,
+    detallesMes,
     sedesPeriodo,
     conteoTareasPeriodo,
     sedesPorOrgPeriodo,
@@ -7702,34 +8059,347 @@ function renderVistaMetricasMaqueta() {
 }
 window.renderVistaMetricasMaqueta = renderVistaMetricasMaqueta;
 
+// Variables globales para instancias de gráficos y modos
+let chartPresupuestoHySInstance = null;
+let chartServiciosDonutInstance = null;
+let modoPresupuestoHyS = 'mensual'; // 'mensual' | 'acumulado'
+let modoServiciosVista = 'barras';  // 'barras' | 'donut'
+
 /**
- * Actualiza todos los componentes jerárquicos del tablero
+ * Conmuta entre Visión Mensual y Curva Acumulada en el gráfico de avance
+ */
+function toggleModoPresupuestoHyS(modo) {
+  modoPresupuestoHyS = modo;
+  const btnM = document.getElementById('btnToggleChartMensual');
+  const btnA = document.getElementById('btnToggleChartAcumulado');
+  if (btnM) btnM.classList.toggle('on', modo === 'mensual');
+  if (btnA) btnA.classList.toggle('on', modo === 'acumulado');
+
+  const selMes = document.getElementById('metricas-filtro-mes')?.value || 'ciclo';
+  const data = calcularMetricasPlanAnual(selMes);
+  renderChartPresupuestoHyS(data);
+}
+window.toggleModoPresupuestoHyS = toggleModoPresupuestoHyS;
+
+/**
+ * Conmuta entre Ranking de Barras y Gráfico Donut de Servicios
+ */
+function toggleModoServicios(modo) {
+  modoServiciosVista = modo;
+  const btnB = document.getElementById('btnToggleServiciosBarras');
+  const btnD = document.getElementById('btnToggleServiciosDonut');
+  const boxBars = document.getElementById('contenedor-barras-tareas-horizontales');
+  const boxDonut = document.getElementById('boxChartServiciosDonut');
+
+  if (btnB) btnB.classList.toggle('on', modo === 'barras');
+  if (btnD) btnD.classList.toggle('on', modo === 'donut');
+
+  if (modo === 'barras') {
+    if (boxBars) boxBars.style.display = 'block';
+    if (boxDonut) boxDonut.style.display = 'none';
+  } else {
+    if (boxBars) boxBars.style.display = 'none';
+    if (boxDonut) boxDonut.style.display = 'block';
+    const selMes = document.getElementById('metricas-filtro-mes')?.value || 'ciclo';
+    const data = calcularMetricasPlanAnual(selMes);
+    renderChartServiciosDonut(data);
+  }
+}
+window.toggleModoServicios = toggleModoServicios;
+
+/**
+ * Renderiza el gráfico interactivo de avance (Visitas y Sedes vs Meta)
+ */
+function renderChartPresupuestoHyS(data) {
+  const canvas = document.getElementById('chartPresupuestoHyS');
+  if (!canvas || !window.Chart) {
+    const fb = document.getElementById('contenedor-evolucion-ciclo');
+    if (fb) fb.style.display = 'grid';
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  if (chartPresupuestoHySInstance) {
+    chartPresupuestoHySInstance.destroy();
+  }
+
+  const labels = CICLO_MESES_ANUAL.map(m => m.label);
+  const sedesRealesMes = CICLO_MESES_ANUAL.map(m => data.timelineSedesMes[m.key] ? data.timelineSedesMes[m.key].size : 0);
+  const visitasRealesMes = CICLO_MESES_ANUAL.map(m => data.timelineVisitasMes[m.key] || 0);
+  const metaMensualSedes = new Array(12).fill(30);
+
+  // Curvas acumuladas
+  const ahora = new Date();
+  let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
+  if (mesesTranscurridos < 1) mesesTranscurridos = 1;
+  if (mesesTranscurridos > 12) mesesTranscurridos = 12;
+
+  const sedesAcum = [];
+  const metaAcum = [];
+  let sumSedes = 0;
+  let sumMeta = 0;
+
+  for (let i = 0; i < 12; i++) {
+    sumMeta += 30;
+    metaAcum.push(i === 11 ? 370 : sumMeta);
+    if (i < mesesTranscurridos) {
+      sumSedes += sedesRealesMes[i];
+      sedesAcum.push(sumSedes);
+    } else {
+      sedesAcum.push(null);
+    }
+  }
+
+  let datasets = [];
+  if (modoPresupuestoHyS === 'mensual') {
+    datasets = [
+      {
+        label: 'Sedes Relevadas (Meta 30)',
+        data: sedesRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
+        backgroundColor: '#0F4C5C',
+        borderRadius: 2,
+        barPercentage: 0.55
+      },
+      {
+        label: 'Visitas HyS Efectivas',
+        data: visitasRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
+        backgroundColor: '#64748B',
+        borderRadius: 2,
+        barPercentage: 0.55
+      },
+      {
+        label: 'Meta Cadencia (30 sedes/mes)',
+        data: metaMensualSedes,
+        type: 'line',
+        borderColor: '#A8470A',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 3,
+        pointBackgroundColor: '#A8470A',
+        fill: false
+      }
+    ];
+  } else {
+    datasets = [
+      {
+        label: 'Sedes Acumuladas Reales',
+        data: sedesAcum,
+        type: 'line',
+        borderColor: '#0F4C5C',
+        backgroundColor: 'rgba(15, 76, 92, 0.12)',
+        fill: true,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointBackgroundColor: '#0F4C5C',
+        tension: 0.2
+      },
+      {
+        label: 'Meta Acumulada Anual (370 sedes)',
+        data: metaAcum,
+        type: 'line',
+        borderColor: '#A8470A',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 3,
+        pointBackgroundColor: '#A8470A',
+        fill: false
+      }
+    ];
+  }
+
+  chartPresupuestoHySInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { family: 'IBM Plex Sans', size: 12 }, usePointStyle: true }
+        },
+        tooltip: {
+          titleFont: { family: 'IBM Plex Sans' },
+          bodyFont: { family: 'IBM Plex Mono' },
+          callbacks: {
+            label: function(context) {
+              return ` ${context.dataset.label}: ${context.parsed.y}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E3E5E1' },
+          ticks: { font: { family: 'IBM Plex Mono', size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'IBM Plex Sans', size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Renderiza el gráfico Donut de distribución por servicio
+ */
+function renderChartServiciosDonut(data) {
+  const canvas = document.getElementById('chartServiciosDonut');
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext('2d');
+  if (chartServiciosDonutInstance) chartServiciosDonutInstance.destroy();
+
+  const labels = data.rankingTareas.map(t => t.nombre);
+  const values = data.rankingTareas.map(t => t.count);
+  const colors = data.rankingTareas.map(t => t.color || '#0F4C5C');
+
+  chartServiciosDonutInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 1,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { font: { family: 'IBM Plex Sans', size: 11 }, boxWidth: 12 }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              const val = c.parsed;
+              const total = c.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return ` ${c.label}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  });
+}
+
+/**
+ * Renderiza la tabla ejecutiva mensual del ciclo Sep 2026 – Ago 2027
+ */
+function renderTablaResumenMensualHyS(data) {
+  const tbody = document.getElementById('tablaResumenMensualBody');
+  if (!tbody) return;
+
+  const ahora = new Date();
+  let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
+  if (mesesTranscurridos < 1) mesesTranscurridos = 1;
+  if (mesesTranscurridos > 12) mesesTranscurridos = 12;
+
+  let acumSedes = 0;
+  let acumMeta = 0;
+
+  const html = CICLO_MESES_ANUAL.map((m, idx) => {
+    const isTranscurrido = idx < mesesTranscurridos;
+    const isActual = idx === (mesesTranscurridos - 1);
+    const metaMes = 30;
+    acumMeta += metaMes;
+
+    const sedesReales = data.timelineSedesMes[m.key] ? data.timelineSedesMes[m.key].size : 0;
+    const visitasReales = data.timelineVisitasMes[m.key] || 0;
+
+    let medicionesMes = 0;
+    let sedes1000Mes = 0;
+    if (data.detallesMes && data.detallesMes[m.key]) {
+      medicionesMes = data.detallesMes[m.key].mediciones || 0;
+      sedes1000Mes = data.detallesMes[m.key].sedes1000 ? data.detallesMes[m.key].sedes1000.size : 0;
+    }
+
+    if (isTranscurrido) {
+      acumSedes += sedesReales;
+    }
+
+    const desvioAcum = acumSedes - acumMeta;
+    const cumplimientoPct = metaMes > 0 ? ((sedesReales / metaMes) * 100).toFixed(1) : '0.0';
+
+    let semaforoHtml = '';
+    if (!isTranscurrido) {
+      semaforoHtml = '<span class="badge badge-neutral">Programado</span>';
+    } else if (isActual) {
+      if (sedesReales >= 25) {
+        semaforoHtml = `<span class="badge badge-ok"><i class="fa-solid fa-circle-check"></i> En meta (${sedesReales}/30)</span>`;
+      } else {
+        semaforoHtml = `<span class="badge badge-warn"><i class="fa-solid fa-hourglass-half"></i> En curso (${sedesReales}/30)</span>`;
+      }
+    } else {
+      if (sedesReales >= 25) {
+        semaforoHtml = `<span class="badge badge-ok">Cumplido (${cumplimientoPct}%)</span>`;
+      } else {
+        semaforoHtml = `<span class="badge badge-alert">Retraso (${sedesReales}/30)</span>`;
+      }
+    }
+
+    const bgRow = isActual ? 'background:#E3EDEF;' : '';
+
+    return `
+      <tr style="${bgRow}">
+        <td>
+          <strong>${m.label} (${m.nombre} ${m.anio})</strong>
+          <span style="font-size:10px; color:#5B6670; margin-left:4px;">M${idx}</span>
+        </td>
+        <td class="m" style="text-align:right;">${metaMes}</td>
+        <td class="m" style="text-align:right; font-weight:700; color:var(--primary);">${isTranscurrido ? sedesReales : '-'}</td>
+        <td class="m" style="text-align:right;">${isTranscurrido ? visitasReales : '-'}</td>
+        <td class="m" style="text-align:right;">${isTranscurrido ? medicionesMes : '-'}</td>
+        <td class="m" style="text-align:right;">${isTranscurrido ? sedes1000Mes : '-'}</td>
+        <td class="m" style="text-align:right;">${isTranscurrido ? cumplimientoPct + '%' : '-'}</td>
+        <td class="m" style="text-align:right; font-weight:600; color:${desvioAcum >= 0 ? 'var(--primary)' : 'var(--alert)'};">
+          ${isTranscurrido ? (desvioAcum >= 0 ? `+${desvioAcum}` : `${desvioAcum}`) : '-'}
+        </td>
+        <td>${semaforoHtml}</td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = html;
+}
+
+/**
+ * Actualiza todos los componentes jerárquicos del tablero ejecutivo
  */
 function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const data = calcularMetricasPlanAnual(periodoKey);
 
   // 1. NIVEL 1: Macrométricas & Stocks
   const elSedesCons = document.getElementById('kpi-sedes-consumidas');
+  const elSedesMeta = document.getElementById('kpi-sedes-meta');
   const elSedesConsBadge = document.getElementById('kpi-sedes-consumidas-badge');
   const elSedesResBadge = document.getElementById('kpi-sedes-residual-badge');
-  const donutSedes = document.getElementById('donut-sedes-container');
 
   if (elSedesCons) elSedesCons.textContent = data.stockSedesConsumido;
+  if (elSedesMeta) elSedesMeta.textContent = PLAN_HYS_CONFIG.META_SEDES_ANUAL;
   if (elSedesConsBadge) elSedesConsBadge.textContent = `${data.stockSedesConsumido} (${data.pctSedesAvance}%)`;
   if (elSedesResBadge) elSedesResBadge.textContent = `${data.stockSedesResidual} sedes`;
-  if (donutSedes) donutSedes.innerHTML = renderSvgDonut(data.pctSedesAvance, '#0F4C5C', '#E2E8F0', 52);
 
   const elVisCons = document.getElementById('kpi-visitas-consumidas');
+  const elVisMeta = document.getElementById('kpi-visitas-meta');
   const elVisConsBadge = document.getElementById('kpi-visitas-consumidas-badge');
   const elVisResBadge = document.getElementById('kpi-visitas-residual-badge');
   const elVisProm = document.getElementById('kpi-visitas-promedio');
-  const donutVisitas = document.getElementById('donut-visitas-container');
 
   if (elVisCons) elVisCons.textContent = data.stockVisitasConsumido;
+  if (elVisMeta) elVisMeta.textContent = (PLAN_HYS_CONFIG.META_VISITAS_ANUAL).toLocaleString();
   if (elVisConsBadge) elVisConsBadge.textContent = `${data.stockVisitasConsumido} (${data.pctVisitasAvance}%)`;
   if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} visitas`;
   if (elVisProm) elVisProm.textContent = data.promedioVisitas;
-  if (donutVisitas) donutVisitas.innerHTML = renderSvgDonut(data.pctVisitasAvance, '#17202A', '#E2E8F0', 52);
 
   // Ritmo mensual & Desvío
   const elRitmo = document.getElementById('kpi-ritmo-mes');
@@ -7737,18 +8407,18 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   if (elRitmo) elRitmo.textContent = data.ritmoMes;
 
   if (elDesvioCont) {
-    if (periodoKey === 'ciclo' || periodoKey === 'todos') {
+    if (periodoKey === 'ciclo' || periodoKey === 'todos' || periodoKey === '2026_completo') {
       if (data.desvioTemporal >= 0) {
-        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-success"><i class="fa-solid fa-circle-check"></i> Al día (+${data.desvioTemporal} sedes vs meta acum.)</span>`;
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-success"><i class="fa-solid fa-circle-check"></i> Al día (+${data.desvioTemporal} vs meta acum.)</span>`;
       } else {
-        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-alert"><i class="fa-solid fa-triangle-exclamation"></i> Con retraso (${data.desvioTemporal} sedes vs meta acum.)</span>`;
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-alert"><i class="fa-solid fa-triangle-exclamation"></i> Con retraso (${data.desvioTemporal} vs meta acum. de ${data.metaEsperadaALaFecha})</span>`;
       }
     } else {
-      const faltanMes = Math.max(0, PLAN_HYS_CONFIG.META_SEDES_MENSUAL - data.ritmoMes);
-      if (data.ritmoMes >= PLAN_HYS_CONFIG.META_SEDES_MENSUAL) {
+      const faltanMes = Math.max(0, 25 - data.ritmoMes);
+      if (data.ritmoMes >= 25) {
         elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-success"><i class="fa-solid fa-circle-check"></i> Meta mensual cumplida (${data.ritmoMes}/30)</span>`;
       } else {
-        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-meta"><i class="fa-solid fa-hourglass-half"></i> En curso: faltan ${faltanMes} para la meta de 30</span>`;
+        elDesvioCont.innerHTML = `<span class="badge-stock badge-stock-meta"><i class="fa-solid fa-hourglass-half"></i> En curso: faltan ${faltanMes} para el mín. de 25</span>`;
       }
     }
   }
@@ -7757,9 +8427,11 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const elSupMed = document.getElementById('kpi-sup-con-med');
   const elSupTot = document.getElementById('kpi-sup-total');
   const elSupBar = document.getElementById('kpi-sup-bar');
+  const elSupPctLbl = document.getElementById('kpi-sup-pct-label');
   if (elSupMed) elSupMed.textContent = data.conMedSup1000;
   if (elSupTot) elSupTot.textContent = data.totalSup1000;
   if (elSupBar) elSupBar.style.width = `${data.pctSup1000}%`;
+  if (elSupPctLbl) elSupPctLbl.textContent = `${data.pctSup1000}%`;
 
   // 2. PANEL DE GLOBITOS / SÍNTESIS INMEDIATA
   const elPeriodoNom = document.getElementById('globitos-titulo-periodo');
@@ -7799,7 +8471,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     `;
   }
 
-  // Globitos por organismo ("las cantidades de cada uno")
+  // Globitos por organismo
   if (elGlobOrgs) {
     const orgEntries = Object.entries(data.sedesPorOrgPeriodo);
     if (orgEntries.length === 0) {
@@ -7838,32 +8510,34 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }
   }
 
-  // 3. NIVEL 2: Timeline de Evolución Temporal (12 columnas anuales)
-  const elTimeline = document.getElementById('contenedor-evolucion-ciclo');
-  if (elTimeline) {
-    elTimeline.innerHTML = CICLO_MESES_ANUAL.map(m => {
-      const cantSedes = data.timelineSedesMes[m.key] ? data.timelineSedesMes[m.key].size : 0;
-      const isSelected = (periodoKey === m.key || (periodoKey === m.cod && m.anio === 2026));
-      const pctAltura = Math.min(100, Math.round((cantSedes / 35) * 100));
-      return `
-        <div class="timeline-col ${isSelected ? 'on' : ''}" onclick="seleccionarMesEnTimeline('${m.key}')" title="${m.nombre} ${m.anio}: ${cantSedes} sedes relevadas">
-          <div style="font-size:11px;font-weight:700;color:var(--text-main);">${cantSedes}</div>
-          <div style="width:100%;height:54px;display:flex;align-items:flex-end;justify-content:center;margin:6px 0;position:relative;">
-            <!-- Línea meta 30 sedes (85% de 35) -->
-            <div style="position:absolute;left:0;right:0;bottom:85%;border-top:1px dashed #A8470A;opacity:0.4;"></div>
-            <div style="width:14px;height:${pctAltura}%;background:${isSelected ? 'var(--alert)' : 'var(--primary)'};border-radius:2px;transition:height 0.3s ease;"></div>
-          </div>
-          <div style="font-size:10px;font-weight:600;color:var(--text-muted);">${m.label}</div>
-        </div>
-      `;
-    }).join('');
+  // 3. Resúmenes del Gráfico 1
+  const lblM0 = document.getElementById('lblResumenM0');
+  const lblM1 = document.getElementById('lblResumenM1');
+  const lblDesv = document.getElementById('lblDesvioAcumulado');
+
+  const sedesM0 = data.timelineSedesMes['2026-09'] ? data.timelineSedesMes['2026-09'].size : 0;
+  const sedesM1 = data.timelineSedesMes['2026-10'] ? data.timelineSedesMes['2026-10'].size : 0;
+
+  if (lblM0) lblM0.textContent = `${sedesM0} sedes relevadas (${Math.round((sedesM0/30)*100)}% de meta)`;
+  if (lblM1) lblM1.textContent = `${sedesM1} sedes`;
+  if (lblDesv) {
+    if (data.desvioTemporal >= 0) {
+      lblDesv.style.color = 'var(--primary)';
+      lblDesv.textContent = `+${data.desvioTemporal} sedes vs meta acumulada (${data.metaEsperadaALaFecha})`;
+    } else {
+      lblDesv.style.color = 'var(--alert)';
+      lblDesv.textContent = `${data.desvioTemporal} sedes vs meta acumulada (${data.metaEsperadaALaFecha})`;
+    }
   }
 
-  // 4. NIVEL 3: Ranking de Tareas Técnicas (Barras Horizontales)
+  // Renderizar Gráfico de Avance
+  renderChartPresupuestoHyS(data);
+
+  // 4. Ranking de Servicios Brindados (Barras Horizontales)
   const elTotActLabel = document.getElementById('stat-total-actividades-label');
   if (elTotActLabel) {
     const totalActsDisplay = (periodoKey === 'ciclo' || periodoKey === 'todos') ? data.totalVisitasCiclo : data.totalVisitasPeriodo;
-    elTotActLabel.textContent = `Total actividades: ${totalActsDisplay}`;
+    elTotActLabel.textContent = `Total actividades: ${totalActsDisplay} ejecutadas (${((totalActsDisplay / PLAN_HYS_CONFIG.META_VISITAS_ANUAL)*100).toFixed(1)}% de 1.000 anuales)`;
   }
 
   const elHbarsCont = document.getElementById('contenedor-barras-tareas-horizontales');
@@ -7884,7 +8558,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
           </div>
           <div class="hbar-stats">
             <span class="badge-stock badge-stock-consumido"><b>${t.count}</b> tareas</span>
-            <span class="badge-stock badge-stock-residual">${t.sharePct}%</span>
+            <span class="badge-stock badge-stock-residual" title="% sobre 1.000 anuales">${t.cupoAnualPct}% anual</span>
             <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${t.sedesRecibieron} sedes</span>
           </div>
         </div>
@@ -7892,10 +8566,33 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }).join('');
   }
 
-  // 5. NIVEL 4: Distribución Consolidada por Organismo
+  // Totales de resumen de servicios
+  const elTotMed = document.getElementById('lblTotMediciones');
+  const elTotErgo = document.getElementById('lblTotErgoFuego');
+  const elTotAgua = document.getElementById('lblTotAguaRgrl');
+  if (elTotMed) elTotMed.textContent = `${data.totMedicionesCiclo} mediciones`;
+  if (elTotErgo) elTotErgo.textContent = `${data.totErgoFuegoCiclo} tareas`;
+  if (elTotAgua) elTotAgua.textContent = `${data.totAguaRgrlCiclo} tareas`;
+
+  if (modoServiciosVista === 'donut') {
+    renderChartServiciosDonut(data);
+  }
+
+  // 5. Segmentación por m²
+  const elGrandesCon = document.getElementById('card-sup-grandes-con');
+  const elGrandesTot = document.getElementById('card-sup-grandes-tot');
+  const elMenoresVis = document.getElementById('card-sup-menores-vis');
+  const elMenoresTot = document.getElementById('card-sup-menores-tot');
+
+  if (elGrandesCon) elGrandesCon.textContent = data.conMedSup1000;
+  if (elGrandesTot) elGrandesTot.textContent = data.totalSup1000;
+  if (elMenoresVis) elMenoresVis.textContent = data.sedesMenoresVisitadas;
+  if (elMenoresTot) elMenoresTot.textContent = data.sedesMenoresTotal;
+
+  // Distribución Consolidada por Organismo
   const elOrgsCont = document.getElementById('contenedor-distribucion-organismos');
   if (elOrgsCont) {
-    elOrgsCont.innerHTML = data.resumenOrganismos.slice(0, 6).map(o => {
+    elOrgsCont.innerHTML = data.resumenOrganismos.slice(0, 8).map(o => {
       let icon = '🏛️';
       if (o.organismo.includes('EDUCACION') || o.organismo.includes('CGE')) icon = '🎓';
       else if (o.organismo.includes('POLICIA')) icon = '👮';
@@ -7905,23 +8602,26 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
       return `
         <div class="org-card-exec">
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;color:var(--text-main);">
               <span>${icon}</span>
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${escapeHtml(o.organismo)}">${escapeHtml(o.organismo)}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;" title="${escapeHtml(o.organismo)}">${escapeHtml(o.organismo)}</span>
             </div>
-            <span class="badge-stock ${o.coberturaPct >= 50 ? 'badge-stock-success' : 'badge-stock-meta'}">${o.coberturaPct}% cobertura</span>
+            <span class="badge-stock ${o.coberturaPct >= 50 ? 'badge-stock-success' : 'badge-stock-meta'}">${o.coberturaPct}%</span>
           </div>
-          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:7px;overflow:hidden;">
+          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:5px;overflow:hidden;">
             <div style="width:${o.coberturaPct}%;background:var(--primary);height:100%;border-radius:9999px;"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
-            <span><b>${o.sedesVisitadas}</b> de ${o.totalSedes} sedes</span>
-            <span><b>${o.totalVisitas}</b> actividades</span>
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);">
+            <span><b>${o.sedesVisitadas}</b> de ${o.totalSedes}</span>
+            <span><b>${o.totalVisitas}</b> vis.</span>
           </div>
         </div>
       `;
     }).join('');
   }
+
+  // 6. Tabla Resumen Mensual (12 Meses: Sep 2026 – Ago 2027)
+  renderTablaResumenMensualHyS(data);
 }
 window.actualizarVistaMetricas = actualizarVistaMetricas;
 
@@ -8694,3 +9394,5 @@ function cambiarFiltroAnioGlobal(anio) {
 }
 window.cambiarFiltroAnioGlobal = cambiarFiltroAnioGlobal;
 
+
+window.guardarRegistroActividad = guardarActividadYSubir;
