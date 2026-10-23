@@ -1130,17 +1130,17 @@
       <div id="repo-contador" style="font-size:13px;color:var(--text-muted);margin:10px 0;">0 documentos</div>
 
       <!-- Tabla de Documentos -->
-      <div style="background:#fff;border:1px solid var(--border-table);overflow-x:auto;padding:0 8px;">
-        <table class="t">
+      <div style="background:#fff;border:1px solid var(--border-table);overflow-x:auto;padding:0 8px;border-radius:2px;">
+        <table class="t" style="min-width:1150px;width:100%;">
           <thead>
             <tr>
-              <th style="width:95px;">Fecha</th>
-              <th>Establecimiento</th>
-              <th>Actividad Técnica</th>
-              <th>Archivo / Protocolo</th>
-              <th>Preventor</th>
-              <th>Carpeta Drive</th>
-              <th style="text-align:center;width:120px;">Acción</th>
+              <th style="width:100px;min-width:95px;max-width:105px;text-align:center;">Fecha</th>
+              <th style="min-width:270px;">Establecimiento / Dependencia</th>
+              <th style="width:200px;min-width:180px;max-width:220px;">Actividad Técnica</th>
+              <th style="min-width:240px;max-width:320px;">Archivo Adjunto</th>
+              <th style="width:160px;min-width:140px;max-width:180px;">Preventor / Estado</th>
+              <th style="width:120px;min-width:110px;max-width:130px;text-align:center;">Carpeta Drive</th>
+              <th style="width:105px;min-width:95px;max-width:115px;text-align:center;">Acción</th>
             </tr>
           </thead>
           <tbody id="repo-tabla-body">
@@ -1603,7 +1603,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261022_3"></script>
+<script src="portal_app_v2.js?v=20261022_4"></script>
 
 <script>
   // Control responsivo de menú móvil

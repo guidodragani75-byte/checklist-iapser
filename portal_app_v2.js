@@ -3059,39 +3059,50 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
     const mInfo = parsearAnioMesCliente(r.fechaActividad);
     const mFolderUrl = r.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
 
+    const estadoAct = r.estadoActividad || 'Completado';
+    let badgeEstadoClass = 'badge-stock-residual';
+    const estLower = estadoAct.toLowerCase();
+    if (estLower.includes('complet') || estLower.includes('apto') || estLower.includes('realiz')) {
+      badgeEstadoClass = 'badge-stock-success';
+    } else if (estLower.includes('análisis') || estLower.includes('analisis') || estLower.includes('proceso') || estLower.includes('espera')) {
+      badgeEstadoClass = 'badge-stock-meta';
+    } else if (estLower.includes('no apto') || estLower.includes('vencid') || estLower.includes('desvío') || estLower.includes('desvio')) {
+      badgeEstadoClass = 'badge-stock-alert';
+    }
+
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td class="m font-semibold" style="white-space:nowrap;font-size:12px;">
+      <td style="width:100px;min-width:95px;max-width:105px;text-align:center;white-space:nowrap;font-family:var(--font-mono);font-size:12px;font-weight:600;">
         ${formatearFechaDdmmaaa(r.fechaActividad)}
       </td>
-      <td>
-        <a href="#" onclick="irAFichaEstablecimiento('${r.estId}'); return false;" style="font-weight:700;color:var(--text-main);text-decoration:none;" title="Abrir ficha de la sede">
-          ${r.nroEstab ? `<span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;margin-right:4px;">#${r.nroEstab}</span>` : ''}
+      <td style="min-width:270px;line-height:1.35;">
+        <a href="#" onclick="irAFichaEstablecimiento('${r.estId}'); return false;" style="font-weight:700;color:var(--text-main);text-decoration:none;display:inline-block;" title="Abrir ficha de la sede">
+          ${r.nroEstab ? `<span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;margin-right:5px;">#${r.nroEstab}</span>` : ''}
           ${escapeHtml(r.nombreEstablecimiento)}
         </a>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-          ${escapeHtml(r.organismo)} (${escapeHtml(r.localidad)})
+          ${escapeHtml(r.organismo)} ${r.localidad ? `· ${escapeHtml(r.localidad)}` : ''}
         </div>
       </td>
-      <td>
+      <td style="width:200px;min-width:180px;max-width:220px;line-height:1.25;">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;">
-          <span>${cat.icono || '📋'}</span>
-          <span>${escapeHtml(cat.nombre)}</span>
-          <span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;">${cat.codigo || actNorm}</span>
+          <span style="font-size:14px;">${cat.icono || '📋'}</span>
+          <span style="flex:1;">${escapeHtml(cat.nombre)}</span>
+          <span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;flex-shrink:0;">${cat.codigo || actNorm}</span>
         </div>
-        ${r.detalle ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;" title="${escapeHtml(r.detalle)}">${escapeHtml(r.detalle)}</div>` : ''}
+        ${r.detalle ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;white-space:normal;" title="${escapeHtml(r.detalle)}">${escapeHtml(r.detalle)}</div>` : ''}
       </td>
-      <td>
+      <td style="min-width:240px;max-width:320px;">
         ${r.fileName ? `
           <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-main);" title="${escapeHtml(r.fileName)}">
-            <i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;">${escapeHtml(r.fileName)}</span>
+            <i class="fa-solid fa-file-pdf" style="color:#dc2626;flex-shrink:0;font-size:13px;"></i>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:250px;">${escapeHtml(r.fileName)}</span>
           </div>
-        ` : '<span style="font-size:11px;color:var(--text-muted);">Sin archivo adjunto</span>'}
-        <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        ` : '<span style="font-size:11px;color:var(--text-muted);font-style:italic;">Sin archivo adjunto</span>'}
+        <div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${r.fileUrl ? `
-            <a href="${r.fileUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:var(--primary);padding:2px 8px;min-height:auto;">
+            <a href="${r.fileUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:var(--primary);padding:2px 8px;min-height:auto;" title="Abrir archivo en Google Drive">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Archivo
             </a>
           ` : (r.fileName ? `
@@ -3104,22 +3115,26 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
           ` : '')}
         </div>
       </td>
-      <td>
-        <div style="font-weight:600;font-size:12px;">${escapeHtml(r.preventor || 'Lic. HyS Asignado')}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(r.estadoActividad || 'Completado')}</div>
+      <td style="width:160px;min-width:140px;max-width:180px;line-height:1.3;">
+        <div style="font-weight:600;font-size:12px;color:var(--text-main);">${escapeHtml(r.preventor || 'Lic. HyS Asignado')}</div>
+        <div style="margin-top:3px;">
+          <span class="badge-stock ${badgeEstadoClass}" style="font-size:10px;padding:1px 6px;">
+            ${escapeHtml(estadoAct)}
+          </span>
+        </div>
       </td>
-      <td>
+      <td style="width:120px;min-width:110px;max-width:130px;text-align:center;">
         ${mFolderUrl ? `
-          <a href="${mFolderUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:#92400E;background:#FEF3C7;border-color:#FCD34D;padding:3px 8px;min-height:auto;" title="Abrir carpeta mensual en Google Drive">
+          <a href="${mFolderUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:#92400E;background:#FEF3C7;border-color:#FCD34D;padding:3px 8px;min-height:auto;display:inline-flex;align-items:center;gap:4px;" title="Abrir carpeta mensual en Google Drive">
             <i class="fa-solid fa-folder-open"></i> ${escapeHtml(mInfo.key)}
           </a>
         ` : `
-          <button type="button" onclick="abrirCarpetaMensualParaClave('${mInfo.key}')" class="chip" style="font-size:10px;padding:3px 6px;min-height:auto;" title="Ver en carpetas mensuales">
+          <button type="button" onclick="abrirCarpetaMensualParaClave('${mInfo.key}')" class="chip" style="font-size:10px;padding:3px 6px;min-height:auto;display:inline-flex;align-items:center;gap:4px;" title="Ver en carpetas mensuales">
             <i class="fa-solid fa-folder" style="color:var(--text-muted);"></i> ${escapeHtml(mInfo.key || 'S/D')}
           </button>
         `}
       </td>
-      <td style="text-align:center;">
+      <td style="width:105px;min-width:95px;max-width:115px;text-align:center;">
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
           <button type="button" class="chip" onclick="irAFichaEstablecimiento('${r.estId}')" title="Ver ficha completa de la sede" style="font-size:11px;padding:4px 8px;min-height:auto;">
             <i class="fa-solid fa-arrow-right"></i> Sede
