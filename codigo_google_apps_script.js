@@ -12,7 +12,7 @@
 
 var SPREADSHEET_ID = "1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE";
 var DRIVE_ROOT_FOLDER_NAME = "Informes_HyS_IAPSER_Oficial";
-var DRIVE_ROOT_FOLDER_ID = ""; // Dejar vacío para usar/crear la carpeta raíz por nombre automáticamente
+var DRIVE_ROOT_FOLDER_ID = "1s7pZpgkPJKlFdJMnpdWjnY2Tm0Rxv3HR"; // Carpeta raíz oficial fijada en Google Drive
 
 function getSpreadsheet() {
   try {
@@ -551,6 +551,34 @@ function doGet(e) {
         message: "Consolidación de carpetas duplicadas completada exitosamente.",
         stats: statsConsol
       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3e. Diagnóstico de carpetas por nombre en todo Drive
+    if (action === "buscar_carpetas_sede") {
+      var queryName = (e.parameter.nombre || "Estab_1 - CORDOBA - 351 (PARANA)").toString().trim();
+      var fIter = DriveApp.getFoldersByName(queryName);
+      var resultados = [];
+      while (fIter.hasNext()) {
+        var f = fIter.next();
+        var padres = [];
+        try {
+          var pIter = f.getParents();
+          while (pIter.hasNext()) {
+            var p = pIter.next();
+            padres.push({ id: p.getId(), name: p.getName() });
+          }
+        } catch(eP) {}
+        resultados.push({
+          id: f.getId(),
+          name: f.getName(),
+          isTrashed: f.isTrashed(),
+          url: f.getUrl(),
+          dateCreated: f.getDateCreated(),
+          parents: padres
+        });
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", count: resultados.length, carpetas: resultados }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
 
@@ -1560,6 +1588,61 @@ function consolidarCarpetasDuplicadasDrive(rootFolder) {
     archivosMovidos: 0,
     carpetasPapelera: 0
   };
+
+  // 0. Si existen carpetas de organismo con nombres largos o variantes en rootFolder, consolidarlas hacia el canónico
+  var aliasOrganismos = {
+    "JEFATURA DE POLICIA DE LA PROVINCIA DE ENTRE RIOS": "POLICIA",
+    "JEFATURA DE POLICIA": "POLICIA",
+    "POLICIA DE ENTRE RIOS": "POLICIA"
+  };
+
+  try {
+    var rootIter = rootFolder.getFolders();
+    while (rootIter.hasNext()) {
+      var rf = rootIter.next();
+      try {
+        if (!rf.isTrashed()) {
+          var rfName = rf.getName().trim().toUpperCase();
+          var canon = aliasOrganismos[rfName];
+          if (canon && canon !== rfName) {
+            var canonF = getOrCreateSubfolder(rootFolder, canon);
+            var subSed = rf.getFolders();
+            while (subSed.hasNext()) {
+              var sed = subSed.next();
+              try {
+                if (!sed.isTrashed()) {
+                  var targetSed = getOrCreateSubfolder(canonF, sed.getName());
+                  var sFiles = sed.getFiles();
+                  while (sFiles.hasNext()) {
+                    var sf = sFiles.next();
+                    try { 
+                      sf.moveTo(targetSed); 
+                      stats.archivosMovidos++; 
+                    } catch(eMv) {
+                      try { 
+                        sf.makeCopy(sf.getName(), targetSed); 
+                        sf.setTrashed(true); 
+                        stats.archivosMovidos++; 
+                      } catch(eCp) {}
+                    }
+                  }
+                  sed.setTrashed(true);
+                  stats.duplicadosUnificados++;
+                }
+              } catch(eSed) {}
+            }
+            var rFiles = rf.getFiles();
+            while (rFiles.hasNext()) {
+              var rfF = rFiles.next();
+              try { rfF.moveTo(canonF); stats.archivosMovidos++; } catch(eMv2) {}
+            }
+            rf.setTrashed(true);
+            stats.carpetasPapelera++;
+          }
+        }
+      } catch(eRf) {}
+    }
+  } catch(eAliases) {}
 
   function consolidarEnContenedor(parentF) {
     if (!parentF) return;
