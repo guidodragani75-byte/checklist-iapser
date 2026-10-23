@@ -164,6 +164,8 @@ function normalizarCodigoActividad(act) {
     "informe_tecnico": "INFORME",
     "informe": "INFORME",
     "informe_visita": "INFORME",
+    "informe_fotografico": "INFORME",
+    "fotografico": "INFORME",
     "confeccion_rgrl": "RGRL",
     "rgrl": "RGRL",
     "confeccion_rar": "RAR",
@@ -448,6 +450,33 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3c. Obtener o crear carpeta institucional del establecimiento (dentro de Organismo, general no mensual)
+    if (action === "get_carpeta_establecimiento" || action === "obtener_carpeta_establecimiento") {
+      var orgNomGet = (e.parameter.organismo || "").toString().trim() || "General";
+      var estabNomGet = (e.parameter.nombreEstab || e.parameter.establecimiento || "").toString().trim() || "Establecimiento";
+      var nroEstabValGet = (e.parameter.nroEstab || "").toString().trim();
+
+      var rootFolderGet = getOrCreateRootFolder();
+      try { rootFolderGet.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
+
+      var orgFolderGet = getOrCreateSubfolder(rootFolderGet, orgNomGet);
+      try { orgFolderGet.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
+
+      var cleanNroTagGet = nroEstabValGet ? ("Estab_" + nroEstabValGet) : "Estab_General";
+      var estabFolderNameGet = cleanNroTagGet + " - " + estabNomGet;
+      var estabFolderGet = getOrCreateSubfolder(orgFolderGet, estabFolderNameGet);
+      try { estabFolderGet.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eEstS) {}
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        folderUrl: estabFolderGet.getUrl(),
+        folderId: estabFolderGet.getId(),
+        folderName: estabFolderNameGet,
+        orgFolderUrl: orgFolderGet.getUrl(),
+        orgFolderName: orgNomGet
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
 
     // 4. Por defecto: Listado maestro de Establecimientos
     var sheet = ss.getSheetByName("Establecimientos");
@@ -728,7 +757,10 @@ function doPost(e) {
         monthFolderId: monthFolderId || "",
         monthKey: mFolderData ? mFolderData.key : "",
         monthLabel: mFolderData ? mFolderData.label : "",
-        parentMensualUrl: mFolderData ? mFolderData.parentUrl : ""
+        parentMensualUrl: mFolderData ? mFolderData.parentUrl : "",
+        estabFolderUrl: (estabFolder && typeof estabFolder.getUrl === "function") ? estabFolder.getUrl() : "",
+        estabFolderId: (estabFolder && typeof estabFolder.getId === "function") ? estabFolder.getId() : "",
+        orgFolderUrl: (orgFolder && typeof orgFolder.getUrl === "function") ? orgFolder.getUrl() : ""
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -803,6 +835,7 @@ function doPost(e) {
           "cv": "CONSTANCIA_VISITA",
           "informe_tecnico": "INFORME_TECNICO",
           "informe": "INFORME_TECNICO",
+          "informe_fotografico": "INFORME_TECNICO",
           "confeccion_rgrl": "RGRL",
           "confeccion_rar": "RAR",
           "capacitaciones": "CAPACITACION_EN_OCASION_DE_VISITA",
@@ -863,6 +896,33 @@ function doPost(e) {
       var resM2 = guardarSuperficieSede(ss, data.id, data.nroEstab, data.nombreEstablecimiento, data.m2);
       return ContentService.createTextOutput(JSON.stringify(resM2))
         .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CASO 1.8: OBTENER O CREAR CARPETA DEL ESTABLECIMIENTO (ORGANISMO > SEDE GENERAL)
+    if (data.tipoOperacion === "get_carpeta_establecimiento" || data.tipoOperacion === "obtener_carpeta_establecimiento") {
+      var orgNomPost = (data.organismo || "").toString().trim() || "General";
+      var estabNomPost = (data.nombreEstab || data.establecimiento || "").toString().trim() || "Establecimiento";
+      var nroEstabValPost = (data.nroEstab || "").toString().trim();
+
+      var rootFolderPost = getOrCreateRootFolder();
+      try { rootFolderPost.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
+
+      var orgFolderPost = getOrCreateSubfolder(rootFolderPost, orgNomPost);
+      try { orgFolderPost.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
+
+      var cleanNroTagPost = nroEstabValPost ? ("Estab_" + nroEstabValPost) : "Estab_General";
+      var estabFolderNamePost = cleanNroTagPost + " - " + estabNomPost;
+      var estabFolderPost = getOrCreateSubfolder(orgFolderPost, estabFolderNamePost);
+      try { estabFolderPost.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eEstS) {}
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        folderUrl: estabFolderPost.getUrl(),
+        folderId: estabFolderPost.getId(),
+        folderName: estabFolderNamePost,
+        orgFolderUrl: orgFolderPost.getUrl(),
+        orgFolderName: orgNomPost
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
 
@@ -1023,6 +1083,7 @@ function actualizarMatrizPorActividad(ss, orgNom, nombreEstab, nroEstab, actTipo
     "cv": "CONSTANCIA_VISITA",
     "informe_tecnico": "INFORME_TECNICO",
     "informe": "INFORME_TECNICO",
+    "informe_fotografico": "INFORME_TECNICO",
     "confeccion_rgrl": "RGRL",
     "confeccion_rar": "RAR",
     "capacitaciones": "CAPACITACION_EN_OCASION_DE_VISITA",

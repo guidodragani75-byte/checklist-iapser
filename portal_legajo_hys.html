@@ -1178,7 +1178,11 @@
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
                   <input type="checkbox" id="chk-faltante-visita" value="visita" onchange="toggleFiltroFaltanteCheckbox('visita', this.checked)">
-                  <span>Constancia de Visita</span>
+                  <span>Constancia de Visita (CV)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-informe" value="informe" onchange="toggleFiltroFaltanteCheckbox('informe', this.checked)">
+                  <span>Informe Fotográfico</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
                   <input type="checkbox" id="chk-faltante-agua" value="agua" onchange="toggleFiltroFaltanteCheckbox('agua', this.checked)">
@@ -1213,7 +1217,8 @@
                   <th style="text-align:right">m²</th>
                   <th class="m" title="Relevamiento RGRL Dec. 351/79">RGRL</th>
                   <th class="m" title="Nómina de expuestos RAR">RAR</th>
-                  <th class="m" title="Constancia oficial de visita">Vis</th>
+                  <th class="m" title="Constancia de Visita oficial (CV firmado in situ)">Vis</th>
+                  <th class="m" title="Informe fotográfico de relevamiento y desvíos">Informe</th>
                   <th class="m" title="Protocolo físico-químico y bacteriológico de agua">Agua</th>
                   <th class="m" title="Puesta a tierra Res. 900/15">PAT</th>
                   <th class="m" title="Medición de ruido Res. 85/12">Ruido</th>
@@ -1240,6 +1245,21 @@
           </div>
           <h2 id="side-sede-nombre" style="margin:4px 0 2px;font-size:20px;font-weight:600">Escuela N.º 12</h2>
           <div id="side-sede-sub" style="font-size:13px;color:var(--text-muted)">N.º 003 · CUIT 30-67119808-1 · CGE · Paraná</div>
+
+          <!-- Acceso Directo a la Carpeta del Establecimiento en Google Drive (Organismo > Sede General) -->
+          <div id="side-sede-carpeta-container" style="margin:10px 0;background:#F0F4F8;border:1px solid #D0DBE5;border-radius:3px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;">
+              <i class="fa-solid fa-folder-tree" style="color:#0F4C5C;font-size:15px;flex-shrink:0;"></i>
+              <div style="min-width:0;overflow:hidden;">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;line-height:1.2;">Carpeta en Drive (Organismo)</div>
+                <div id="side-sede-carpeta-ruta" style="font-size:12px;font-weight:600;color:#0F4C5C;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Carpeta general de la sede dentro del Organismo">Organismo / Sede</div>
+              </div>
+            </div>
+            <a id="side-sede-btn-carpeta-drive" href="#" target="_blank" onclick="abrirCarpetaEstablecimientoActual(event)" class="chip" style="font-size:11px;font-weight:600;color:#0F4C5C;background:#fff;border-color:#B9BEB8;padding:4px 10px;min-height:28px;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;gap:5px;cursor:pointer;" title="Abrir carpeta general de esta sede en Google Drive">
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i>
+              <span>Abrir</span>
+            </a>
+          </div>
 
           <!-- Superficie Cubierta con Edición Rápida -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0;padding:10px 0;border-top:1px solid var(--border-table);border-bottom:1px solid var(--border-table)">
@@ -1273,6 +1293,9 @@
 
           <!-- Botón de Acceso a pantalla completa -->
           <div style="margin-top:10px;">
+            <a id="side-sede-link-carpeta-drive" href="#" target="_blank" onclick="abrirCarpetaEstablecimientoActual(event)" class="chip" style="width:100%;font-weight:600;background:#E3EDEF;border-color:#C9D6DA;color:#0F4C5C;display:flex;align-items:center;justify-content:center;gap:7px;min-height:36px;font-size:12px;text-decoration:none;box-sizing:border-box;cursor:pointer;margin-bottom:6px;" title="Abrir carpeta general de esta sede en Google Drive (guardada dentro del Organismo, no por mes)">
+              <i class="fa-solid fa-folder-open" style="color:#0F4C5C;font-size:13px;"></i> Carpeta del Establecimiento en Drive
+            </a>
             <button type="button" class="chip" onclick="abrirModalActividadesSedeActual()" style="width:100%;font-weight:600;background:#fff;border-color:var(--border-control);color:var(--text-main);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;">
               <i class="fa-solid fa-expand" style="color:var(--primary)"></i> Ver todas en pantalla completa
             </button>
@@ -1723,6 +1746,9 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <h4 style="margin:0;font-size:15px;font-weight:600;">Panel de las 12 Actividades Técnicas</h4>
           <div id="actividades-header-controls" style="display:flex;gap:6px;">
+            <a id="modal-act-comp-btn-carpeta-drive" href="#" target="_blank" onclick="abrirCarpetaEstablecimientoActual(event)" class="chip" style="font-weight:600;background:#E3EDEF;border-color:#C9D6DA;color:#0F4C5C;min-height:36px;padding:4px 10px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Abrir carpeta general de esta sede en Google Drive (guardada dentro de Organismo)">
+              <i class="fa-solid fa-folder-open" style="color:#0F4C5C;"></i> Carpeta en Drive
+            </a>
             <button type="button" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);min-height:36px;padding:4px 10px;font-size:12px;" title="Subida rápida por lote con OCR para esta sede">
               <i class="fa-solid fa-cloud-arrow-up"></i> Subida Masiva (OCR)
             </button>
@@ -2220,7 +2246,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261023_2"></script>
+<script src="portal_app_v2.js?v=20261023_3"></script>
 
 <script>
   // Control responsivo de menú móvil

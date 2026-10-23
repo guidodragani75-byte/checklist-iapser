@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
   CUSTOM_ACTIVITIES: 'iapser_custom_activities_v1',
   MODULO_ACTIVO: 'iapser_modulo_activo_v1',
   CARPETAS_MENSUALES: 'iapser_carpetas_mensuales_v1',
+  CARPETAS_ESTABLECIMIENTOS: 'iapser_carpetas_establecimientos_v1',
   PARENT_MENSUAL_URL: 'iapser_parent_mensual_url',
   SUPERFICIES_DB: 'iapser_superficies_db',
   SHEET_SUPERFICIES_URL: 'iapser_sheet_superficies_url'
@@ -37,9 +38,9 @@ const CATALOGO_ACTIVIDADES = {
   informe_tecnico: {
     id: 'informe_tecnico',
     codigo: 'INFORME',
-    nombre: 'Informe Técnico',
-    subtitulo: 'Informe técnico pericial de relevamiento, desvíos y mejoras recomendadas',
-    icono: '📄',
+    nombre: 'Informe Fotográfico',
+    subtitulo: 'Informe fotográfico de relevamiento, desvíos detectados y mejoras recomendadas',
+    icono: '📷',
     color: '#0f766e',
     permiteMultiples: true
   },
@@ -154,6 +155,7 @@ const AppState = {
   establecimientoSeleccionado: null,
   actividadesRegistradas: {}, // estId -> array de actividades
   carpetasMensuales: {}, // key -> { key: "2026-10", label: "2026-10 (Octubre)", url: "...", id: "..." }
+  carpetasEstablecimientos: {}, // estId -> { url: "...", id: "...", folderName: "...", orgFolderUrl: "...", orgFolderName: "..." }
   parentMensualUrl: '',
   superficies: {}, // estId -> { idSede, nroEstab, superficie, requiereMediciones }
   sheetSuperficiesUrl: 'https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=1756568834',
@@ -336,10 +338,26 @@ function cargarCarpetasMensualesLocal() {
   } catch(e) {}
 }
 
+function guardarCarpetasEstablecimientosLocal() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CARPETAS_ESTABLECIMIENTOS, JSON.stringify(AppState.carpetasEstablecimientos));
+  } catch(e) {}
+}
+
+function cargarCarpetasEstablecimientosLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CARPETAS_ESTABLECIMIENTOS);
+    if (raw) AppState.carpetasEstablecimientos = JSON.parse(raw);
+  } catch(e) {
+    AppState.carpetasEstablecimientos = {};
+  }
+}
+
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', () => {
   initStorage();
   cargarCarpetasMensualesLocal();
+  cargarCarpetasEstablecimientosLocal();
   cargarEstablecimientos();
   cargarLegajoLocal();
   renderFiltrosOrganismos();
@@ -721,13 +739,13 @@ function normalizarTipoActividad(str) {
   if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
     return 'confeccion_rgrl';
   }
-  // Constancia de Visita
+  // Informe Fotográfico / Técnico (prioridad sobre visita para evitar falsos positivos con informes de visita)
+  if (s === 'informe' || s === 'informe_tecnico' || s === 'informe_fotografico' || s === 'inf' || s.includes('informe') || s.includes('fotograf') || s.includes('fotogr')) {
+    return 'informe_tecnico';
+  }
+  // Constancia de Visita (CV oficial firmado in situ)
   if (s === 'cv' || s === 'constancia_visita' || s.includes('constancia') || s.includes('visita')) {
     return 'constancia_visita';
-  }
-  // Informe Técnico
-  if (s === 'informe' || s === 'informe_tecnico' || s.includes('informe')) {
-    return 'informe_tecnico';
   }
   // Muestra de Agua (Toma)
   if (s === 'muestra_agua' || s === 'agua_toma' || s === 'toma_muestra' || (s.includes('agua') && (s.includes('toma') || s.includes('muestra')))) {
@@ -1010,6 +1028,7 @@ function renderListaEstablecimientos() {
         if (faltante === 'rgrl' && (actsTipos.has('confeccion_rgrl') || tieneRgrlData)) return false;
         if (faltante === 'rar' && actsTipos.has('confeccion_rar')) return false;
         if (faltante === 'visita' && actsTipos.has('constancia_visita')) return false;
+        if (faltante === 'informe' && actsTipos.has('informe_tecnico')) return false;
         if (faltante === 'agua' && (actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua'))) return false;
       }
     }
@@ -1174,6 +1193,10 @@ function renderFichaEstablecimiento(est) {
           <i class="fa-solid fa-clipboard-check"></i>
           <span>Abrir Checklist RGRL</span>
         </button>
+        <a id="ficha-btn-carpeta-drive" href="#" target="_blank" onclick="abrirCarpetaEstablecimientoActual(event)" class="px-2.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-300 text-teal-900 text-xs font-semibold flex items-center gap-1.5 transition text-decoration-none cursor-pointer" title="Abrir carpeta general de esta sede en Google Drive (Organismo > Sede)">
+          <i class="fa-solid fa-folder-open text-teal-700"></i>
+          <span>Carpeta Sede Drive</span>
+        </a>
         <button onclick="abrirModalCarpetasMensuales()" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition" title="Ver carpetas mensuales en Drive">
           <i class="fa-solid fa-folder-open text-amber-700"></i>
           <span>Carpetas Mensuales</span>
@@ -3411,6 +3434,8 @@ function configurarCamposDinamicosModal(cat, est) {
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1">Tipo o Carácter del Informe *</label>
           <select id="campo-informe-tipo" class="input-select text-xs" onchange="actualizarPreviewNombreArchivo()" required>
+            <option value="Informe Fotografico">Informe Fotográfico de Relevamiento</option>
+            <option value="Fotografico Mejoras">Informe Fotográfico de Desvíos y Mejoras</option>
             <option value="Relevamiento Inicial">Informe de Relevamiento Inicial</option>
             <option value="Seguimiento y Mejoras">Informe de Seguimiento y Mejoras</option>
             <option value="Pericial Siniestro">Informe Pericial / Siniestro</option>
@@ -4517,6 +4542,17 @@ async function guardarActividadYSubir() {
         }
         guardarCarpetasMensualesLocal();
       }
+      if (result && result.estabFolderUrl) {
+        AppState.carpetasEstablecimientos[est.id] = {
+          url: result.estabFolderUrl,
+          id: result.estabFolderId || '',
+          folderName: obtenerNombreCarpetaEstablecimiento(est),
+          orgFolderUrl: result.orgFolderUrl || '',
+          orgFolderName: est.organismo
+        };
+        guardarCarpetasEstablecimientosLocal();
+        actualizarEnlacesCarpetaLateral(est);
+      }
     } else if (result && result.status === 'duplicate_warning') {
       alert(`⚠️ Aviso de Duplicado:\n\n${result.message}`);
       if (progressBox) progressBox.classList.add('hidden');
@@ -4633,8 +4669,13 @@ function detectarTipoActividadDeTexto(texto) {
   if (!texto) return null;
   const t = texto.toLowerCase();
 
-  // 1. Constancia de visita (prioridad alta para formularios de inspección y visita a sedes)
-  if (t.includes('constancia de visita') || t.includes('visita - seguridad e higiene') || t.includes('visita seguridad e higiene') || (t.includes('visita') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado'))) || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita'))) {
+  // 1. Informe Fotográfico / Técnico (prioridad alta: si el archivo o texto es un informe o reporte fotográfico de visita/relevamiento, nunca confundir con CV)
+  if (t.includes('informe fotografico') || t.includes('informe fotográfico') || t.includes('registro fotografico') || t.includes('registro fotográfico') || t.includes('relevamiento fotografico') || t.includes('relevamiento fotográfico') || t.includes('reporte fotografico') || t.includes('anexo fotografico') || t.includes('anexo fotográfico') || t.includes('informe de visita') || t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('dictamen técnico') || t.includes('informe pericial') || (t.includes('informe') && !t.includes('constancia de visita')) || (t.includes('fotogr') && !t.includes('constancia de visita'))) {
+    return { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' };
+  }
+
+  // 2. Constancia de Visita (CV oficial SRT firmado in situ)
+  if (t.includes('constancia de visita') || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita')) || (t.includes('visita') && !t.includes('informe') && !t.includes('fotogr') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado')))) {
     return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' };
   }
   // 2. RAR (Relevamiento de Agentes de Riesgo)
@@ -4694,9 +4735,9 @@ function detectarTipoActividadDeTexto(texto) {
   if (t.includes('simulacro') || t.includes('rol de evacuacion') || t.includes('rol de evacuación') || t.includes('plan de evacuacion') || t.includes('plan de evacuación') || t.includes('tiempo de evacuacion') || t.includes('tiempo de evacuación')) {
     return { id: 'simulacro', nombre: 'Simulacro de Evacuación', icono: '🚨', codigo: 'SIMULACRO' };
   }
-  // 13. Informe técnico
-  if (t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('informe pericial')) {
-    return { id: 'informe_tecnico', nombre: 'Informe Técnico', icono: '📄', codigo: 'INFORME' };
+  // 13. Informe Fotográfico / Técnico (fallback)
+  if (t.includes('informe') || t.includes('foto') || t.includes('dictamen') || t.includes('relevamiento')) {
+    return { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' };
   }
 
   return null;
@@ -5433,6 +5474,17 @@ async function guardarLoteSubidaRapida() {
           }
           guardarCarpetasMensualesLocal();
         }
+        if (result && result.estabFolderUrl) {
+          AppState.carpetasEstablecimientos[est.id] = {
+            url: result.estabFolderUrl,
+            id: result.estabFolderId || '',
+            folderName: obtenerNombreCarpetaEstablecimiento(est),
+            orgFolderUrl: result.orgFolderUrl || '',
+            orgFolderName: est.organismo
+          };
+          guardarCarpetasEstablecimientosLocal();
+          actualizarEnlacesCarpetaLateral(est);
+        }
       } else {
         console.warn('Aviso servidor Google Apps Script en lote:', result);
       }
@@ -5796,11 +5848,13 @@ function normalizarActividadDesdeSheet(str) {
   if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
     return 'confeccion_rgrl';
   }
+  // Informe Fotográfico / Técnico (prioridad sobre visita)
+  if (s.includes('informe') || s.includes('fotograf') || s.includes('fotogr') || s === 'inf' || s.startsWith('informe_') || s.startsWith('informe ')) {
+    return 'informe_tecnico';
+  }
+  // Constancia de Visita (CV)
   if (s.includes('constancia') || s === 'cv' || s.startsWith('cv_') || s.startsWith('cv ') || s.includes('visita')) {
     return 'constancia_visita';
-  }
-  if (s.includes('informe') || s === 'inf' || s.startsWith('informe_') || s.startsWith('informe ')) {
-    return 'informe_tecnico';
   }
   for (const [key, val] of Object.entries(CATALOGO_ACTIVIDADES)) {
     if (s.includes(key) || s.includes(val.codigo.toLowerCase()) || s.includes(val.nombre.toLowerCase())) {
@@ -6829,7 +6883,7 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="13" style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">
+        <td colspan="14" style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">
           No se encontraron sedes coincidentes con los filtros seleccionados.
         </td>
       </tr>
@@ -6879,6 +6933,7 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
 
     const hasRAR = actsTipos.has('confeccion_rar');
     const hasVis = actsTipos.has('constancia_visita');
+    const hasInforme = actsTipos.has('informe_tecnico');
     const hasAgua = actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua');
     const hasPAT = actsTipos.has('medicion_pat');
     const hasRuido = actsTipos.has('medicion_ruido');
@@ -6926,6 +6981,7 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
       <td class="m ${hasRGRL ? 'ok' : 'no'}">${hasRGRL ? '●' : '○'}</td>
       <td class="m ${hasRAR ? 'ok' : 'no'}">${hasRAR ? '●' : '○'}</td>
       <td class="m ${hasVis ? 'ok' : 'no'}">${hasVis ? '●' : '○'}</td>
+      <td class="m ${hasInforme ? 'ok' : 'no'}">${hasInforme ? '●' : '○'}</td>
       <td class="m ${hasAgua ? 'ok' : 'no'}">${hasAgua ? '●' : '○'}</td>
       <td class="m ${patCls}">${patDot}</td>
       <td class="m ${ruidoCls}">${ruidoDot}</td>
@@ -6942,6 +6998,212 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
 window.renderizarTablaSedesMaqueta = renderizarTablaSedesMaqueta;
 
 /**
+ * Obtiene el nombre estandarizado de la carpeta del establecimiento en Drive:
+ * Estab_[Nro] - [Nombre Establecimiento]
+ */
+function obtenerNombreCarpetaEstablecimiento(est) {
+  if (!est) return '';
+  const cleanNro = est.nroEstab ? `Estab_${est.nroEstab}` : 'Estab_General';
+  return `${cleanNro} - ${est.nombreEstablecimiento || 'Sede'}`;
+}
+window.obtenerNombreCarpetaEstablecimiento = obtenerNombreCarpetaEstablecimiento;
+
+/**
+ * Consulta a Google Apps Script para obtener o crear la carpeta institucional
+ * de la sede dentro de la carpeta del Organismo (general, no por mes).
+ */
+async function consultarCarpetaEstablecimientoDrive(est, forzar = false) {
+  if (!est || !est.id) return null;
+  if (!forzar && AppState.carpetasEstablecimientos[est.id] && AppState.carpetasEstablecimientos[est.id].url) {
+    return AppState.carpetasEstablecimientos[est.id];
+  }
+
+  const webhookUrl = getWebhookUrl();
+  if (!webhookUrl || webhookUrl.includes('TU_WEBHOOK_URL_AQUI')) return null;
+
+  try {
+    const url = `${webhookUrl}?action=get_carpeta_establecimiento&organismo=${encodeURIComponent(est.organismo || 'General')}&nombreEstab=${encodeURIComponent(est.nombreEstablecimiento || '')}&nroEstab=${encodeURIComponent(est.nroEstab || '')}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.status === 'success' && json.folderUrl) {
+      const data = {
+        url: json.folderUrl,
+        id: json.folderId || '',
+        folderName: json.folderName || obtenerNombreCarpetaEstablecimiento(est),
+        orgFolderUrl: json.orgFolderUrl || '',
+        orgFolderName: json.orgFolderName || est.organismo
+      };
+      AppState.carpetasEstablecimientos[est.id] = data;
+      guardarCarpetasEstablecimientosLocal();
+      actualizarEnlacesCarpetaLateral(est);
+      return data;
+    }
+  } catch(e) {
+    console.warn('Aviso al consultar carpeta institucional de la sede:', e);
+  }
+  return null;
+}
+window.consultarCarpetaEstablecimientoDrive = consultarCarpetaEstablecimientoDrive;
+
+/**
+ * Actualiza los links y botones de la carpeta institucional de la sede en el panel lateral derecho
+ */
+function actualizarEnlacesCarpetaLateral(est) {
+  const container = document.getElementById('side-sede-carpeta-container');
+  const rutaEl = document.getElementById('side-sede-carpeta-ruta');
+  const btnTop = document.getElementById('side-sede-btn-carpeta-drive');
+  const btnBottom = document.getElementById('side-sede-link-carpeta-drive');
+  const btnModal = document.getElementById('modal-act-comp-btn-carpeta-drive');
+  const btnFicha = document.getElementById('ficha-btn-carpeta-drive');
+
+  if (!est) {
+    if (container) container.style.display = 'none';
+    if (btnBottom) btnBottom.style.display = 'none';
+    if (btnModal) btnModal.style.display = 'none';
+    if (btnFicha) btnFicha.style.display = 'none';
+    return;
+  }
+
+  if (container) container.style.display = 'flex';
+  if (btnBottom) btnBottom.style.display = 'flex';
+  if (btnModal) btnModal.style.display = 'inline-flex';
+  if (btnFicha) btnFicha.style.display = 'inline-flex';
+
+  const folderName = obtenerNombreCarpetaEstablecimiento(est);
+  const orgName = est.organismo || 'Organismo';
+
+  if (rutaEl) {
+    rutaEl.textContent = `${orgName} / ${folderName}`;
+    rutaEl.title = `Carpeta institucional: ${orgName} > ${folderName}`;
+  }
+
+  const cached = AppState.carpetasEstablecimientos[est.id];
+  const driveUrl = (cached && cached.url) ? cached.url : '';
+
+  if (btnTop) {
+    if (driveUrl) {
+      btnTop.href = driveUrl;
+      btnTop.target = '_blank';
+      btnTop.title = `Abrir carpeta en Google Drive: ${folderName}`;
+    } else {
+      btnTop.href = '#';
+      btnTop.removeAttribute('target');
+      btnTop.title = `Obtener y abrir carpeta en Google Drive (${folderName})`;
+    }
+  }
+
+  if (btnBottom) {
+    if (driveUrl) {
+      btnBottom.href = driveUrl;
+      btnBottom.target = '_blank';
+      btnBottom.title = `Abrir carpeta de la sede en Google Drive: ${folderName} (dentro de ${orgName})`;
+    } else {
+      btnBottom.href = '#';
+      btnBottom.removeAttribute('target');
+      btnBottom.title = `Obtener y abrir carpeta de la sede en Google Drive (${folderName})`;
+    }
+  }
+
+  if (btnModal) {
+    if (driveUrl) {
+      btnModal.href = driveUrl;
+      btnModal.target = '_blank';
+      btnModal.title = `Abrir carpeta en Google Drive: ${folderName}`;
+    } else {
+      btnModal.href = '#';
+      btnModal.removeAttribute('target');
+      btnModal.title = `Obtener y abrir carpeta en Google Drive (${folderName})`;
+    }
+  }
+
+  if (btnFicha) {
+    if (driveUrl) {
+      btnFicha.href = driveUrl;
+      btnFicha.target = '_blank';
+      btnFicha.title = `Abrir carpeta en Google Drive: ${folderName}`;
+    } else {
+      btnFicha.href = '#';
+      btnFicha.removeAttribute('target');
+      btnFicha.title = `Obtener y abrir carpeta en Google Drive (${folderName})`;
+    }
+  }
+}
+window.actualizarEnlacesCarpetaLateral = actualizarEnlacesCarpetaLateral;
+
+/**
+ * Abre la carpeta general del establecimiento actual guardada dentro de la carpeta Organismo en Google Drive
+ */
+async function abrirCarpetaEstablecimientoActual(event) {
+  if (event) {
+    const targetHref = (event.currentTarget && event.currentTarget.getAttribute('href')) || '';
+    if (targetHref && targetHref.startsWith('https://drive.google.com/')) {
+      return; // Navegación natural directa
+    }
+    event.preventDefault();
+  }
+
+  const est = AppState.establecimientoSeleccionado;
+  if (!est) {
+    mostrarToast('Seleccioná una sede primero.');
+    return;
+  }
+
+  const cached = AppState.carpetasEstablecimientos[est.id];
+  if (cached && cached.url) {
+    window.open(cached.url, '_blank');
+    return;
+  }
+
+  const folderName = obtenerNombreCarpetaEstablecimiento(est);
+  const orgName = est.organismo || 'Organismo';
+
+  // Abrir ventana temporalmente para evitar que el navegador bloquee el popup tras el await
+  const newTab = window.open('', '_blank');
+  if (newTab) {
+    newTab.document.write(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Conectando con Google Drive...</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #F0F4F8; color: #1E293B; }
+          .card { background: #fff; padding: 32px; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); text-align: center; max-width: 440px; border: 1px solid #CBD5E1; }
+          .spinner { width: 34px; height: 34px; border: 3px solid #E2E8F0; border-top-color: #0F4C5C; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          h2 { font-size: 17px; margin: 0 0 8px; color: #0F4C5C; }
+          p { font-size: 13px; color: #64748B; margin: 4px 0 0; line-height: 1.4; }
+          .badge { display: inline-block; background: #E3EDEF; color: #0F4C5C; padding: 4px 8px; border-radius: 3px; font-weight: 600; font-size: 11px; margin-top: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner"></div>
+          <h2>Conectando con Google Drive</h2>
+          <p>Localizando la carpeta general de la sede:<br><strong>${escapeHtml(folderName)}</strong></p>
+          <div class="badge">${escapeHtml(orgName)} &gt; ${escapeHtml(folderName)}</div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  mostrarToast('Conectando con Google Drive...');
+
+  const data = await consultarCarpetaEstablecimientoDrive(est, true);
+  if (data && data.url) {
+    if (newTab) newTab.location.href = data.url;
+    mostrarToast('✓ Carpeta institucional abierta en Drive.');
+  } else {
+    // Si no se pudo contactar el webhook o tardó demasiado, derivar a búsqueda directa en Google Drive
+    const searchUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(folderName)}`;
+    if (newTab) newTab.location.href = searchUrl;
+    mostrarToast('Buscando carpeta en Google Drive...');
+  }
+}
+window.abrirCarpetaEstablecimientoActual = abrirCarpetaEstablecimientoActual;
+
+/**
  * Actualiza la ficha de la sede seleccionada en el panel lateral derecho
  */
 function actualizarFichaLateralMaqueta(est) {
@@ -6951,6 +7213,7 @@ function actualizarFichaLateralMaqueta(est) {
   const elAlerta = document.getElementById('side-sede-alerta');
 
   if (!est) {
+    actualizarEnlacesCarpetaLateral(null);
     if (elNom) elNom.textContent = 'Ninguna sede seleccionada';
     if (elSub) elSub.textContent = 'Seleccioná una sede del listado central';
     if (elM2) elM2.textContent = '-';
@@ -6962,6 +7225,11 @@ function actualizarFichaLateralMaqueta(est) {
     }
     if (badgeResumen) badgeResumen.textContent = '';
     return;
+  }
+
+  actualizarEnlacesCarpetaLateral(est);
+  if (!AppState.carpetasEstablecimientos[est.id]?.url) {
+    consultarCarpetaEstablecimientoDrive(est).catch(() => {});
   }
 
   if (elNom) elNom.textContent = est.nombreEstablecimiento || 'Sede sin nombre';
@@ -7448,7 +7716,8 @@ function manejarArchivosDropzoneLateral(files) {
         if (lower.includes('pat') || lower.includes('tierra')) tipoDetectado = 'medicion_pat';
         else if (lower.includes('ruido')) tipoDetectado = 'medicion_ruido';
         else if (lower.includes('ilum') || lower.includes('luz')) tipoDetectado = 'medicion_iluminacion';
-        else if (lower.includes('visita')) tipoDetectado = 'constancia_visita';
+        else if (lower.includes('informe') || lower.includes('fotogr') || lower.includes('foto')) tipoDetectado = 'informe_tecnico';
+        else if (lower.includes('cv') || lower.includes('visita') || lower.includes('constancia')) tipoDetectado = 'constancia_visita';
         else if (lower.includes('agua')) tipoDetectado = 'analisis_agua';
         else if (lower.includes('rgrl')) tipoDetectado = 'confeccion_rgrl';
         else if (lower.includes('rar')) tipoDetectado = 'confeccion_rar';
@@ -7620,6 +7889,17 @@ async function guardarActividadConArchivo(estId, tipoActividad, fecha, originalF
       driveUrl = resJson.fileUrl || '';
       driveFileId = resJson.fileId || '';
       registroId = resJson.registroId || registroId;
+      if (resJson.estabFolderUrl) {
+        AppState.carpetasEstablecimientos[est.id] = {
+          url: resJson.estabFolderUrl,
+          id: resJson.estabFolderId || '',
+          folderName: obtenerNombreCarpetaEstablecimiento(est),
+          orgFolderUrl: resJson.orgFolderUrl || '',
+          orgFolderName: est.organismo
+        };
+        guardarCarpetasEstablecimientosLocal();
+        actualizarEnlacesCarpetaLateral(est);
+      }
     }
   } catch (err) {
     console.warn('Subida en background a Sheets:', err);
@@ -9559,6 +9839,7 @@ function renderChipsFiltrosActivos() {
       rgrl: 'Falta RGRL',
       rar: 'Falta RAR',
       visita: 'Falta Visita (CV)',
+      informe: 'Falta Informe Fotográfico',
       agua: 'Falta Agua'
     };
     AppState.filtrosFaltantes.forEach(f => {
