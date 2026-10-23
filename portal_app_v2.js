@@ -2937,31 +2937,44 @@ function renderFiltrosRepositorio() {
   }
 }
 
+function filtrarRepositorio() {
+  const sTxt = document.getElementById('repo-buscar-texto');
+  const sOrg = document.getElementById('repo-filtro-org');
+  const sAct = document.getElementById('repo-filtro-act');
+  const sMes = document.getElementById('repo-filtro-mes');
+  if (sTxt) AppState.repoFiltroTexto = sTxt.value;
+  if (sOrg) AppState.repoFiltroOrg = sOrg.value;
+  if (sAct) AppState.repoFiltroAct = sAct.value;
+  if (sMes) AppState.repoFiltroMes = sMes.value;
+  renderRepositorioGlobal(false);
+  actualizarBotonCarpetaMes();
+}
+window.filtrarRepositorio = filtrarRepositorio;
+
 function renderRepositorioGlobal(rebuildMonthFilter = true) {
-  const tbody = document.getElementById('repo-tabla-body');
+  const tbody = document.getElementById('repo-tabla-body') || document.getElementById('tabla-repositorio-body');
   const counterSpan = document.getElementById('repo-contador');
   if (!tbody) return;
 
   const orgFiltro = AppState.repoFiltroOrg;
   const actFiltro = AppState.repoFiltroAct;
   const mesFiltro = AppState.repoFiltroMes;
-  const textFiltro = AppState.repoFiltroTexto.toLowerCase().trim();
+  const textFiltro = (AppState.repoFiltroTexto || '').toLowerCase().trim();
 
   // Aplanar todos los registros de todos los establecimientos
   let todosLosRegistros = [];
   Object.keys(AppState.actividadesRegistradas).forEach(estId => {
-    const est = AppState.establecimientos[estId];
-    if (!est) return;
+    const est = AppState.establecimientos[estId] || (typeof PRELOADED_SURVEYS !== 'undefined' ? PRELOADED_SURVEYS[estId] : null);
     const acts = AppState.actividadesRegistradas[estId] || [];
     acts.forEach(a => {
       const mInfo = parsearAnioMesCliente(a.fechaActividad);
       todosLosRegistros.push({
         ...a,
         estId: estId,
-        organismo: est.organismo,
-        nombreEstablecimiento: est.nombreEstablecimiento,
-        nroEstab: est.nroEstab,
-        localidad: est.localidad,
+        organismo: (est && (est.organismo || est.razonSocial)) || a.organismo || 'Sin Organismo',
+        nombreEstablecimiento: (est && (est.nombreEstablecimiento || est.establecimiento)) || a.nombreEstablecimiento || 'Establecimiento',
+        nroEstab: (est && est.nroEstab) || a.nroEstab || '',
+        localidad: (est && est.localidad) || a.localidad || '',
         monthKey: a.monthKey || mInfo.key,
         monthLabel: a.monthLabel || mInfo.label,
         monthFolderUrl: a.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '')
@@ -3011,8 +3024,8 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
   if (filtrados.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="text-center py-10 text-slate-400 text-xs">
-          <i class="fa-regular fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+        <td colspan="7" style="text-align:center;padding:36px;color:var(--text-muted);font-style:italic;">
+          <i class="fa-regular fa-folder-open" style="font-size:28px;display:block;margin-bottom:8px;color:#CBD5E1;"></i>
           No se encontraron documentos o registros que coincidan con los filtros aplicados.
         </td>
       </tr>
@@ -3020,76 +3033,78 @@ function renderRepositorioGlobal(rebuildMonthFilter = true) {
     return;
   }
 
-  filtrados.forEach((r, idx) => {
+  filtrados.forEach((r) => {
     const actNorm = normalizarTipoActividad(r.tipoActividad);
     const cat = CATALOGO_ACTIVIDADES[actNorm] || CATALOGO_ACTIVIDADES[r.tipoActividad] || { nombre: r.tipoActividad, icono: '📌', codigo: 'ACT' };
     const mInfo = parsearAnioMesCliente(r.fechaActividad);
     const mFolderUrl = r.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
 
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 border-b border-slate-100 text-xs text-slate-700 transition';
 
     tr.innerHTML = `
-      <td class="py-2.5 px-3 font-semibold text-slate-900 whitespace-nowrap">
+      <td class="m font-semibold" style="white-space:nowrap;font-size:12px;">
         ${formatearFechaDdmmaaa(r.fechaActividad)}
       </td>
-      <td class="py-2.5 px-3">
-        <div class="font-bold text-blue-900">
-          ${r.nroEstab ? `<span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded mr-1">#${r.nroEstab}</span>` : ''}
+      <td>
+        <a href="#" onclick="irAFichaEstablecimiento('${r.estId}'); return false;" style="font-weight:700;color:var(--text-main);text-decoration:none;" title="Abrir ficha de la sede">
+          ${r.nroEstab ? `<span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;margin-right:4px;">#${r.nroEstab}</span>` : ''}
           ${escapeHtml(r.nombreEstablecimiento)}
+        </a>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+          ${escapeHtml(r.organismo)} (${escapeHtml(r.localidad)})
         </div>
-        <div class="text-[11px] text-slate-500 truncate max-w-xs">${escapeHtml(r.organismo)} (${escapeHtml(r.localidad)})</div>
       </td>
-      <td class="py-2.5 px-3 whitespace-nowrap">
-        <div class="flex items-center gap-1.5 font-medium">
-          <span>${cat.icono}</span>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;">
+          <span>${cat.icono || '📋'}</span>
           <span>${escapeHtml(cat.nombre)}</span>
+          <span class="badge-stock badge-stock-residual" style="font-size:10px;padding:1px 5px;">${cat.codigo || actNorm}</span>
         </div>
+        ${r.detalle ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;" title="${escapeHtml(r.detalle)}">${escapeHtml(r.detalle)}</div>` : ''}
       </td>
-      <td class="py-2.5 px-3 whitespace-nowrap">
-        <span class="badge-completo text-[10px] px-2 py-0.5 rounded-full font-bold">
-          ${escapeHtml(r.estadoActividad || 'Completado')}
-        </span>
-      </td>
-      <td class="py-2.5 px-3 max-w-xs truncate" title="${escapeHtml(r.detalle || '')}">
-        ${escapeHtml(r.detalle || '-')}
-      </td>
-      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 max-w-xs truncate" title="${escapeHtml(r.fileName || '')}">
-        ${r.fileName ? `<i class="fa-solid fa-file-pdf text-red-500 mr-1"></i>${escapeHtml(r.fileName)}` : '<span class="text-slate-400">Sin archivo adjunto</span>'}
-      </td>
-      <td class="py-2.5 px-3 whitespace-nowrap">
-        ${r.fileUrl ? `
-          <a href="${r.fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-semibold underline text-xs">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Archivo
-          </a>
-        ` : (r.fileName ? `
-          <div class="inline-flex items-center gap-1.5">
-            <span class="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold" title="Documento registrado localmente.">
+      <td>
+        ${r.fileName ? `
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-main);" title="${escapeHtml(r.fileName)}">
+            <i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;">${escapeHtml(r.fileName)}</span>
+          </div>
+        ` : '<span style="font-size:11px;color:var(--text-muted);">Sin archivo adjunto</span>'}
+        <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${r.fileUrl ? `
+            <a href="${r.fileUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:var(--primary);padding:2px 8px;min-height:auto;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Archivo
+            </a>
+          ` : (r.fileName ? `
+            <span class="badge-stock badge-stock-residual" style="font-size:10px;" title="Documento registrado localmente">
               <i class="fa-solid fa-clock"></i> Guardado Local
             </span>
-            <button onclick="abrirModalSubirArchivoParaRegistro('${r.id}', '${r.estId}', '${r.tipoActividad}')" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] inline-flex items-center gap-1 shadow-2xs transition" title="Subir archivo a Google Drive">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Subir a Drive
+            <button type="button" onclick="abrirModalSubirArchivoParaRegistro('${r.id}', '${r.estId}', '${r.tipoActividad}')" class="chip" style="font-size:10px;font-weight:600;padding:2px 6px;min-height:auto;background:var(--primary);color:#fff;" title="Subir archivo a Google Drive">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Subir
             </button>
-          </div>
-        ` : '-')}
+          ` : '')}
+        </div>
       </td>
-      <td class="py-2.5 px-3 whitespace-nowrap">
+      <td>
+        <div style="font-weight:600;font-size:12px;">${escapeHtml(r.preventor || 'Lic. HyS Asignado')}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(r.estadoActividad || 'Completado')}</div>
+      </td>
+      <td>
         ${mFolderUrl ? `
-          <a href="${mFolderUrl}" target="_blank" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-1 rounded text-[10px] font-bold transition" title="Abrir Carpeta Mensual en Drive (sin subcarpetas)">
-            <i class="fa-solid fa-folder-open text-amber-700"></i> ${escapeHtml(mInfo.key)}
+          <a href="${mFolderUrl}" target="_blank" class="chip" style="font-size:11px;font-weight:600;color:#92400E;background:#FEF3C7;border-color:#FCD34D;padding:3px 8px;min-height:auto;" title="Abrir carpeta mensual en Google Drive">
+            <i class="fa-solid fa-folder-open"></i> ${escapeHtml(mInfo.key)}
           </a>
         ` : `
-          <button onclick="abrirCarpetaMensualParaClave('${mInfo.key}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1 rounded text-[10px] font-semibold transition" title="Ver en carpetas mensuales">
-            <i class="fa-solid fa-folder text-slate-400"></i> ${escapeHtml(mInfo.key)}
+          <button type="button" onclick="abrirCarpetaMensualParaClave('${mInfo.key}')" class="chip" style="font-size:10px;padding:3px 6px;min-height:auto;" title="Ver en carpetas mensuales">
+            <i class="fa-solid fa-folder" style="color:var(--text-muted);"></i> ${escapeHtml(mInfo.key || 'S/D')}
           </button>
         `}
       </td>
-      <td class="py-2.5 px-3 text-right whitespace-nowrap">
-        <div class="inline-flex items-center gap-1.5 justify-end">
-          <button onclick="irAFichaEstablecimiento('${r.estId}')" class="text-xs text-blue-700 hover:text-blue-900 font-semibold p-1.5 hover:bg-blue-50 rounded" title="Ver ficha completa">
-            <i class="fa-solid fa-arrow-right mr-1"></i> Ficha
+      <td style="text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <button type="button" class="chip" onclick="irAFichaEstablecimiento('${r.estId}')" title="Ver ficha completa de la sede" style="font-size:11px;padding:4px 8px;min-height:auto;">
+            <i class="fa-solid fa-arrow-right"></i> Sede
           </button>
-          <button onclick="eliminarDocumentoActividad('${r.id || r.fileId || r.fileName}', '${r.estId}')" class="text-xs text-red-600 hover:text-red-800 p-1.5 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition" title="Eliminar documento y limpiar registro">
+          <button type="button" onclick="eliminarDocumentoActividad('${r.id || r.fileId || r.fileName}', '${r.estId}')" style="background:none;border:none;color:#dc2626;cursor:pointer;padding:4px;" title="Eliminar documento">
             <i class="fa-solid fa-trash-can"></i>
           </button>
         </div>
