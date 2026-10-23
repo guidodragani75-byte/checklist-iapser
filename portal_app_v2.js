@@ -347,7 +347,17 @@ function guardarCarpetasEstablecimientosLocal() {
 function cargarCarpetasEstablecimientosLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CARPETAS_ESTABLECIMIENTOS);
-    if (raw) AppState.carpetasEstablecimientos = JSON.parse(raw);
+    if (raw) {
+      AppState.carpetasEstablecimientos = JSON.parse(raw);
+      // Purgar enlaces viejos a carpetas vacías o duplicadas
+      Object.keys(AppState.carpetasEstablecimientos).forEach(k => {
+        const item = AppState.carpetasEstablecimientos[k];
+        if (item && item.url && item.url.includes('1f41X_F7MUM3yXdJsV0gLSroIeOnutI_V')) {
+          delete AppState.carpetasEstablecimientos[k];
+        }
+      });
+      guardarCarpetasEstablecimientosLocal();
+    }
   } catch(e) {
     AppState.carpetasEstablecimientos = {};
   }
@@ -7013,9 +7023,11 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
     // Filtrar actividades según el período activo (mes y/o año) - estrictamente idéntico a la versión clásica
     const actsPeriodo = acts.filter(a => {
       if (!a || !a.fechaActividad) return false;
+      const tipoN = normalizarTipoActividad(a.tipoActividad);
+      const esEstudioPermanente = ['medicion_iluminacion', 'medicion_pat', 'medicion_ruido', 'analisis_agua'].includes(tipoN);
       if (anioFiltro !== 'todos') {
         const aAnio = extraerAnioDeFecha(a.fechaActividad);
-        if (aAnio && aAnio !== anioFiltro) return false;
+        if (aAnio && aAnio !== anioFiltro && !esEstudioPermanente) return false;
       }
       if (targetMes !== null) {
         const mInfo = parsearAnioMesCliente(a.fechaActividad);
@@ -7036,15 +7048,15 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
       }
     }
 
-    const hasRAR = actsTipos.has('confeccion_rar');
-    const hasVis = actsTipos.has('constancia_visita');
-    const hasInforme = actsTipos.has('informe_tecnico');
-    const hasAgua = actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua');
-    const hasPAT = actsTipos.has('medicion_pat');
-    const hasRuido = actsTipos.has('medicion_ruido');
-    const hasIlum = actsTipos.has('medicion_iluminacion');
-    const hasErgo = actsTipos.has('res_886');
-    const hasCap = actsTipos.has('capacitaciones');
+    const hasRAR = actsTipos.has('confeccion_rar') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rar'));
+    const hasVis = actsTipos.has('constancia_visita') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'constancia_visita'));
+    const hasInforme = actsTipos.has('informe_tecnico') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico'));
+    const hasAgua = actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua') || (targetMes === null && acts.some(a => ['analisis_agua', 'muestra_agua'].includes(normalizarTipoActividad(a.tipoActividad))));
+    const hasPAT = actsTipos.has('medicion_pat') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_pat'));
+    const hasRuido = actsTipos.has('medicion_ruido') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_ruido'));
+    const hasIlum = actsTipos.has('medicion_iluminacion') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_iluminacion'));
+    const hasErgo = actsTipos.has('res_886') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'res_886'));
+    const hasCap = actsTipos.has('capacitaciones') || (targetMes === null && acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'capacitaciones'));
 
     // Mediciones específicas (PAT, Ruido, Ilum) condicionadas a >1000m²
     const patCls = hasPAT ? 'ok' : (esMayor1000 ? 'no' : 'na');

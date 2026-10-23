@@ -192,6 +192,21 @@ function obtenerAbreviaturaOrganismo(org) {
   return sanitizeText(s.substring(0, 8)).toUpperCase() || "ORG";
 }
 
+function obtenerNombreOrganismoCanonico(org) {
+  var s = (org || "").toString().trim().toUpperCase();
+  if (s.includes("POLICIA") || s.includes("JEFATURA")) return "POLICIA";
+  if (s.includes("SALUD") || s.includes("HOSPITAL")) return "SALUD";
+  if (s.includes("GOBIERNO")) return "GOBIERNO";
+  if (s.includes("ATER") || s.includes("TRIBUTARIA")) return "ATER";
+  if (s.includes("UADER") || s.includes("UNIVERSIDAD")) return "UADER";
+  if (s.includes("JUBILACION") || s.includes("CJPER")) return "CJPER";
+  if (s.includes("TRIBUNAL") || s.includes("CUENTAS") || s.includes("TCER")) return "TCER";
+  if (s.includes("ALIMENTACION") || s.includes("ICAB")) return "ICAB";
+  if (s.includes("ENERGIA")) return "ENERGIA";
+  if (s.includes("PRODUCCION") || s.includes("URDINARRAIN") || s.includes("EPPE")) return "EPPE";
+  return sanitizeText(s).toUpperCase() || "GENERAL";
+}
+
 function normalizarCodigoActividad(act) {
   var s = (act || "").toLowerCase().trim();
   var map = {
@@ -515,16 +530,17 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 3c. Obtener o crear carpeta institucional del establecimiento (dentro de Organismo, general no mensual)
+    // 3c. Obtener o crear carpeta institucional del establecimiento (dentro de Organismo canónico, general no mensual)
     if (action === "get_carpeta_establecimiento" || action === "obtener_carpeta_establecimiento") {
       var orgNomGet = (e.parameter.organismo || "").toString().trim() || "General";
+      var canonOrgGet = obtenerNombreOrganismoCanonico(orgNomGet);
       var estabNomGet = (e.parameter.nombreEstab || e.parameter.establecimiento || "").toString().trim() || "Establecimiento";
       var nroEstabValGet = (e.parameter.nroEstab || "").toString().trim();
 
       var rootFolderGet = getOrCreateRootFolder();
       try { rootFolderGet.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
 
-      var orgFolderGet = getOrCreateSubfolder(rootFolderGet, orgNomGet);
+      var orgFolderGet = getOrCreateSubfolder(rootFolderGet, canonOrgGet);
       try { orgFolderGet.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
 
       var cleanNroTagGet = nroEstabValGet ? ("Estab_" + nroEstabValGet) : "Estab_General";
@@ -538,7 +554,7 @@ function doGet(e) {
         folderId: estabFolderGet.getId(),
         folderName: estabFolderNameGet,
         orgFolderUrl: orgFolderGet.getUrl(),
-        orgFolderName: orgNomGet
+        orgFolderName: canonOrgGet
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -551,6 +567,13 @@ function doGet(e) {
         message: "Consolidación de carpetas duplicadas completada exitosamente.",
         stats: statsConsol
       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3f. Reparar archivos y matriz de Establecimiento 45
+    if (action === "reparar_estab_45") {
+      var resRep = repararArchivosEstablecimiento45();
+      return ContentService.createTextOutput(JSON.stringify(resRep))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
     // 3e. Diagnóstico de carpetas por nombre en todo Drive
@@ -742,7 +765,8 @@ function doPost(e) {
         var rootFolder = getOrCreateRootFolder();
         try { rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
 
-        var orgFolder = getOrCreateSubfolder(rootFolder, orgNom);
+        var canonOrg = obtenerNombreOrganismoCanonico(orgNom);
+        var orgFolder = getOrCreateSubfolder(rootFolder, canonOrg);
         try { orgFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
 
         var cleanNroTag = nroEstabVal ? ("Estab_" + nroEstabVal) : "Estab_General";
@@ -755,7 +779,7 @@ function doPost(e) {
           ext = originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
         }
 
-        codedFileName = generarNombreArchivoCodificado(orgNom, nroEstabVal, actTipo, fechaAct, detalle, ext);
+        codedFileName = generarNombreArchivoCodificado(canonOrg, nroEstabVal, actTipo, fechaAct, detalle, ext);
 
         var cleanBase64 = String(fileBase64 || "").replace(/^data:.*base64,/, "").replace(/\s+/g, "");
         var fileBytes = Utilities.base64Decode(cleanBase64);
@@ -779,7 +803,7 @@ function doPost(e) {
           monthFolderUrl = mFolderData.url;
           monthFolderId = mFolderData.id;
 
-          var monthOrgFolder = getOrCreateSubfolder(mFolderData.folder, orgNom);
+          var monthOrgFolder = getOrCreateSubfolder(mFolderData.folder, canonOrg);
           try { monthOrgFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(mOrgS) {}
 
           var monthEstabFolder = getOrCreateSubfolder(monthOrgFolder, estabFolderName);
@@ -1019,7 +1043,8 @@ function doPost(e) {
       var rootFolderPost = getOrCreateRootFolder();
       try { rootFolderPost.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eRootS) {}
 
-      var orgFolderPost = getOrCreateSubfolder(rootFolderPost, orgNomPost);
+      var canonOrgPost = obtenerNombreOrganismoCanonico(orgNomPost);
+      var orgFolderPost = getOrCreateSubfolder(rootFolderPost, canonOrgPost);
       try { orgFolderPost.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrgS) {}
 
       var cleanNroTagPost = nroEstabValPost ? ("Estab_" + nroEstabValPost) : "Estab_General";
@@ -1033,7 +1058,7 @@ function doPost(e) {
         folderId: estabFolderPost.getId(),
         folderName: estabFolderNamePost,
         orgFolderUrl: orgFolderPost.getUrl(),
-        orgFolderName: orgNomPost
+        orgFolderName: canonOrgPost
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1719,4 +1744,72 @@ function consolidarCarpetasDuplicadasDrive(rootFolder) {
   }
 
   return stats;
+}
+
+function repararArchivosEstablecimiento45() {
+  var root = getOrCreateRootFolder();
+  var polF = getOrCreateSubfolder(root, "POLICIA");
+  var estab45F = getOrCreateSubfolder(polF, "Estab_45 - VILLAGUAY - 243 (PARANA)");
+  var log = [];
+
+  // 1. Mover todos los archivos de cualquier carpeta homónima de Estab 45 hacia la carpeta oficial
+  var fIter = DriveApp.getFoldersByName("Estab_45 - VILLAGUAY - 243 (PARANA)");
+  while (fIter.hasNext()) {
+    var fold = fIter.next();
+    if (fold.getId() !== estab45F.getId()) {
+      var files = fold.getFiles();
+      while (files.hasNext()) {
+        var fl = files.next();
+        log.push("Trasladado a POLICIA: " + fl.getName());
+        try {
+          fl.moveTo(estab45F);
+        } catch(e2) {
+          try { fl.makeCopy(fl.getName(), estab45F); fl.setTrashed(true); } catch(eCp) {}
+        }
+      }
+      // Si la carpeta duplicada quedó vacía, enviarla a papelera
+      try {
+        var remaining = fold.getFiles();
+        if (!remaining.hasNext()) {
+          fold.setTrashed(true);
+          log.push("Carpeta vacía enviada a papelera: " + fold.getId());
+        }
+      } catch(eTrash) {}
+    }
+  }
+
+  // 2. Buscar archivos con prefijo POL_045 en todo Drive y asegurar presencia en estab45F
+  var allFiles = DriveApp.searchFiles("title contains '045' and trashed = false");
+  while (allFiles.hasNext()) {
+    var af = allFiles.next();
+    var aName = af.getName();
+    if (aName.includes("045") || aName.includes("VILLAGUAY")) {
+      log.push("Archivo detectado: " + aName);
+      var inTarget = false;
+      var pars = af.getParents();
+      while (pars.hasNext()) {
+        if (pars.next().getId() === estab45F.getId()) inTarget = true;
+      }
+      if (!inTarget) {
+        try {
+          af.moveTo(estab45F);
+          log.push("Movido a carpeta oficial: " + aName);
+        } catch(eM) {
+          try { af.makeCopy(aName, estab45F); log.push("Copiado a carpeta oficial: " + aName); } catch(eCp2) {}
+        }
+      }
+    }
+  }
+
+  // 3. Actualizar celda de Iluminación en 'Matriz_Control_Gestion' para Sede 45
+  var ss = getSpreadsheet();
+  actualizarMatrizPorActividad(ss, "POLICIA", "VILLAGUAY - 243 (PARANA)", "45", "medicion_iluminacion", "Completado", "09/09/2028", estab45F.getUrl());
+
+  return {
+    status: "success",
+    message: "Establecimiento 45 consolidado con éxito.",
+    targetFolderUrl: estab45F.getUrl(),
+    targetFolderId: estab45F.getId(),
+    log: log
+  };
 }
