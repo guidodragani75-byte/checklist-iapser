@@ -869,19 +869,28 @@
           <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
             Período:
             <select id="metricas-filtro-mes" class="input-clean" onchange="actualizarVistaMetricas(this.value)" style="font-weight:600;min-width:240px;">
-              <option value="ciclo" selected>🗓️ Ciclo Anual Completo (Acumulado)</option>
-              <option value="09">09 - Septiembre (Inicio de Ciclo)</option>
-              <option value="10">10 - Octubre</option>
-              <option value="11">11 - Noviembre</option>
-              <option value="12">12 - Diciembre</option>
-              <option value="01">01 - Enero</option>
-              <option value="02">02 - Febrero</option>
-              <option value="03">03 - Marzo</option>
-              <option value="04">04 - Abril</option>
-              <option value="05">05 - Mayo</option>
-              <option value="06">06 - Junio</option>
-              <option value="07">07 - Julio</option>
-              <option value="08">08 - Agosto</option>
+              <option value="ciclo" selected>🗓️ Ciclo Plan Anual (Sep 26 – Ago 27) [Oficial]</option>
+              <optgroup label="Meses del Plan Anual Oficial (Sep 2026 – Ago 2027)">
+                <option value="2026-09">Sep 26 - Septiembre 2026 (Inicio de Plan)</option>
+                <option value="2026-10">Oct 26 - Octubre 2026</option>
+                <option value="2026-11">Nov 26 - Noviembre 2026</option>
+                <option value="2026-12">Dic 26 - Diciembre 2026</option>
+                <option value="2027-01">Ene 27 - Enero 2027</option>
+                <option value="2027-02">Feb 27 - Febrero 2027</option>
+                <option value="2027-03">Mar 27 - Marzo 2027</option>
+                <option value="2027-04">Abr 27 - Abril 2027</option>
+                <option value="2027-05">May 27 - Mayo 2027</option>
+                <option value="2027-06">Jun 27 - Junio 2027</option>
+                <option value="2027-07">Jul 27 - Julio 2027</option>
+                <option value="2027-08">Ago 27 - Agosto 2027</option>
+              </optgroup>
+              <optgroup label="Relevamientos Previos 2026 (Pre-Plan Sep 2026)">
+                <option value="2026-04">Abr 26 - Abril 2026</option>
+                <option value="2026-05">May 26 - Mayo 2026</option>
+                <option value="2026-06">Jun 26 - Junio 2026</option>
+                <option value="2026-07">Jul 26 - Julio 2026</option>
+                <option value="2026_completo">📅 Año Calendario 2026 Completo</option>
+              </optgroup>
             </select>
           </label>
           <button type="button" class="btn-action-primary" onclick="generarReporteMensualConsultado()" title="Descargar o imprimir reporte ejecutivo en PDF para el mes o ciclo consultado (salto de página A4)">
@@ -1603,7 +1612,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261022_5"></script>
+<script src="portal_app_v2.js?v=20261022_6"></script>
 
 <script>
   // Control responsivo de menú móvil
