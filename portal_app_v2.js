@@ -341,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarLegajoLocal();
   renderFiltrosOrganismos();
   renderFiltrosLocalidades();
+  actualizarSelectorMesesSedes();
   renderListaEstablecimientos();
 
   // 1. Configurar escuchadores de eventos inmediatamente para asegurar que los filtros funcionen siempre
@@ -943,28 +944,47 @@ function renderListaEstablecimientos() {
       if (supFilter === 'sin_dato' && supNum > 0) return false;
     }
 
-    // Filtro por mes de visita o actividad técnica
+    // Filtro por mes de visita o actividad técnica (estricto por año y mes)
     if (AppState.filtroMes && AppState.filtroMes !== 'todos') {
+      const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
       const acts = obtenerActividadesDeSede(e);
-      const targetMes = String(AppState.filtroMes).padStart(2, '0');
+      const targetMes = parseInt(AppState.filtroMes, 10);
       const tieneEnMes = acts.some(a => {
-        const d = String(a.fechaActividad || '');
-        if (d.includes(`-${targetMes}-`) || d.includes(`/${targetMes}/`)) return true;
-        if (a.monthKey && (a.monthKey.endsWith(`-${targetMes}`) || a.monthKey.endsWith(`/${targetMes}`))) return true;
-        return false;
+        if (!a || !a.fechaActividad) return false;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return false;
+        }
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        return mInfo && mInfo.mes === targetMes;
       });
       if (!tieneEnMes) return false;
     }
 
-    // Filtros por chips de tareas faltantes
+    // Filtros por chips de tareas faltantes (evaluados en el período activo)
     if (AppState.filtrosFaltantes && AppState.filtrosFaltantes.size > 0) {
+      const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+      const targetMes = (AppState.filtroMes && AppState.filtroMes !== 'todos') ? parseInt(AppState.filtroMes, 10) : null;
       const acts = obtenerActividadesDeSede(e);
-      const actsTipos = new Set(acts.map(a => normalizarTipoActividad(a.tipoActividad)));
+      const actsPeriodo = acts.filter(a => {
+        if (!a || !a.fechaActividad) return false;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return false;
+        }
+        if (targetMes !== null) {
+          const mInfo = parsearAnioMesCliente(a.fechaActividad);
+          if (!mInfo || mInfo.mes !== targetMes) return false;
+        }
+        return true;
+      });
+      const actsTipos = new Set(actsPeriodo.map(a => normalizarTipoActividad(a.tipoActividad)));
+      const tieneRgrlData = (targetMes === null) ? !!e.data : false;
       for (const faltante of AppState.filtrosFaltantes) {
         if (faltante === 'pat' && actsTipos.has('medicion_pat')) return false;
         if (faltante === 'ruido' && actsTipos.has('medicion_ruido')) return false;
         if (faltante === 'ilum' && actsTipos.has('medicion_iluminacion')) return false;
-        if (faltante === 'rgrl' && (actsTipos.has('confeccion_rgrl') || !!e.data)) return false;
+        if (faltante === 'rgrl' && (actsTipos.has('confeccion_rgrl') || tieneRgrlData)) return false;
         if (faltante === 'rar' && actsTipos.has('confeccion_rar')) return false;
         if (faltante === 'visita' && actsTipos.has('constancia_visita')) return false;
         if (faltante === 'agua' && (actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua'))) return false;
@@ -5488,6 +5508,9 @@ async function sincronizarConSheets(forceGlobal = false) {
       renderFichaEstablecimiento(est);
       renderPanelActividades(est);
     }
+    actualizarSelectorMesesSedes();
+    actualizarKPIsPlanMaqueta();
+    renderListaEstablecimientos();
   }
 }
 
@@ -6572,15 +6595,43 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
   const selectedId = AppState.establecimientoSeleccionado ? AppState.establecimientoSeleccionado.id : null;
   const fragment = document.createDocumentFragment();
 
+  const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+  const mesFiltro = AppState.filtroMes;
+  const targetMes = (mesFiltro && mesFiltro !== 'todos') ? parseInt(mesFiltro, 10) : null;
+
   filtered.forEach(e => {
     const isSelected = (e.id === selectedId);
     const supNum = Number(e.superficie);
     const esMayor1000 = (supNum >= 1000);
 
     const acts = obtenerActividadesDeSede(e);
-    const actsTipos = new Set(acts.map(a => normalizarTipoActividad(a.tipoActividad)));
 
-    const hasRGRL = actsTipos.has('confeccion_rgrl') || !!e.data;
+    // Filtrar actividades según el período activo (mes y/o año) - estrictamente idéntico a la versión clásica
+    const actsPeriodo = acts.filter(a => {
+      if (!a || !a.fechaActividad) return false;
+      if (anioFiltro !== 'todos') {
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        if (aAnio && aAnio !== anioFiltro) return false;
+      }
+      if (targetMes !== null) {
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        if (!mInfo || mInfo.mes !== targetMes) return false;
+      }
+      return true;
+    });
+
+    const actsTipos = new Set(actsPeriodo.map(a => normalizarTipoActividad(a.tipoActividad)));
+
+    // RGRL: en vista mensual cuenta SOLO si se realizó en dicho mes.
+    // En vista anual ('todos') se incluye e.data si corresponde al año evaluado.
+    let hasRGRL = actsTipos.has('confeccion_rgrl');
+    if (targetMes === null && !hasRGRL && e.data) {
+      const eDataAnio = e.fecha ? extraerAnioDeFecha(e.fecha) : '2026';
+      if (anioFiltro === 'todos' || eDataAnio === anioFiltro) {
+        hasRGRL = true;
+      }
+    }
+
     const hasRAR = actsTipos.has('confeccion_rar');
     const hasVis = actsTipos.has('constancia_visita');
     const hasAgua = actsTipos.has('analisis_agua') || actsTipos.has('muestra_agua');
@@ -6600,9 +6651,10 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
     const ilumCls = hasIlum ? 'ok' : (esMayor1000 ? 'no' : 'na');
     const ilumDot = hasIlum ? '●' : (esMayor1000 ? '○' : '–');
 
-    // Última fecha de visita registrada
+    // Última fecha de visita registrada en el período evaluado
     let ultimaFecha = '';
-    acts.forEach(a => {
+    const actsParaFecha = (targetMes !== null) ? actsPeriodo : acts;
+    actsParaFecha.forEach(a => {
       if (a.fechaActividad) {
         const f = formatearFechaDdmmaaa(a.fechaActividad);
         if (f && (!ultimaFecha || compararFechasDdmmaaa(f, ultimaFecha) > 0)) {
@@ -6610,7 +6662,7 @@ function renderizarTablaSedesMaqueta(filtered, tbody) {
         }
       }
     });
-    if (!ultimaFecha && e.fecha) ultimaFecha = e.fecha;
+    if (!ultimaFecha && targetMes === null && e.fecha) ultimaFecha = e.fecha;
 
     const tr = document.createElement('tr');
     tr.className = `sede-row ${isSelected ? 'sel' : ''}`;
@@ -6901,11 +6953,15 @@ function actualizarKPIsPlanMaqueta() {
     const hasActs = acts.length > 0 || !!est.data;
     if (hasActs) sedesVisitadas++;
 
-    // Visitas en el mes en curso
+    // Visitas en el mes en curso (mes y año estricto)
+    const targetMesInt = parseInt(mesActualNum, 10);
+    const anioActualStr = String(ahora.getFullYear());
     const visitsThisMonth = acts.filter(a => {
-      if (!a.fechaActividad) return false;
-      const s = String(a.fechaActividad);
-      return s.includes(`/${mesActualNum}/`) || s.includes(`-${mesActualNum}-`);
+      if (!a || !a.fechaActividad) return false;
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (!mInfo || mInfo.mes !== targetMesInt) return false;
+      const aAnio = extraerAnioDeFecha(a.fechaActividad);
+      return !aAnio || aAnio === anioActualStr;
     });
     visitasMesActual += visitsThisMonth.length;
 
@@ -7297,19 +7353,19 @@ const PLAN_HYS_CONFIG = {
   ANIO_INICIO_CICLO: 2026
 };
 
-const CICLO_MESES_ANUAL = [
+const MESES_ANUAL_2026 = [
+  { cod: '01', anio: 2026, mes: 1, label: 'Ene 26', nombre: 'Enero' },
+  { cod: '02', anio: 2026, mes: 2, label: 'Feb 26', nombre: 'Febrero' },
+  { cod: '03', anio: 2026, mes: 3, label: 'Mar 26', nombre: 'Marzo' },
+  { cod: '04', anio: 2026, mes: 4, label: 'Abr 26', nombre: 'Abril' },
+  { cod: '05', anio: 2026, mes: 5, label: 'May 26', nombre: 'Mayo' },
+  { cod: '06', anio: 2026, mes: 6, label: 'Jun 26', nombre: 'Junio' },
+  { cod: '07', anio: 2026, mes: 7, label: 'Jul 26', nombre: 'Julio' },
+  { cod: '08', anio: 2026, mes: 8, label: 'Ago 26', nombre: 'Agosto' },
   { cod: '09', anio: 2026, mes: 9, label: 'Sep 26', nombre: 'Septiembre' },
   { cod: '10', anio: 2026, mes: 10, label: 'Oct 26', nombre: 'Octubre' },
   { cod: '11', anio: 2026, mes: 11, label: 'Nov 26', nombre: 'Noviembre' },
-  { cod: '12', anio: 2026, mes: 12, label: 'Dic 26', nombre: 'Diciembre' },
-  { cod: '01', anio: 2027, mes: 1, label: 'Ene 27', nombre: 'Enero' },
-  { cod: '02', anio: 2027, mes: 2, label: 'Feb 27', nombre: 'Febrero' },
-  { cod: '03', anio: 2027, mes: 3, label: 'Mar 27', nombre: 'Marzo' },
-  { cod: '04', anio: 2027, mes: 4, label: 'Abr 27', nombre: 'Abril' },
-  { cod: '05', anio: 2027, mes: 5, label: 'May 27', nombre: 'Mayo' },
-  { cod: '06', anio: 2027, mes: 6, label: 'Jun 27', nombre: 'Junio' },
-  { cod: '07', anio: 2027, mes: 7, label: 'Jul 27', nombre: 'Julio' },
-  { cod: '08', anio: 2027, mes: 8, label: 'Ago 27', nombre: 'Agosto' }
+  { cod: '12', anio: 2026, mes: 12, label: 'Dic 26', nombre: 'Diciembre' }
 ];
 
 /**
@@ -7338,26 +7394,21 @@ function renderSvgDonut(porcentaje, colorPrimario = '#0F4C5C', colorResidual = '
  * Normaliza y extrae mes y año de cualquier actividad o registro
  */
 function extraerMesAnioActividad(act) {
-  if (!act) return { anio: null, mes: null, codMes: null };
+  if (!act) return { anio: null, mes: null, codMes: null, key: '' };
   const f = act.fechaActividad || (act.data && act.data.fecha);
-  if (f) {
-    const s = String(f).trim();
-    const mIso = s.match(/^(\d{4})-(\d{2})/);
-    if (mIso) return { anio: parseInt(mIso[1], 10), mes: parseInt(mIso[2], 10), codMes: mIso[2] };
-    const mDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (mDmy) return { anio: parseInt(mDmy[3], 10), mes: parseInt(mDmy[2], 10), codMes: mDmy[2].padStart(2, '0') };
+  const mInfo = parsearAnioMesCliente(f);
+  if (mInfo && mInfo.mes) {
+    const cod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+    return { anio: mInfo.anio, mes: mInfo.mes, codMes: cod, key: mInfo.key };
   }
-  if (act.monthKey && act.monthKey.length === 7) {
-    const p = act.monthKey.split('-');
-    return { anio: parseInt(p[0], 10), mes: parseInt(p[1], 10), codMes: p[1] };
-  }
-  return { anio: null, mes: null, codMes: null };
+  return { anio: null, mes: null, codMes: null, key: '' };
 }
 
 /**
  * Motor central de cálculo de indicadores de avance y stocks del Plan Anual
  */
 function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
+  const anioEvaluado = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
   const allEsts = Object.values(AppState.establecimientos);
   const sedesUnicasCiclo = new Set();
   let totalVisitasCiclo = 0;
@@ -7367,7 +7418,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
   const timelineSedesMes = {};
   const timelineVisitasMes = {};
-  CICLO_MESES_ANUAL.forEach(m => {
+  MESES_ANUAL_2026.forEach(m => {
     timelineSedesMes[m.cod] = new Set();
     timelineVisitasMes[m.cod] = 0;
   });
@@ -7375,6 +7426,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const sedesPeriodo = new Set();
   let totalVisitasPeriodo = 0;
   const conteoTareasPeriodo = {};
+  const sedesPorTareaPeriodo = {};
   const sedesPorOrgPeriodo = {};
 
   let totalSup1000 = 0;
@@ -7384,7 +7436,14 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
   allEsts.forEach(est => {
     const acts = obtenerActividadesDeSede(est) || [];
-    const tieneActividadCiclo = acts.length > 0 || !!est.data;
+    // Filtrar actividades del año evaluado
+    const actsDelAnio = acts.filter(a => {
+      if (anioEvaluado === 'todos') return true;
+      const anioAct = extraerAnioDeFecha(a.fechaActividad);
+      return anioAct === anioEvaluado;
+    });
+
+    const tieneActividadCiclo = actsDelAnio.length > 0 || (anioEvaluado === 'todos' ? !!est.data : (est.data && (!est.fecha || extraerAnioDeFecha(est.fecha) === anioEvaluado)));
 
     if (tieneActividadCiclo) {
       sedesUnicasCiclo.add(est.id);
@@ -7401,14 +7460,14 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     const esGranSup = numSup >= 1000;
     if (esGranSup) {
       totalSup1000++;
-      const tieneMed = acts.some(a => {
+      const tieneMed = actsDelAnio.some(a => {
         const norm = normalizarTipoActividad(a.tipoActividad);
         return norm === 'medicion_pat' || norm === 'medicion_ruido' || norm === 'medicion_iluminacion';
       });
       if (tieneMed) conMedSup1000++;
     }
 
-    acts.forEach(a => {
+    actsDelAnio.forEach(a => {
       totalVisitasCiclo++;
       orgAgregado[orgNombre].totalVisitas++;
 
@@ -7435,6 +7494,8 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
         sedesPeriodo.add(est.id);
         totalVisitasPeriodo++;
         conteoTareasPeriodo[tNorm] = (conteoTareasPeriodo[tNorm] || 0) + 1;
+        if (!sedesPorTareaPeriodo[tNorm]) sedesPorTareaPeriodo[tNorm] = new Set();
+        sedesPorTareaPeriodo[tNorm].add(est.id);
 
         const orgKey = obtenerAbreviaturaOrganismo(orgNombre);
         if (!sedesPorOrgPeriodo[orgKey]) {
@@ -7443,7 +7504,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       }
     });
 
-    if (acts.length > 0 && (periodoKey === 'ciclo' || periodoKey === 'todos' || acts.some(a => extraerMesAnioActividad(a).codMes === periodoKey))) {
+    if (actsDelAnio.length > 0 && (periodoKey === 'ciclo' || periodoKey === 'todos' || actsDelAnio.some(a => extraerMesAnioActividad(a).codMes === periodoKey))) {
       const orgKey = obtenerAbreviaturaOrganismo(orgNombre);
       if (sedesPorOrgPeriodo[orgKey]) {
         sedesPorOrgPeriodo[orgKey].count++;
@@ -7471,14 +7532,19 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const metaEsperadaALaFecha = mesesTranscurridos * PLAN_HYS_CONFIG.META_SEDES_MENSUAL;
   const desvioTemporal = stockSedesConsumido - metaEsperadaALaFecha;
 
-  // Ranking de tareas ordenadas
+  // Ranking de tareas ordenadas: si se filtra por mes, muestra EXCLUSIVAMENTE las tareas de dicho mes
+  const esPeriodoFiltro = (periodoKey !== 'ciclo' && periodoKey !== 'todos');
+  const fuenteTareas = esPeriodoFiltro ? conteoTareasPeriodo : conteoTareasTotal;
+  const fuenteSedesTareas = esPeriodoFiltro ? sedesPorTareaPeriodo : sedesPorTareaTotal;
+  const totalVisitasRef = esPeriodoFiltro ? totalVisitasPeriodo : totalVisitasCiclo;
+
   let maxCountTarea = 1;
   const rankingTareas = Object.keys(CATALOGO_ACTIVIDADES).map(key => {
     const cat = CATALOGO_ACTIVIDADES[key] || { nombre: key, codigo: key, icono: '📋', color: '#4f46e5' };
-    const count = conteoTareasTotal[key] || 0;
+    const count = fuenteTareas[key] || 0;
     if (count > maxCountTarea) maxCountTarea = count;
-    const sedesRecibieron = sedesPorTareaTotal[key] ? sedesPorTareaTotal[key].size : 0;
-    const sharePct = totalVisitasCiclo > 0 ? ((count / totalVisitasCiclo) * 100).toFixed(1) : '0';
+    const sedesRecibieron = fuenteSedesTareas[key] ? fuenteSedesTareas[key].size : 0;
+    const sharePct = totalVisitasRef > 0 ? ((count / totalVisitasRef) * 100).toFixed(1) : '0';
     return {
       key,
       nombre: cat.nombre,
@@ -7489,7 +7555,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       sharePct,
       sedesRecibieron
     };
-  }).sort((a, b) => b.count - a.count);
+  }).filter(t => !esPeriodoFiltro || t.count > 0).sort((a, b) => b.count - a.count);
 
   // Resumen por organismo consolidado
   const resumenOrganismos = Object.entries(orgAgregado).map(([nombre, datos]) => {
@@ -7661,10 +7727,10 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }
   }
 
-  // 3. NIVEL 2: Timeline de Evolución Temporal (12 columnas Sep a Ago)
+  // 3. NIVEL 2: Timeline de Evolución Temporal (12 columnas anuales)
   const elTimeline = document.getElementById('contenedor-evolucion-ciclo');
   if (elTimeline) {
-    elTimeline.innerHTML = CICLO_MESES_ANUAL.map(m => {
+    elTimeline.innerHTML = MESES_ANUAL_2026.map(m => {
       const cantSedes = data.timelineSedesMes[m.cod] ? data.timelineSedesMes[m.cod].size : 0;
       const isSelected = (periodoKey === m.cod);
       const pctAltura = Math.min(100, Math.round((cantSedes / 35) * 100));
@@ -7684,7 +7750,10 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
 
   // 4. NIVEL 3: Ranking de Tareas Técnicas (Barras Horizontales)
   const elTotActLabel = document.getElementById('stat-total-actividades-label');
-  if (elTotActLabel) elTotActLabel.textContent = `Total actividades: ${data.totalVisitasCiclo}`;
+  if (elTotActLabel) {
+    const totalActsDisplay = (periodoKey === 'ciclo' || periodoKey === 'todos') ? data.totalVisitasCiclo : data.totalVisitasPeriodo;
+    elTotActLabel.textContent = `Total actividades: ${totalActsDisplay}`;
+  }
 
   const elHbarsCont = document.getElementById('contenedor-barras-tareas-horizontales');
   if (elHbarsCont) {
@@ -7852,14 +7921,13 @@ function generarReporteMensualPdf(mesParam, anioParam) {
   Object.values(AppState.establecimientos).forEach(est => {
     const acts = obtenerActividadesDeSede(est);
     const actsMes = acts.filter(a => {
+      if (!a || !a.fechaActividad) return false;
       if (anio !== 'todos') {
         const aAnio = extraerAnioDeFecha(a.fechaActividad);
         if (aAnio && aAnio !== anio) return false;
       }
-      const d = String(a.fechaActividad || '');
-      if (d.includes(`-${targetMesStr}-`) || d.includes(`/${targetMesStr}/`)) return true;
-      if (a.monthKey && (a.monthKey.endsWith(`-${targetMesStr}`) || a.monthKey.endsWith(`/${targetMesStr}`))) return true;
-      return false;
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      return mInfo && mInfo.mes === mesNum;
     });
 
     if (actsMes.length > 0) {
@@ -8372,12 +8440,95 @@ function generarReporteMensualPdf(mesParam, anioParam) {
 }
 window.generarReporteMensualPdf = generarReporteMensualPdf;
 
+function actualizarSelectorMesesSedes() {
+  const selectSedes = document.getElementById('filtro-mes');
+  const selectMetricas = document.getElementById('metricas-filtro-mes');
+  const anio = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+  const currentSedesVal = selectSedes ? selectSedes.value : (AppState.filtroMes || 'todos');
+  const currentMetricasVal = selectMetricas ? selectMetricas.value : 'ciclo';
+
+  // Contar sedes únicas con actividades para cada mes en el año evaluado
+  const sedesPorMes = {
+    '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0,
+    '07': 0, '08': 0, '09': 0, '10': 0, '11': 0, '12': 0
+  };
+  let sedesConActAnio = 0;
+
+  Object.values(AppState.establecimientos).forEach(e => {
+    const acts = obtenerActividadesDeSede(e);
+    const actsAnio = acts.filter(a => {
+      if (anio === 'todos') return true;
+      const anioAct = extraerAnioDeFecha(a.fechaActividad);
+      return anioAct === anio;
+    });
+
+    if (actsAnio.length > 0) {
+      sedesConActAnio++;
+    }
+
+    const mesesVistosParaSede = new Set();
+    actsAnio.forEach(a => {
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      if (mInfo && mInfo.mes) {
+        const mCod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
+        mesesVistosParaSede.add(mCod);
+      }
+    });
+
+    mesesVistosParaSede.forEach(mCod => {
+      if (sedesPorMes[mCod] !== undefined) {
+        sedesPorMes[mCod]++;
+      }
+    });
+  });
+
+  if (selectSedes) {
+    selectSedes.innerHTML = '';
+    const optTodos = document.createElement('option');
+    optTodos.value = 'todos';
+    optTodos.textContent = `Todo el año (${sedesConActAnio} sedes con visitas)`;
+    if (currentSedesVal === 'todos') optTodos.selected = true;
+    selectSedes.appendChild(optTodos);
+
+    for (let m = 1; m <= 12; m++) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      const count = sedesPorMes[mCod] || 0;
+      const opt = document.createElement('option');
+      opt.value = mCod;
+      opt.textContent = `${mCod} - ${MESES_NOMBRES[m - 1]} (${count} ${count === 1 ? 'sede' : 'sedes'})`;
+      if (mCod === currentSedesVal) opt.selected = true;
+      selectSedes.appendChild(opt);
+    }
+  }
+
+  if (selectMetricas) {
+    selectMetricas.innerHTML = '';
+    const optCiclo = document.createElement('option');
+    optCiclo.value = 'ciclo';
+    optCiclo.textContent = `🗓️ Todo el Año (${sedesConActAnio} sedes)`;
+    if (currentMetricasVal === 'ciclo' || currentMetricasVal === 'todos') optCiclo.selected = true;
+    selectMetricas.appendChild(optCiclo);
+
+    for (let m = 1; m <= 12; m++) {
+      const mCod = (m < 10 ? '0' : '') + m;
+      const count = sedesPorMes[mCod] || 0;
+      const opt = document.createElement('option');
+      opt.value = mCod;
+      opt.textContent = `${mCod} - ${MESES_NOMBRES[m - 1]} (${count} ${count === 1 ? 'sede' : 'sedes'})`;
+      if (mCod === currentMetricasVal) opt.selected = true;
+      selectMetricas.appendChild(opt);
+    }
+  }
+}
+window.actualizarSelectorMesesSedes = actualizarSelectorMesesSedes;
+
 function cambiarFiltroAnioGlobal(anio) {
   AppState.matrizAnio = anio;
   const titleEl = document.getElementById('header-titulo-vista');
   if (titleEl && titleEl.textContent.includes('Sedes')) {
     titleEl.textContent = `Sedes · Plan ${anio}`;
   }
+  actualizarSelectorMesesSedes();
   actualizarKPIsPlanMaqueta();
   renderListaEstablecimientos();
 }
