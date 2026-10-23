@@ -3503,79 +3503,28 @@ function configurarCamposDinamicosModal(cat, est) {
           </select>
         </div>
       </div>
-    `;  } else if (cat.id === 'confeccion_rgrl') {
-    container.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Estado del RGRL (Dec. 351/79)</label>
-          <select id="campo-rgrl-estado" class="input-select text-xs">
-            <option value="Completo sin desvíos">Completo sin desvíos</option>
-            <option value="Con Plan de Adecuaciones" selected>Con Plan de Adecuaciones / Mejoras</option>
-            <option value="En relevamiento">En relevamiento / Seguimiento</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad de Puntos Relevados</label>
-          <input type="number" id="campo-rgrl-puntos" class="input-text text-xs" placeholder="Ej: 15" min="0" oninput="actualizarPreviewNombreArchivo()">
-        </div>
-      </div>
-    `;
-  } else if (cat.id === 'confeccion_rar') {
-    container.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Resultado de la Nómina RAR</label>
-          <select id="campo-rar-estado" class="input-select text-xs">
-            <option value="Sin Expuestos">Sin trabajadores expuestos a agentes de riesgo</option>
-            <option value="Con Expuestos">Con personal expuesto a agentes declarados</option>
-            <option value="En Relevamiento">En relevamiento médico-laboral</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad de Expuestos Declarados</label>
-          <input type="number" id="campo-rar-expuestos" class="input-text text-xs" placeholder="Ej: 0" min="0" oninput="actualizarPreviewNombreArchivo()">
-        </div>
-      </div>
-    `;
-  } else if (cat.id === 'carga_fuego') {
-    container.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Sector o Área Calculada</label>
-          <input type="text" id="campo-fuego-sector" class="input-text text-xs" placeholder="Ej: Depósito Central / Archivo" oninput="actualizarPreviewNombreArchivo()">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Carga Estimada (Mcal/m²)</label>
-          <input type="text" id="campo-fuego-carga" class="input-text text-xs" placeholder="Ej: 28.5 Mcal/m²">
-        </div>
-      </div>
-    `;
-  } else if (cat.id === 'simulacro') {
-    container.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Hipótesis de Emergencia</label>
-          <select id="campo-simulacro-tipo" class="input-select text-xs" onchange="actualizarPreviewNombreArchivo()">
-            <option value="Incendio">Incendio y Evacuación</option>
-            <option value="Sismo">Sismo / Colapso</option>
-            <option value="Derrame Químico">Derrame Químico</option>
-            <option value="General">Evacuación General</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Tiempo de Evacuación</label>
-          <input type="text" id="campo-simulacro-tiempo" class="input-text text-xs" placeholder="Ej: 3 min 45 seg">
-        </div>
-      </div>
-    `;
-  } else {
+    `;  } else if (cat.id === 'confeccion_rar' || cat.id === 'confeccion_rgrl') {
+    // Subida limpia directa sin preguntas adicionales ni selectores de expuestos
+    container.innerHTML = '';
+  } else if (AppState.customActivities && AppState.customActivities.some(c => c.id === cat.id)) {
     container.innerHTML = `
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">Detalle o Descripción de la Actividad</label>
         <input type="text" id="campo-detalle-generico" class="input-text text-xs" placeholder="Ej: Memoria descriptiva / Protocolo especial" oninput="actualizarPreviewNombreArchivo()">
       </div>
     `;
+  } else {
+    container.innerHTML = '';
   }
+
+  // Ocultar el contenedor si no hay campos adicionales para una subida 100% limpia
+  if (!container.innerHTML.trim()) {
+    container.style.display = 'none';
+  } else {
+    container.style.display = 'block';
+  }
+
+  actualizarPreviewNombreArchivo();
 }
 
 function cambiarFaseAgua(fase) {
@@ -3624,10 +3573,13 @@ function cambiarFaseAgua(fase) {
       </div>
     `;
   }
-  actualizarPreviewNombreArchivo();
 }
 
+
 function obtenerDetalleActualParaCodificacion() {
+  if (currentActividadModal === 'confeccion_rar') return 'Nomina';
+  if (currentActividadModal === 'confeccion_rgrl') return 'Relevamiento';
+
   const cvVis = document.getElementById('campo-cv-visita');
   const cvMot = document.getElementById('campo-cv-motivo');
   if (cvVis && cvVis.value.trim()) {
@@ -3656,12 +3608,6 @@ function obtenerDetalleActualParaCodificacion() {
 
   const mPts = document.getElementById('campo-med-puntos');
   if (mPts && mPts.value.trim()) return mPts.value.trim();
-
-  const rgrlPts = document.getElementById('campo-rgrl-puntos');
-  if (rgrlPts && rgrlPts.value.trim()) return 'Puntos_' + rgrlPts.value.trim();
-
-  const rarExp = document.getElementById('campo-rar-expuestos');
-  if (rarExp && rarExp.value.trim()) return 'Expuestos_' + rarExp.value.trim();
 
   const fuegoSec = document.getElementById('campo-fuego-sector');
   if (fuegoSec && fuegoSec.value.trim()) return sanitizeText(fuegoSec.value.trim());
