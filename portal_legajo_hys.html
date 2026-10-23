@@ -728,6 +728,177 @@
       }
     }
 
+  
+    /* =========================================================
+       ESTILOS DEL MODAL DE SUBIDA RAPIDA POR LOTE (COMPACTO)
+       ========================================================= */
+    .fast-batch-item-card {
+      background: #ffffff;
+      border: 1px solid var(--border-table);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: border-color 0.15s ease;
+    }
+    .fast-batch-item-card:hover {
+      border-color: var(--primary);
+    }
+    .fast-item-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .fast-item-title-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .fast-item-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .fast-item-size {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .fast-item-actions-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .fast-item-del-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 3px;
+      transition: all 0.15s;
+      font-size: 13px;
+    }
+    .fast-item-del-btn:hover {
+      color: var(--alert);
+      background: var(--alert-bg);
+    }
+    .fast-item-row-fields {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.8fr) 130px minmax(200px, 2.2fr);
+      gap: 10px;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px solid #EEF0EC;
+    }
+    @media (max-width: 760px) {
+      .fast-item-row-fields {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+    .fast-item-drive-tag {
+      background: #F7F8F6;
+      border: 1px solid var(--border-table);
+      border-radius: 3px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Panel Lateral Colapsable */
+    .side.collapsed {
+      display: none !important;
+    }
+
+    /* Chips Activos de Filtros */
+    .chip-filtro-activo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 14px;
+      border: 1px solid #C4DDE2;
+      background: #E3EDEF;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .chip-filtro-btn-remove {
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--primary);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+      font-weight: 700;
+    }
+    .chip-filtro-btn-remove:hover {
+      color: var(--alert);
+    }
+    .btn-limpiar-todos-filtros {
+      border: 1px dashed var(--border-control);
+      background: #fff;
+      color: var(--alert);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-limpiar-todos-filtros:hover {
+      background: #fff5f5;
+      border-color: var(--alert);
+    }
+
+    /* Dropdown Menú Faltantes */
+    #dropdown-faltantes-menu {
+      display: none;
+    }
+    #dropdown-faltantes-menu.open {
+      display: flex !important;
+    }
+
+    /* Grid responsivo de Filtros Fila 1 */
+    .grid-filtros-fila-1 {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 1.2fr 1fr 1.2fr;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    @media (max-width: 900px) {
+      .grid-filtros-fila-1 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 600px) {
+      .grid-filtros-fila-1 {
+        grid-template-columns: 1fr;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -792,9 +963,9 @@
     <!-- Encabezado Superior -->
     <header class="header-bar">
       <h1 id="header-titulo-vista" style="margin:0;font-size:20px;font-weight:600;flex:1;min-width:200px">Sedes · Plan 2026</h1>
-      
+
       <label style="font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
-        Año 
+        Año
         <select id="filtro-anio-global" class="input-clean" style="min-width:90px;" onchange="cambiarFiltroAnioGlobal(this.value)">
           <option value="2026" selected>2026</option>
           <option value="2027">2027</option>
@@ -805,26 +976,9 @@
 
       <span id="status-sincronizacion" style="font-size:13px;color:var(--text-muted)">Sincronizado hoy</span>
 
-      <button type="button" class="chip" onclick="abrirModalCarpetasMensuales()" title="Abrir carpetas mensuales y por organismo en Google Drive">
-        <i class="fa-solid fa-folder-open" style="margin-right:6px;color:var(--primary);"></i> Carpetas Drive
-      </button>
-
       <button type="button" class="chip" onclick="sincronizarConSheets()" title="Sincronizar historial con Google Sheets y Drive">
         <i class="fa-solid fa-arrows-rotate" style="margin-right:6px;"></i> Sincronizar
       </button>
-
-      <!-- Botones para Validar Datos: Tabla Interna y Google Sheets Real -->
-      <button type="button" class="chip" onclick="cambiarVistaPrincipal('repositorio')" title="Abrir la tabla completa de registros y documentos para validar datos">
-        <i class="fa-solid fa-table-list" style="margin-right:6px;color:var(--primary);"></i> Tabla de Registros
-      </button>
-
-      <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=0" target="_blank" class="chip" style="font-weight:600;background:#EAF7ED;border-color:#2E7D32;color:#1B5E20;text-decoration:none;display:inline-flex;align-items:center;" title="Abrir la planilla de Google Sheets (Legajo_Actividades_Archivos y Matriz) donde se guardan los datos en la nube">
-        <i class="fa-solid fa-file-excel" style="margin-right:6px;color:#2E7D32;"></i> Planilla Sheets (Validar)
-      </a>
-
-      <a href="portal_legajo_clasico.html" class="chip" style="font-weight:600;background:#fff;border-color:var(--text-main);color:var(--text-main);text-decoration:none;" title="Volver a la versión clásica anterior 100% funcional">
-        <i class="fa-solid fa-clock-rotate-left" style="margin-right:6px;color:var(--alert);"></i> Versión Clásica
-      </a>
 
       <button type="button" class="btn-action-primary" onclick="abrirModalSubidaRapida()" title="Subir lote de documentos con lectura inteligente de OCR">
         <i class="fa-solid fa-cloud-arrow-up"></i> Cargar documentos
@@ -923,30 +1077,31 @@
         <!-- Columna Izquierda: Filtros y Tabla -->
         <main class="main-content-panel">
           
-          <!-- Filtros Principales -->
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-            <label style="flex:1;min-width:200px;font-size:12px;color:var(--text-muted)">
+          <!-- Filtros Principales (Propuesta de 3 Filas) -->
+          <!-- Fila 1: Filtros de Sede, Organismo, Localidad, Superficie y Estado -->
+          <div class="grid-filtros-fila-1">
+            <label style="font-size:12px;color:var(--text-muted)">
               Buscar sede
-              <input type="search" id="buscar-establecimiento" placeholder="Nombre, N.º de establecimiento o CUIT" class="input-clean" style="display:block;width:100%;margin-top:4px;">
+              <input type="search" id="buscar-establecimiento" placeholder="Nombre, N.° o CUIT" class="input-clean" style="display:block;width:100%;margin-top:4px;">
             </label>
 
             <label style="font-size:12px;color:var(--text-muted)">
               Organismo
-              <select id="filtro-organismo" class="input-clean" style="display:block;margin-top:4px;min-width:180px;">
+              <select id="filtro-organismo" class="input-clean" style="display:block;width:100%;margin-top:4px;">
                 <option value="">Todos los Organismos</option>
               </select>
             </label>
 
             <label style="font-size:12px;color:var(--text-muted)">
               Localidad
-              <select id="filtro-localidad" class="input-clean" style="display:block;margin-top:4px;min-width:160px;">
+              <select id="filtro-localidad" class="input-clean" style="display:block;width:100%;margin-top:4px;">
                 <option value="">Todas las Localidades</option>
               </select>
             </label>
 
             <label style="font-size:12px;color:var(--text-muted)">
               Superficie
-              <select id="filtro-superficie" class="input-clean" style="display:block;margin-top:4px;min-width:140px;">
+              <select id="filtro-superficie" class="input-clean" style="display:block;width:100%;margin-top:4px;">
                 <option value="">Cualquiera</option>
                 <option value="mas_1000">Más de 1.000 m²</option>
                 <option value="menor_1000">Menos de 1.000 m²</option>
@@ -955,22 +1110,34 @@
             </label>
 
             <label style="font-size:12px;color:var(--text-muted)">
+              Estado
+              <select id="filtro-estado-actividad" class="input-clean" style="display:block;width:100%;margin-top:4px;" onchange="AppState.filtroEstadoActividad = this.value; renderListaEstablecimientos();">
+                <option value="todos">Todos (Estado)</option>
+                <option value="con_actividad">Con actividad (≥ 1)</option>
+                <option value="sin_actividad">Sin actividad (0)</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Fila 2: Mes de Visita y Menú Desplegable Faltantes -->
+          <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;position:relative;">
+            <label style="flex:1;font-size:12px;color:var(--text-muted)">
               Mes de visita
               <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-                <select id="filtro-mes" class="input-clean" style="min-width:130px;" onchange="AppState.filtroMes = this.value; renderListaEstablecimientos(); actualizarKPIsPlanMaqueta();">
+                <select id="filtro-mes" class="input-clean" style="flex:1;" onchange="AppState.filtroMes = this.value; renderListaEstablecimientos(); actualizarKPIsPlanMaqueta();">
                   <option value="todos">Todo el año</option>
-                  <option value="01">Enero</option>
-                  <option value="02">Febrero</option>
-                  <option value="03">Marzo</option>
-                  <option value="04">Abril</option>
-                  <option value="05">Mayo</option>
-                  <option value="06">Junio</option>
-                  <option value="07">Julio</option>
-                  <option value="08">Agosto</option>
-                  <option value="09">Septiembre</option>
-                  <option value="10">Octubre</option>
-                  <option value="11">Noviembre</option>
-                  <option value="12">Diciembre</option>
+                  <option value="01">01 - Enero</option>
+                  <option value="02">02 - Febrero</option>
+                  <option value="03">03 - Marzo</option>
+                  <option value="04">04 - Abril</option>
+                  <option value="05">05 - Mayo</option>
+                  <option value="06">06 - Junio</option>
+                  <option value="07">07 - Julio</option>
+                  <option value="08">08 - Agosto</option>
+                  <option value="09">09 - Septiembre</option>
+                  <option value="10">10 - Octubre</option>
+                  <option value="11">11 - Noviembre</option>
+                  <option value="12">12 - Diciembre</option>
                 </select>
                 <button type="button" class="chip" onclick="generarReporteMensualPdf()" style="min-height:36px;padding:4px 10px;font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF del mes seleccionado">
                   <i class="fa-solid fa-file-pdf"></i> PDF
@@ -978,33 +1145,62 @@
               </div>
             </label>
 
-            <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-main);cursor:pointer;user-select:none;padding:6px 12px;background:#fff;border:1px solid var(--border-control);border-radius:2px;min-height:36px;margin-bottom:0;" title="Mostrar unicamente sedes que tienen al menos una actividad técnica registrada">
-              <input type="checkbox" id="filtro-solo-con-actividad" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" onchange="AppState.filtroSoloConActividad = this.checked; const c = document.getElementById('filtro-solo-con-actividad-chip'); if(c) c.checked = this.checked; renderListaEstablecimientos();">
-              <span>Solo con actividad (&ge; 1)</span>
-            </label>
+            <!-- Menú Desplegable Faltantes ▾ -->
+            <div style="position:relative;">
+              <button type="button" id="btn-dropdown-faltantes" class="input-clean" onclick="toggleDropdownFaltantes(event)" style="min-height:36px;padding:6px 14px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;background:#fff;border-color:var(--border-control);">
+                <i class="fa-solid fa-list-check" style="color:var(--primary);font-size:12px;"></i>
+                <span id="btn-dropdown-faltantes-label">Faltantes</span>
+                <span id="badge-cuenta-faltantes" class="chip" style="display:none;background:var(--primary);color:#fff;border:none;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;">0</span>
+                <i class="fa-solid fa-chevron-down" style="font-size:10px;margin-left:2px;"></i>
+              </button>
+
+              <div id="dropdown-faltantes-menu" class="hidden" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--border-control);border-radius:4px;box-shadow:0 6px 16px rgba(0,0,0,0.14);padding:10px 14px;z-index:60;min-width:210px;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Falta en la sede:</div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-pat" value="pat" onchange="toggleFiltroFaltanteCheckbox('pat', this.checked)">
+                  <span>Puesta a Tierra (PAT)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-ruido" value="ruido" onchange="toggleFiltroFaltanteCheckbox('ruido', this.checked)">
+                  <span>Medición de Ruido</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-ilum" value="ilum" onchange="toggleFiltroFaltanteCheckbox('ilum', this.checked)">
+                  <span>Medición de Iluminación</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-rgrl" value="rgrl" onchange="toggleFiltroFaltanteCheckbox('rgrl', this.checked)">
+                  <span>Relevamiento RGRL</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-rar" value="rar" onchange="toggleFiltroFaltanteCheckbox('rar', this.checked)">
+                  <span>Nómina RAR</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-visita" value="visita" onchange="toggleFiltroFaltanteCheckbox('visita', this.checked)">
+                  <span>Constancia de Visita</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="chk-faltante-agua" value="agua" onchange="toggleFiltroFaltanteCheckbox('agua', this.checked)">
+                  <span>Análisis de Agua</span>
+                </label>
+              </div>
+            </div>
           </div>
 
-          <!-- Filtros Rápidos por Chips: Tareas Faltantes -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 6px">
-            <span style="font-size:12px;color:var(--text-muted);margin-right:4px">Mostrar sedes a las que les falta:</span>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('pat', this)">PAT</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('ruido', this)">Ruido</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('rgrl', this)">RGRL</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('rar', this)">RAR</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('visita', this)">Constancia de visita</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('agua', this)">Agua</button>
-            <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('ilum', this)">Iluminación</button>
-          <span style="color:var(--border-table);margin:0 2px;">|</span>
-          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;user-select:none;background:#fff;padding:4px 10px;border:1px solid var(--primary);border-radius:2px;" title="Filtrar sedes con al menos 1 actividad registrada">
-            <input type="checkbox" id="filtro-solo-con-actividad-chip" style="accent-color:var(--primary);cursor:pointer;" onchange="const m = document.getElementById('filtro-solo-con-actividad'); if (m) m.checked = this.checked; AppState.filtroSoloConActividad = this.checked; renderListaEstablecimientos();">
-            <span><i class="fa-solid fa-filter" style="margin-right:4px;"></i>Solo con &ge; 1 actividad</span>
-          </label>
-
+          <!-- Fila 3: Chips de Filtros Activos con ✕ y Limpiar Filtros -->
+          <div id="contenedor-chips-filtros-activos" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;min-height:26px;">
+            <!-- Rellenado dinámicamente por renderChipsFiltrosActivos() -->
           </div>
 
           <!-- Contador y Leyenda -->
-          <div id="sedes-tabla-contador" style="font-size:13px;color:var(--text-muted);margin:12px 0 8px">
-            Cargando sedes... · ● presente &nbsp; ○ falta &nbsp; – no corresponde
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;flex-wrap:wrap;gap:8px;">
+            <div id="sedes-tabla-contador" style="font-size:13px;color:var(--text-muted);">
+              Cargando sedes... · ✓ presente &nbsp; ✗ falta &nbsp; — no corresponde
+            </div>
+            <button type="button" id="btn-toggle-ficha" class="chip" onclick="togglePanelFichaSede()" style="display:none;font-size:12px;font-weight:600;color:var(--primary);border-color:var(--border-control);" title="Mostrar u ocultar la ficha de la sede seleccionada">
+              <i class="fa-solid fa-id-card" style="margin-right:6px;color:var(--primary);"></i> Ficha de Sede
+            </button>
           </div>
 
           <!-- Tabla de Sedes de la Maqueta -->
@@ -1036,9 +1232,12 @@
         </main>
 
         <!-- Columna Derecha: Ficha de Sede y Carga Rápida -->
-        <aside class="side" aria-label="Ficha de la sede seleccionada">
+        <aside class="side collapsed" id="panel-ficha-sede" aria-label="Ficha de la sede seleccionada">
           
-          <div style="font-size:12px;color:var(--text-muted)">Ficha de sede</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Ficha de sede</div>
+            <button type="button" onclick="cerrarPanelFichaSede()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:0 6px;border-radius:3px;line-height:1;" title="Ocultar ficha y ver tabla en pantalla completa">&times;</button>
+          </div>
           <h2 id="side-sede-nombre" style="margin:4px 0 2px;font-size:20px;font-weight:600">Escuela N.º 12</h2>
           <div id="side-sede-sub" style="font-size:13px;color:var(--text-muted)">N.º 003 · CUIT 30-67119808-1 · CGE · Paraná</div>
 

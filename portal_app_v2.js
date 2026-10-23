@@ -165,6 +165,8 @@ const AppState = {
   filtroSuperficie: '',
   filtroMes: 'todos',
   filtroSoloConActividad: false,
+  filtroEstadoActividad: 'todos', // 'todos' | 'con_actividad' | 'sin_actividad'
+  filtrosFaltantes: new Set(),
   
   // Filtros Vista 2 (Matriz)
   matrizAnio: '2026',
@@ -945,11 +947,16 @@ function renderListaEstablecimientos() {
       if (!match) return false;
     }
 
-    // Filtro para mostrar solo sedes con al menos una actividad registrada
-    if (AppState.filtroSoloConActividad) {
+    // Filtro por Estado de Actividad (Todos / Con actividad >= 1 / Sin actividad 0)
+    const estadoFiltro = AppState.filtroEstadoActividad || (AppState.filtroSoloConActividad ? 'con_actividad' : 'todos');
+    if (estadoFiltro === 'con_actividad') {
       const acts = obtenerActividadesDeSede(e);
       const tieneActividad = (acts && acts.length > 0) || Boolean(e.data);
       if (!tieneActividad) return false;
+    } else if (estadoFiltro === 'sin_actividad') {
+      const acts = obtenerActividadesDeSede(e);
+      const tieneActividad = (acts && acts.length > 0) || Boolean(e.data);
+      if (tieneActividad) return false;
     }
 
     // Filtro por rango de superficie
@@ -1015,8 +1022,9 @@ function renderListaEstablecimientos() {
     counterSpan.textContent = `Mostrando ${filtered.length} de ${totalSedes} sedes`;
   }
   if (counterMaqueta) {
-    counterMaqueta.innerHTML = `${filtered.length} de ${totalSedes} sedes · ● presente &nbsp; ○ falta &nbsp; – no corresponde`;
+    counterMaqueta.innerHTML = `${filtered.length} de ${totalSedes} sedes · ✓ presente &nbsp; ✗ falta &nbsp; — no corresponde`;
   }
+  renderChipsFiltrosActivos();
 
   // Renderizar en la tabla de la nueva interfaz si existe
   if (tbody) {
@@ -1070,6 +1078,7 @@ function seleccionarEstablecimiento(estId) {
 
   AppState.establecimientoSeleccionado = est;
   localStorage.setItem(STORAGE_KEYS.CURRENT_EST_ID, estId);
+  abrirPanelFichaSede();
 
   // Actualizar fila activa en la tabla
   document.querySelectorAll('tr.sede-row').forEach(tr => {
@@ -3732,6 +3741,14 @@ function setupEventListeners() {
     });
   }
 
+  const estadoActSelect = document.getElementById('filtro-estado-actividad');
+  if (estadoActSelect) {
+    estadoActSelect.addEventListener('change', (e) => {
+      AppState.filtroEstadoActividad = e.target.value;
+      renderListaEstablecimientos();
+    });
+  }
+
   const chkSoloAct = document.getElementById('filtro-solo-con-actividad');
   if (chkSoloAct) {
     chkSoloAct.addEventListener('change', (e) => {
@@ -5090,52 +5107,40 @@ function renderFastBatchList() {
     const fechaValor = item.fechaDdmmaaa || formatearFechaDdmmaaa(item.fecha);
 
     html += `
-      <div id="item-card-${item.id}" class="p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl space-y-2 shadow-2xs transition">
-        <!-- Fila 1: Cabecera del archivo con nombre, peso, estado OCR y botón eliminar -->
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2 truncate flex-1 min-w-0">
-            <span class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-sm shrink-0">
+      <div id="item-card-${item.id}" class="fast-batch-item-card">
+        <!-- Fila 1: Cabecera compacta (nombre + peso a la izquierda, badges OCR y tachito a la derecha) -->
+        <div class="fast-item-row-header">
+          <div class="fast-item-title-box">
+            <span class="w-6 h-6 rounded flex items-center justify-center text-sm shrink-0" style="color: ${isPdf ? '#DC2626' : '#059669'};">
               <i class="${iconClass}"></i>
             </span>
-            <div class="truncate">
-              <span class="text-xs font-bold text-slate-800 truncate" title="${escapeHtml(item.originalName)}">${escapeHtml(item.originalName)}</span>
-              <span class="text-[10px] text-slate-400 ml-1">(${sizeKb} KB)</span>
-            </div>
+            <span class="fast-item-name" title="${escapeHtml(item.originalName)}">${escapeHtml(item.originalName)}</span>
+            <span class="fast-item-size">(${sizeKb} KB)</span>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
+          <div class="fast-item-actions-box">
             <div id="container-dup-badge-${item.id}">${dupBadgeHtml}</div>
             <div id="container-ocr-badge-${item.id}">${ocrBadgeHtml}</div>
             <div id="container-upload-status-${item.id}">${uploadStatusHtml}</div>
-            <button type="button" onclick="eliminarItemLote('${item.id}')" title="Quitar este archivo de la cola" class="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition">
-              <i class="fa-solid fa-trash-can text-xs"></i>
+            <button type="button" onclick="eliminarItemLote('${item.id}')" title="Quitar este archivo de la cola" class="fast-item-del-btn">
+              <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </div>
 
-        <!-- Fila 2: Formulario limpio sin campos extras: Tipo de Documento + Fecha (DD/MM/AAAA) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+        <!-- Fila 2: Formulario compacto en una sola línea horizontal: Tipo Doc + Fecha + Código Drive -->
+        <div class="fast-item-row-fields">
           <div>
-            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5 tracking-wider">Tipo de Documento *</label>
-            <select id="select-tipo-${item.id}" class="input-select text-xs font-semibold text-slate-800 py-1.5 w-full" onchange="cambiarTipoItemLote('${item.id}', this.value)">
+            <select id="select-tipo-${item.id}" class="input-select" onchange="cambiarTipoItemLote('${item.id}', this.value)">
               ${generarOpcionesActividades(item.actTipo)}
             </select>
           </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5 tracking-wider">Fecha (DD/MM/AAAA) *</label>
-            <div class="relative">
-              <input type="text" id="input-fecha-${item.id}" class="input-text text-xs py-1.5 w-full font-mono font-bold tracking-wide text-slate-900 pr-8" placeholder="DD/MM/AAAA" maxlength="10" value="${fechaValor}" oninput="formatearFechaInputLote('${item.id}', this)" onblur="validarFechaInputLote('${item.id}', this)">
-              <span class="absolute right-2.5 top-2 text-xs text-slate-400 pointer-events-none"><i class="fa-regular fa-calendar"></i></span>
-            </div>
+          <div style="position:relative;">
+            <input type="text" id="input-fecha-${item.id}" class="input-text font-mono" placeholder="DD/MM/AAAA" maxlength="10" value="${fechaValor}" oninput="formatearFechaInputLote('${item.id}', this)" onblur="validarFechaInputLote('${item.id}', this)" style="padding-right:26px;">
+            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;font-size:11px;"><i class="fa-regular fa-calendar"></i></span>
           </div>
-        </div>
-
-        <!-- Fila 3: Preview de codificación oficial Drive -->
-        <div class="flex items-center justify-between text-[11px] bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
-          <div class="flex items-center gap-1.5 text-slate-500 truncate">
-            <i class="fa-solid fa-tag text-[10px] text-blue-500"></i>
-            <span class="font-mono text-[11px] font-semibold text-blue-900 truncate" id="preview-item-${item.id}">
-              ${escapeHtml(codedName)}
-            </span>
+          <div class="fast-item-drive-tag" title="Nombre codificado oficial para Drive: ${escapeHtml(codedName)}">
+            <i class="fa-solid fa-tag" style="color:var(--primary);font-size:10px;flex-shrink:0;"></i>
+            <span id="preview-item-${item.id}" style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(codedName)}</span>
           </div>
         </div>
       </div>
@@ -5511,8 +5516,10 @@ async function guardarLoteSubidaRapida() {
   }, 1600);
 }
 window.guardarLoteSubidaRapida = guardarLoteSubidaRapida;
-window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatibilidad
-window.limpiarLoteFast = limpiarLoteSubidaRapida;
+window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatibilidad
+
+window.limpiarLoteFast = limpiarLoteSubidaRapida;
+
 window.confirmarLoteFast = guardarLoteSubidaRapida;
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
@@ -9373,3 +9380,239 @@ window.cambiarFiltroAnioGlobal = cambiarFiltroAnioGlobal;
 
 
 window.guardarRegistroActividad = guardarActividadYSubir;
+
+// ==================== PANEL FICHA DE SEDE (COLAPSABLE / DESPLEGABLE) ====================
+function abrirPanelFichaSede() {
+  const panel = document.getElementById('panel-ficha-sede');
+  const btnToggle = document.getElementById('btn-toggle-ficha');
+  if (panel) {
+    panel.classList.remove('collapsed');
+    panel.style.display = '';
+  }
+  if (btnToggle) {
+    btnToggle.style.display = 'none';
+  }
+}
+window.abrirPanelFichaSede = abrirPanelFichaSede;
+
+function cerrarPanelFichaSede() {
+  const panel = document.getElementById('panel-ficha-sede');
+  const btnToggle = document.getElementById('btn-toggle-ficha');
+  if (panel) {
+    panel.classList.add('collapsed');
+  }
+  if (btnToggle && AppState.establecimientoSeleccionado) {
+    btnToggle.style.display = 'inline-flex';
+  }
+}
+window.cerrarPanelFichaSede = cerrarPanelFichaSede;
+
+function togglePanelFichaSede() {
+  const panel = document.getElementById('panel-ficha-sede');
+  if (!panel) return;
+  if (panel.classList.contains('collapsed')) {
+    abrirPanelFichaSede();
+  } else {
+    cerrarPanelFichaSede();
+  }
+}
+window.togglePanelFichaSede = togglePanelFichaSede;
+
+// ==================== MENÚ DESPLEGABLE DE FALTANTES & CHIPS ACTIVOS ====================
+function toggleDropdownFaltantes(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const menu = document.getElementById('dropdown-faltantes-menu');
+  if (menu) {
+    menu.classList.toggle('open');
+  }
+}
+window.toggleDropdownFaltantes = toggleDropdownFaltantes;
+
+function toggleFiltroFaltanteCheckbox(tipo, valOrElement) {
+  if (!AppState.filtrosFaltantes) {
+    AppState.filtrosFaltantes = new Set();
+  }
+  const isChecked = typeof valOrElement === 'boolean' ? valOrElement : Boolean(valOrElement && valOrElement.checked);
+  if (isChecked) {
+    AppState.filtrosFaltantes.add(tipo);
+  } else {
+    AppState.filtrosFaltantes.delete(tipo);
+  }
+  renderChipsFiltrosActivos();
+  renderListaEstablecimientos();
+}
+window.toggleFiltroFaltanteCheckbox = toggleFiltroFaltanteCheckbox;
+
+function removerFiltroActivo(tipo) {
+  if (tipo === 'texto') {
+    AppState.filtroTexto = '';
+    const input = document.getElementById('buscar-establecimiento');
+    if (input) input.value = '';
+  } else if (tipo === 'organismo') {
+    AppState.filtroOrganismo = '';
+    const sel = document.getElementById('filtro-organismo');
+    if (sel) sel.value = '';
+  } else if (tipo === 'localidad') {
+    AppState.filtroLocalidad = '';
+    const sel = document.getElementById('filtro-localidad');
+    if (sel) sel.value = '';
+  } else if (tipo === 'superficie') {
+    AppState.filtroSuperficie = '';
+    const sel = document.getElementById('filtro-superficie');
+    if (sel) sel.value = '';
+  } else if (tipo === 'estado') {
+    AppState.filtroEstadoActividad = 'todos';
+    AppState.filtroSoloConActividad = false;
+    const sel = document.getElementById('filtro-estado-actividad');
+    if (sel) sel.value = 'todos';
+  } else if (tipo === 'mes') {
+    AppState.filtroMes = 'todos';
+    const sel = document.getElementById('filtro-mes');
+    if (sel) sel.value = 'todos';
+  } else if (tipo && tipo.startsWith('faltante:')) {
+    const fId = tipo.replace('faltante:', '');
+    if (AppState.filtrosFaltantes) {
+      AppState.filtrosFaltantes.delete(fId);
+    }
+    const chk = document.getElementById('chk-faltante-' + fId);
+    if (chk) chk.checked = false;
+  }
+  renderChipsFiltrosActivos();
+  renderListaEstablecimientos();
+}
+window.removerFiltroActivo = removerFiltroActivo;
+
+function limpiarTodosLosFiltros() {
+  AppState.filtroTexto = '';
+  AppState.filtroOrganismo = '';
+  AppState.filtroLocalidad = '';
+  AppState.filtroSuperficie = '';
+  AppState.filtroEstadoActividad = 'todos';
+  AppState.filtroSoloConActividad = false;
+  AppState.filtroMes = 'todos';
+  if (AppState.filtrosFaltantes) {
+    AppState.filtrosFaltantes.clear();
+  }
+  
+  // Sincronizar inputs del DOM
+  const sInput = document.getElementById('buscar-establecimiento');
+  if (sInput) sInput.value = '';
+  const oSel = document.getElementById('filtro-organismo');
+  if (oSel) oSel.value = '';
+  const lSel = document.getElementById('filtro-localidad');
+  if (lSel) lSel.value = '';
+  const supSel = document.getElementById('filtro-superficie');
+  if (supSel) supSel.value = '';
+  const eSel = document.getElementById('filtro-estado-actividad');
+  if (eSel) eSel.value = 'todos';
+  const mSel = document.getElementById('filtro-mes');
+  if (mSel) mSel.value = 'todos';
+
+  // Desmarcar todos los checks del dropdown faltantes
+  ['pat', 'ruido', 'ilum', 'rgrl', 'rar', 'visita', 'agua'].forEach(k => {
+    const chk = document.getElementById('chk-faltante-' + k);
+    if (chk) chk.checked = false;
+  });
+
+  renderChipsFiltrosActivos();
+  renderListaEstablecimientos();
+}
+window.limpiarTodosLosFiltros = limpiarTodosLosFiltros;
+
+function renderChipsFiltrosActivos() {
+  const container = document.getElementById('contenedor-chips-filtros-activos');
+  if (!container) return;
+
+  const chips = [];
+
+  if (AppState.filtroTexto && AppState.filtroTexto.trim()) {
+    chips.push({ id: 'texto', label: `Texto: "${AppState.filtroTexto.trim()}"` });
+  }
+  if (AppState.filtroOrganismo) {
+    chips.push({ id: 'organismo', label: `Organismo: ${AppState.filtroOrganismo}` });
+  }
+  if (AppState.filtroLocalidad) {
+    chips.push({ id: 'localidad', label: `Localidad: ${AppState.filtroLocalidad}` });
+  }
+  if (AppState.filtroSuperficie) {
+    const lbl = AppState.filtroSuperficie === 'mas_1000' ? '> 1.000 m²' : (AppState.filtroSuperficie === 'menor_1000' ? '< 1.000 m²' : 'Sin dato');
+    chips.push({ id: 'superficie', label: `Sup: ${lbl}` });
+  }
+  if (AppState.filtroEstadoActividad && AppState.filtroEstadoActividad !== 'todos') {
+    const lbl = AppState.filtroEstadoActividad === 'con_actividad' ? 'Con actividad (≥ 1)' : 'Sin actividad (0)';
+    chips.push({ id: 'estado', label: `Estado: ${lbl}` });
+  }
+  if (AppState.filtroMes && AppState.filtroMes !== 'todos') {
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const idx = parseInt(AppState.filtroMes, 10) - 1;
+    const mesNom = (idx >= 0 && idx < 12) ? meses[idx] : AppState.filtroMes;
+    chips.push({ id: 'mes', label: `Mes: ${mesNom}` });
+  }
+  if (AppState.filtrosFaltantes && AppState.filtrosFaltantes.size > 0) {
+    const nombresFaltantes = {
+      pat: 'Falta PAT',
+      ruido: 'Falta Ruido',
+      ilum: 'Falta Ilum.',
+      rgrl: 'Falta RGRL',
+      rar: 'Falta RAR',
+      visita: 'Falta Visita (CV)',
+      agua: 'Falta Agua'
+    };
+    AppState.filtrosFaltantes.forEach(f => {
+      chips.push({ id: 'faltante:' + f, label: nombresFaltantes[f] || `Falta ${f}` });
+    });
+  }
+
+  // Actualizar badge en botón de dropdown faltantes
+  const badgeDropdown = document.getElementById('badge-cuenta-faltantes');
+  if (badgeDropdown) {
+    const cantFalt = AppState.filtrosFaltantes ? AppState.filtrosFaltantes.size : 0;
+    if (cantFalt > 0) {
+      badgeDropdown.textContent = cantFalt;
+      badgeDropdown.style.display = 'inline-flex';
+    } else {
+      badgeDropdown.style.display = 'none';
+    }
+  }
+
+  if (chips.length === 0) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+  let html = '';
+  chips.forEach(c => {
+    html += `
+      <span class="chip-filtro-activo">
+        <span>${escapeHtml(c.label)}</span>
+        <button type="button" class="chip-filtro-btn-remove" onclick="removerFiltroActivo('${c.id}')" title="Quitar este filtro">✕</button>
+      </span>
+    `;
+  });
+
+  html += `
+    <button type="button" class="btn-limpiar-todos-filtros" onclick="limpiarTodosLosFiltros()" title="Restablecer todos los filtros">
+      <i class="fa-solid fa-rotate-left"></i> Limpiar filtros
+    </button>
+  `;
+
+  container.innerHTML = html;
+}
+window.renderChipsFiltrosActivos = renderChipsFiltrosActivos;
+
+// Cerrar dropdown de faltantes al hacer clic fuera
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('dropdown-faltantes-menu');
+  const btn = document.getElementById('btn-dropdown-faltantes');
+  if (menu && menu.classList.contains('open')) {
+    if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+      menu.classList.remove('open');
+    }
+  }
+});
+
