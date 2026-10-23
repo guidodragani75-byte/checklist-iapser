@@ -164,6 +164,7 @@ const AppState = {
   filtroLocalidad: '',
   filtroSuperficie: '',
   filtroMes: 'todos',
+  filtroSoloConActividad: false,
   
   // Filtros Vista 2 (Matriz)
   matrizAnio: '2026',
@@ -942,6 +943,13 @@ function renderListaEstablecimientos() {
                     (e.nroEstab && String(e.nroEstab).toLowerCase().includes(textFilter)) ||
                     (e.cuit && e.cuit.includes(textFilter));
       if (!match) return false;
+    }
+
+    // Filtro para mostrar solo sedes con al menos una actividad registrada
+    if (AppState.filtroSoloConActividad) {
+      const acts = obtenerActividadesDeSede(e);
+      const tieneActividad = (acts && acts.length > 0) || Boolean(e.data);
+      if (!tieneActividad) return false;
     }
 
     // Filtro por rango de superficie
@@ -3724,6 +3732,25 @@ function setupEventListeners() {
     });
   }
 
+  const chkSoloAct = document.getElementById('filtro-solo-con-actividad');
+  if (chkSoloAct) {
+    chkSoloAct.addEventListener('change', (e) => {
+      AppState.filtroSoloConActividad = e.target.checked;
+      const chkChip = document.getElementById('filtro-solo-con-actividad-chip');
+      if (chkChip) chkChip.checked = e.target.checked;
+      renderListaEstablecimientos();
+    });
+  }
+  const chkSoloActChip = document.getElementById('filtro-solo-con-actividad-chip');
+  if (chkSoloActChip) {
+    chkSoloActChip.addEventListener('change', (e) => {
+      AppState.filtroSoloConActividad = e.target.checked;
+      const chkMain = document.getElementById('filtro-solo-con-actividad');
+      if (chkMain) chkMain.checked = e.target.checked;
+      renderListaEstablecimientos();
+    });
+  }
+
   // Filtros Vista 2 (Matriz)
   const anioSelect = document.getElementById('matriz-filtro-anio');
   if (anioSelect) {
@@ -5463,6 +5490,8 @@ async function guardarLoteSubidaRapida() {
 
   // Actualizar todas las vistas
   renderMatrizAnual();
+  renderListaEstablecimientos();
+  actualizarKPIsPlanMaqueta();
   if (AppState.establecimientoSeleccionado && AppState.establecimientoSeleccionado.id === est.id) {
     renderFichaEstablecimiento(est);
     renderPanelActividades(est);
@@ -5482,7 +5511,9 @@ async function guardarLoteSubidaRapida() {
   }, 1600);
 }
 window.guardarLoteSubidaRapida = guardarLoteSubidaRapida;
-window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatibilidad
+window.guardarSubidaRapidaYSubir = guardarLoteSubidaRapida; // alias de compatibilidad
+window.limpiarLoteFast = limpiarLoteSubidaRapida;
+window.confirmarLoteFast = guardarLoteSubidaRapida;
 
 // ==================== SINCRONIZACIÓN CON GOOGLE SHEETS ====================
 

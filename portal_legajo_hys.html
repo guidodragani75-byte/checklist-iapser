@@ -677,6 +677,57 @@
       .main-content-panel { padding: 14px 16px; }
       .header-bar { padding: 12px 16px; }
     }
+  
+    /* =========================================================
+       ESTILOS DEL MODAL DE SUBIDA RÁPIDA POR LOTE (OCR)
+       ========================================================= */
+    .input-text, .input-select {
+      width: 100%;
+      border-radius: 2px;
+      border: 1px solid var(--border-control);
+      padding: 6px 10px;
+      font-size: 12px;
+      background-color: #ffffff;
+      color: var(--text-main);
+      box-sizing: border-box;
+      font-family: var(--font-sans);
+    }
+    .input-text:focus, .input-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(15, 76, 92, 0.15);
+    }
+
+    #fast-dropzone:hover, #fast-dropzone.dragover {
+      border-color: var(--primary) !important;
+      background: var(--primary-light) !important;
+    }
+
+    /* Tarjetas de archivos dentro de la lista de lote */
+    [id^="item-card-"] {
+      background: #ffffff;
+      border: 1px solid var(--border-table);
+      border-radius: 2px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    [id^="item-card-"]:hover {
+      border-color: var(--primary);
+    }
+    [id^="item-card-"] .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 600px) {
+      [id^="item-card-"] .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -707,8 +758,8 @@
           <span style="display:flex;align-items:center;"><i class="fa-solid fa-chart-pie" style="width:18px;margin-right:6px;opacity:0.85;"></i> Plan y métricas</span>
           <span style="font-size: 10px; font-weight: bold; background: #0F4C5C; color:#fff; padding: 1px 5px; border-radius:2px;">SEP=M0</span>
         </a>
-        <a class="nav" id="nav-repositorio" href="#" onclick="cambiarVistaPrincipal('repositorio'); return false;">
-          <i class="fa-solid fa-folder-tree" style="width:18px;margin-right:6px;opacity:0.85;"></i> Documentos
+        <a class="nav" id="nav-repositorio" href="#" onclick="cambiarVistaPrincipal('repositorio'); return false;" title="Tabla completa de auditoría y validación de registros y documentos cargados">
+          <i class="fa-solid fa-table-list" style="width:18px;margin-right:6px;opacity:0.85;"></i> Tabla de Registros
         </a>
       </div>
 
@@ -724,8 +775,8 @@
         <a class="nav" href="#" onclick="abrirModalConfiguracion(); return false;">
           <i class="fa-solid fa-cloud-arrow-up" style="width:18px;margin-right:6px;opacity:0.85;"></i> Conexión y Drive
         </a>
-        <a class="nav" href="#" onclick="abrirModalSuperficiesGlobal(); return false;">
-          <i class="fa-solid fa-table" style="width:18px;margin-right:6px;opacity:0.85;"></i> Hoja base (Sheets)
+        <a class="nav" href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=0" target="_blank" title="Abrir la planilla oficial de Google Sheets donde se registran los datos para validar en la nube">
+          <i class="fa-solid fa-file-excel" style="width:18px;margin-right:6px;color:#34A853;"></i> Planilla Sheets (Nube) <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px;opacity:0.7;"></i>
         </a>
         <a class="nav" href="index.html" target="_blank" title="Abrir el formulario interactivo de Relevamiento Dec. 351/79">
           <i class="fa-solid fa-clipboard-list" style="width:18px;margin-right:6px;opacity:0.85;"></i> Checklist RGRL <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px;opacity:0.7;"></i>
@@ -761,6 +812,15 @@
       <button type="button" class="chip" onclick="sincronizarConSheets()" title="Sincronizar historial con Google Sheets y Drive">
         <i class="fa-solid fa-arrows-rotate" style="margin-right:6px;"></i> Sincronizar
       </button>
+
+      <!-- Botones para Validar Datos: Tabla Interna y Google Sheets Real -->
+      <button type="button" class="chip" onclick="cambiarVistaPrincipal('repositorio')" title="Abrir la tabla completa de registros y documentos para validar datos">
+        <i class="fa-solid fa-table-list" style="margin-right:6px;color:var(--primary);"></i> Tabla de Registros
+      </button>
+
+      <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=0" target="_blank" class="chip" style="font-weight:600;background:#EAF7ED;border-color:#2E7D32;color:#1B5E20;text-decoration:none;display:inline-flex;align-items:center;" title="Abrir la planilla de Google Sheets (Legajo_Actividades_Archivos y Matriz) donde se guardan los datos en la nube">
+        <i class="fa-solid fa-file-excel" style="margin-right:6px;color:#2E7D32;"></i> Planilla Sheets (Validar)
+      </a>
 
       <a href="portal_legajo_clasico.html" class="chip" style="font-weight:600;background:#fff;border-color:var(--text-main);color:var(--text-main);text-decoration:none;" title="Volver a la versión clásica anterior 100% funcional">
         <i class="fa-solid fa-clock-rotate-left" style="margin-right:6px;color:var(--alert);"></i> Versión Clásica
@@ -917,6 +977,11 @@
                 </button>
               </div>
             </label>
+
+            <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-main);cursor:pointer;user-select:none;padding:6px 12px;background:#fff;border:1px solid var(--border-control);border-radius:2px;min-height:36px;margin-bottom:0;" title="Mostrar unicamente sedes que tienen al menos una actividad técnica registrada">
+              <input type="checkbox" id="filtro-solo-con-actividad" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" onchange="AppState.filtroSoloConActividad = this.checked; const c = document.getElementById('filtro-solo-con-actividad-chip'); if(c) c.checked = this.checked; renderListaEstablecimientos();">
+              <span>Solo con actividad (&ge; 1)</span>
+            </label>
           </div>
 
           <!-- Filtros Rápidos por Chips: Tareas Faltantes -->
@@ -929,6 +994,12 @@
             <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('visita', this)">Constancia de visita</button>
             <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('agua', this)">Agua</button>
             <button type="button" class="chip" aria-pressed="false" onclick="toggleFiltroChipMaqueta('ilum', this)">Iluminación</button>
+          <span style="color:var(--border-table);margin:0 2px;">|</span>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;user-select:none;background:#fff;padding:4px 10px;border:1px solid var(--primary);border-radius:2px;" title="Filtrar sedes con al menos 1 actividad registrada">
+            <input type="checkbox" id="filtro-solo-con-actividad-chip" style="accent-color:var(--primary);cursor:pointer;" onchange="const m = document.getElementById('filtro-solo-con-actividad'); if (m) m.checked = this.checked; AppState.filtroSoloConActividad = this.checked; renderListaEstablecimientos();">
+            <span><i class="fa-solid fa-filter" style="margin-right:4px;"></i>Solo con &ge; 1 actividad</span>
+          </label>
+
           </div>
 
           <!-- Contador y Leyenda -->
@@ -1006,7 +1077,11 @@
             <button type="button" class="chip" onclick="abrirModalActividadesSedeActual()" style="width:100%;font-weight:600;background:#fff;border-color:var(--border-control);color:var(--text-main);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;">
               <i class="fa-solid fa-expand" style="color:var(--primary)"></i> Ver todas en pantalla completa
             </button>
-          </div>
+          
+            <button type="button" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="width:100%;font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Subida rápida por lote con OCR para esta sede">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Subida Masiva (OCR)
+            </button>
+</div>
 
           <!-- Zona Drag & Drop: Carga Rápida de Documentos con OCR -->
           <div style="margin-top:18px;font-size:12px;color:var(--text-muted)">Cargar documentos</div>
@@ -1359,6 +1434,9 @@
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=0" target="_blank" class="chip" style="font-weight:600;background:#EAF7ED;border-color:#2E7D32;color:#1B5E20;text-decoration:none;display:inline-flex;align-items:center;" title="Abrir la planilla de Google Sheets original (Legajo_Actividades_Archivos) para validar datos directamente en la nube">
+            <i class="fa-solid fa-file-excel" style="margin-right:6px;color:#2E7D32;"></i> Abrir Planilla Google Sheets
+          </a>
           <button type="button" class="chip" onclick="abrirCarpetaMensualSeleccionada()">
             <i class="fa-solid fa-folder-open" style="margin-right:6px;color:var(--primary)"></i> Carpeta Mensual Drive
           </button>
@@ -1446,6 +1524,10 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <h4 style="margin:0;font-size:15px;font-weight:600;">Panel de las 12 Actividades Técnicas</h4>
           <div id="actividades-header-controls" style="display:flex;gap:6px;">
+            <button type="button" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);min-height:36px;padding:4px 10px;font-size:12px;" title="Subida rápida por lote con OCR para esta sede">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Subida Masiva (OCR)
+            </button>
+
             <button type="button" id="btn-vista-cards" class="chip on" style="min-height:36px;padding:4px 10px;font-size:12px;" onclick="cambiarModoVisualizacionActividades('cards')">
               <i class="fa-solid fa-table-cells-large"></i> Tarjetas
             </button>
@@ -1589,12 +1671,12 @@
   </div>
 </div>
 
-<!-- MODAL: SUBIDA RÁPIDA POR LOTE CON OCR -->
+<!-- MODAL: SUBIDA RÁPIDA POR LOTE CON OCR (LÓGICA CLÁSICA RESTAURADA) -->
 <div id="modal-subida-rapida-general" class="modal-backdrop hidden" style="display:none;">
-  <div class="modal-window" style="width:850px;max-width:96vw;">
+  <div class="modal-window" style="width:880px;max-width:96vw;">
     <div class="modal-head">
       <div style="display:flex;align-items:center;gap:10px;">
-        <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:#A8470A;"></i>
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:var(--alert);"></i>
         <div>
           <h3 style="margin:0;">Carga Libre por Establecimiento (Lote con OCR)</h3>
           <div style="font-size:12px;color:var(--rail-muted);margin-top:2px;">Subí tus documentos: el OCR detecta el tipo de formulario y la fecha (DD/MM/AAAA)</div>
@@ -1603,56 +1685,102 @@
       <button type="button" class="modal-close-btn" onclick="cerrarModal('modal-subida-rapida-general')">&times;</button>
     </div>
 
-    <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
+    <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;max-height:calc(85vh - 130px);">
       
-      <!-- Selector de Sede con Búsqueda -->
+      <!-- 1. Selector de Sede con Busqueda Integrada -->
       <div style="background:#F7F8F6;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <strong style="font-size:12px;text-transform:uppercase;">1. Seleccionar Sede Destino</strong>
-          <span id="fast-estab-count-badge" class="m" style="font-size:12px;color:var(--primary);">452 sedes</span>
+          <strong style="font-size:12px;text-transform:uppercase;color:var(--text-main);"><i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px;"></i>1. Seleccionar Establecimiento Destino *</strong>
+          <span id="fast-estab-count-badge" class="chip on" style="font-size:11px;padding:2px 8px;">452 sedes</span>
         </div>
         
         <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
-          <input type="text" id="fast-buscar-estab" placeholder="Escribí para filtrar sede..." class="input-clean" oninput="filtrarSelectEstablecimientosFast(this.value)">
-          <select id="fast-select-estab" class="input-clean" onchange="cambiarSedeEnSubidaRapida(this.value)"></select>
+          <div style="position:relative;">
+            <input type="text" id="fast-buscar-estab" placeholder="Escribí para buscar (ej: 102, Escuela, CGE)..." class="input-clean" style="width:100%;" oninput="filtrarSelectEstablecimientosFast(this.value)">
+          </div>
+          <div>
+            <select id="fast-select-estab" class="input-clean" style="width:100%;font-weight:600;" onchange="cambiarSedeEnSubidaRapida(this.value)">
+              <!-- Opciones cargadas dinamicamente -->
+            </select>
+          </div>
         </div>
 
-        <div id="fast-estab-info-strip" style="margin-top:8px;padding:8px 12px;background:#fff;border:1px solid var(--border-table);font-size:12px;display:flex;justify-content:space-between;">
-          <span id="fast-info-nombre" style="font-weight:600;color:var(--primary);">-</span>
-          <span id="fast-info-cuit" style="color:var(--text-muted);">-</span>
+        <div id="fast-estab-info-strip" style="margin-top:8px;padding:8px 12px;background:#fff;border:1px solid var(--border-table);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <span id="fast-info-nombre" style="font-weight:600;color:var(--primary);">Seleccioná un establecimiento</span>
+          <div style="display:flex;gap:12px;color:var(--text-muted);font-size:11px;">
+            <span id="fast-info-cuit">CUIT: -</span>
+            <span>*</span>
+            <span id="fast-info-loc">Localidad: -</span>
+          </div>
         </div>
       </div>
 
-      <!-- Dropzone Lote -->
+      <!-- 2. Zona de Carga / Arrastre Multiple -->
       <div>
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">2. Subir Archivos (Arrastrá o seleccioná uno o varios)</label>
-        <div id="fast-dropzone" onclick="document.getElementById('fast-file-input').click()" style="border:1.5px dashed #8A949C;padding:24px;text-align:center;cursor:pointer;background:#fff;border-radius:2px;">
+        <label style="font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span>2. Subir Archivos (Arrastra o selecciona uno o varios) *</span>
+          <span style="font-size:11px;font-weight:normal;color:var(--text-muted);">OCR activo para lectura automatica de tipo y fecha</span>
+        </label>
+        <div id="fast-dropzone" onclick="document.getElementById('fast-file-input').click()" style="border:1.5px dashed var(--border-control);padding:22px;text-align:center;cursor:pointer;background:#FAFAFA;border-radius:2px;transition:all 0.2s;">
           <input type="file" id="fast-file-input" style="display:none;" accept=".pdf,image/*" multiple onchange="manejarArchivosSubidaRapida(this.files)">
-          <i class="fa-solid fa-file-arrow-up" style="font-size:28px;color:var(--primary);margin-bottom:8px;"></i>
-          <div style="font-size:13px;font-weight:600;">Hacé clic aquí o arrastrá tus archivos</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Reconoce constancias de visita, PAT, ruido, iluminación, agua, capacitaciones, etc.</div>
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--primary);margin-bottom:6px;"></i>
+          <div style="font-size:13px;font-weight:600;color:var(--text-main);">Hacé clic aquí o arrastrá tus archivos</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Podés elegir múltiples archivos juntos o sumarlos sucesivamente (PDFs, escaneos o imágenes).</div>
         </div>
       </div>
 
-      <!-- Lista de Archivos en Lote -->
-      <div id="fast-batch-container" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <strong style="font-size:12px;text-transform:uppercase;">Archivos en Proceso (<span id="fast-batch-count">0</span>)</strong>
-          <button type="button" onclick="limpiarLoteFast()" style="font-size:12px;color:var(--alert);border:none;background:none;cursor:pointer;">Limpiar todo</button>
+      <!-- 3. Bloque de Documentos a Subir -->
+      <div style="border-top:1px solid var(--border-table);padding-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div>
+            <strong style="font-size:12px;text-transform:uppercase;color:var(--text-main);">3. Bloque de Documentos a Subir (<span id="fast-batch-count" style="color:var(--primary);font-weight:700;">0</span>)</strong>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">Revisá o editá el tipo y fecha antes de guardar</span>
+          </div>
+          <button type="button" onclick="limpiarLoteSubidaRapida()" style="font-size:12px;color:var(--alert);border:none;background:none;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:4px;">
+            <i class="fa-solid fa-trash-can"></i> Limpiar lista
+          </button>
         </div>
-        <div id="fast-batch-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+        <!-- Contenedor dinamico de la lista de items -->
+        <div id="fast-batch-list" style="display:flex;flex-direction:column;gap:10px;max-height:36vh;overflow-y:auto;padding-right:4px;">
+          <!-- Se rellena dinamicamente con renderFastBatchList() -->
+        </div>
+      </div>
+
+      <!-- Barra de Progreso de Subida de Bloque -->
+      <div id="fast-upload-progress-box" class="hidden" style="display:none;background:var(--primary-light);border:1px solid #C4DDE2;border-radius:2px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--primary);margin-bottom:6px;">
+          <span id="fast-upload-progress-label">Subiendo bloque a Google Drive...</span>
+          <span id="fast-upload-progress-pct">0%</span>
+        </div>
+        <div style="width:100%;height:8px;background:#CBD5E1;border-radius:9999px;overflow:hidden;margin-bottom:6px;">
+          <div id="fast-upload-progress-bar" style="height:100%;width:0%;background:var(--primary);border-radius:9999px;transition:width 0.3s ease;"></div>
+        </div>
+        <div id="fast-upload-progress-sublabel" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Preparando transmisión...</div>
       </div>
 
     </div>
 
+    <!-- Footer Modal -->
     <div style="padding:14px 20px;background:#F7F8F6;border-top:1px solid var(--border-table);display:flex;justify-content:space-between;align-items:center;">
-      <button type="button" class="chip" onclick="cerrarModal('modal-subida-rapida-general')">Cerrar</button>
-      <button type="button" id="btn-fast-confirmar-lote" class="btn-action-primary" onclick="confirmarLoteFast()" style="display:none;">
-        <i class="fa-solid fa-cloud-arrow-up"></i> Guardar Lote en Drive
+      <button type="button" onclick="document.getElementById('fast-file-input').click()" class="chip" style="font-weight:600;">
+        <i class="fa-solid fa-plus" style="color:var(--primary);margin-right:6px;"></i> Agregar más archivos
       </button>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="https://docs.google.com/spreadsheets/d/1-eQvCHv3LB6C2ydjY_fXwWEY67e5vbE4GNWIBKSrMfE/edit#gid=0" target="_blank" class="chip" style="font-weight:600;text-decoration:none;display:inline-flex;align-items:center;" title="Abrir Google Sheets para validar las filas de datos registradas">
+          <i class="fa-solid fa-file-excel" style="color:#2E7D32;margin-right:6px;"></i> Validar en Google Sheets
+        </a>
+        <button type="button" class="chip" onclick="cerrarModal('modal-subida-rapida-general')">Salir</button>
+        <button type="button" id="btn-fast-guardar-lote" class="btn-action-primary" onclick="guardarLoteSubidaRapida()" style="display:inline-flex;align-items:center;gap:6px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span id="btn-fast-guardar-lote-txt">Guardar y Subir Bloque (0)</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
+
 
 <!-- MODAL: EDITAR SUPERFICIE CUBIERTA -->
 <div id="modal-editar-superficie" class="modal-backdrop hidden" style="display:none;">
