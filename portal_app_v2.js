@@ -545,13 +545,21 @@ function cargarLegajoLocal() {
       Object.values(AppState.actividadesRegistradas).forEach(list => {
         if (Array.isArray(list)) {
           list.forEach(a => {
-            if (a && a.fechaActividad) {
-              const fNorm = convertirDdmmaaaAIso(a.fechaActividad);
-              if (fNorm && fNorm !== a.fechaActividad) {
-                a.fechaActividad = fNorm;
-                const mInfo = parsearAnioMesCliente(fNorm);
-                a.monthKey = mInfo.key;
-                a.monthLabel = mInfo.label;
+            if (a) {
+              const fullDesc = `${a.tipoActividad || ''} ${a.fileName || ''} ${a.detalle || ''} ${a.observaciones || ''}`.toLowerCase();
+              if (fullDesc.includes('iluminaci') || fullDesc.includes('ilum') || fullDesc.includes('lux') || fullDesc.includes('84/12')) {
+                if (a.tipoActividad === 'informe_tecnico' || a.tipoActividad === 'informe' || a.tipoActividad === 'iluminacion') {
+                  a.tipoActividad = 'medicion_iluminacion';
+                }
+              }
+              if (a.fechaActividad) {
+                const fNorm = convertirDdmmaaaAIso(a.fechaActividad);
+                if (fNorm && fNorm !== a.fechaActividad) {
+                  a.fechaActividad = fNorm;
+                  const mInfo = parsearAnioMesCliente(fNorm);
+                  a.monthKey = mInfo.key;
+                  a.monthLabel = mInfo.label;
+                }
               }
             }
           });
@@ -739,49 +747,49 @@ function normalizarTipoActividad(str) {
   if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
     return 'confeccion_rgrl';
   }
-  // Informe Fotográfico / Técnico (prioridad sobre visita para evitar falsos positivos con informes de visita)
-  if (s === 'informe' || s === 'informe_tecnico' || s === 'informe_fotografico' || s === 'inf' || s.includes('informe') || s.includes('fotograf') || s.includes('fotogr')) {
-    return 'informe_tecnico';
+  // 3. Iluminación (evaluar antes de informe técnico para que "Informe de Iluminación" sea reconocido como Iluminación)
+  if (s === 'medicion_iluminacion' || s === 'ilum' || s === 'iluminacion' || s === 'iluminación' || s.includes('iluminaci') || s.includes('iluminac') || s.includes('lux') || s.includes('84/12')) {
+    return 'medicion_iluminacion';
   }
-  // Constancia de Visita (CV oficial firmado in situ)
-  if (s === 'cv' || s === 'constancia_visita' || s.includes('constancia') || s.includes('visita')) {
-    return 'constancia_visita';
+  // 4. Ruido (evaluar antes de informe técnico)
+  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('ruido') || s.includes('sonoro') || s.includes('85/12') || s.includes('decibel') || s.includes('dosimetr')) {
+    return 'medicion_ruido';
   }
-  // Muestra de Agua (Toma)
+  // 5. Puesta a Tierra (PAT)
+  if (s === 'medicion_pat' || s === 'pat' || s.includes('puesta a tierra') || s.includes('telurimetr') || s.includes('telurímetr') || s.includes('900/15') || /\bpat\b/i.test(s)) {
+    return 'medicion_pat';
+  }
+  // 6. Muestra de Agua (Toma)
   if (s === 'muestra_agua' || s === 'agua_toma' || s === 'toma_muestra' || (s.includes('agua') && (s.includes('toma') || s.includes('muestra')))) {
     return 'muestra_agua';
   }
-  // Análisis de Agua (Protocolo)
+  // 7. Análisis de Agua (Protocolo)
   if (s === 'analisis_agua' || s === 'agua_protocolo' || s === 'agua_lab' || s === 'protocolo_lab' || (s.includes('agua') && (s.includes('protocolo') || s.includes('analisis') || s.includes('laboratorio')))) {
     return 'analisis_agua';
   }
-  // PAT
-  if (s === 'medicion_pat' || s === 'pat' || s.includes('puesta a tierra') || s.includes('pat')) {
-    return 'medicion_pat';
-  }
-  // Ruido
-  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('ruido')) {
-    return 'medicion_ruido';
-  }
-  // Iluminación
-  if (s === 'medicion_iluminacion' || s === 'ilum' || s.includes('iluminaci')) {
-    return 'medicion_iluminacion';
-  }
-  // Ergonomía
+  // 8. Ergonomía
   if (s === 'res_886' || s === 'ergonomia' || s.includes('886') || s.includes('ergonom')) {
     return 'res_886';
   }
-  // Capacitaciones
+  // 9. Capacitaciones
   if (s === 'capacitaciones' || s === 'capacitacion' || s.includes('capacita')) {
     return 'capacitaciones';
   }
-  // Carga de Fuego y Extintores
+  // 10. Carga de Fuego y Extintores
   if (s === 'carga_fuego' || s.includes('fuego') || s.includes('extintor') || s.includes('incendio')) {
     return 'carga_fuego';
   }
-  // Simulacro de Evacuación
+  // 11. Simulacro de Evacuación
   if (s === 'simulacro' || s.includes('evacuacion') || s.includes('simulacro')) {
     return 'simulacro';
+  }
+  // 12. Constancia de Visita (CV oficial firmado in situ)
+  if (s === 'cv' || s === 'constancia_visita' || (s.includes('constancia') && s.includes('visita')) || (s.includes('visita') && !s.includes('informe') && !s.includes('fotogr'))) {
+    return 'constancia_visita';
+  }
+  // 13. Informe Fotográfico / Técnico (solo cuando es informe general o fotográfico y no una medición técnica específica)
+  if (s === 'informe' || s === 'informe_tecnico' || s === 'informe_fotografico' || s === 'inf' || s.includes('informe') || s.includes('fotograf') || s.includes('fotogr')) {
+    return 'informe_tecnico';
   }
 
   // Coincidencia con clave directa o catálogo
@@ -4373,9 +4381,15 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
   }
 
   // 1. Si identificamos el formulario por OCR, actualizar desplegable y UI
+  // Pero NUNCA degradar una actividad técnica específica (iluminación, ruido, pat, etc.) a informe_tecnico genérico
   if (tipoEncontrado) {
-    cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
-    mostrarToast(`✨ Formulario detectado por OCR: ${tipoEncontrado.nombre}`);
+    const esActividadEspecificaPrevia = currentActividadModal && currentActividadModal !== 'informe_tecnico' && currentActividadModal !== 'constancia_visita';
+    if (esActividadEspecificaPrevia && tipoEncontrado.id === 'informe_tecnico') {
+      console.log('Se preserva la actividad técnica seleccionada por el usuario:', currentActividadModal);
+    } else {
+      cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
+      mostrarToast(`✨ Formulario detectado por OCR: ${tipoEncontrado.nombre}`);
+    }
   }
 
   // 2. Si encontramos la fecha en el interior del documento, actualizar UI
@@ -4669,16 +4683,32 @@ function detectarTipoActividadDeTexto(texto) {
   if (!texto) return null;
   const t = texto.toLowerCase();
 
-  // 1. Informe Fotográfico / Técnico (prioridad alta: si el archivo o texto es un informe o reporte fotográfico de visita/relevamiento, nunca confundir con CV)
-  if (t.includes('informe fotografico') || t.includes('informe fotográfico') || t.includes('registro fotografico') || t.includes('registro fotográfico') || t.includes('relevamiento fotografico') || t.includes('relevamiento fotográfico') || t.includes('reporte fotografico') || t.includes('anexo fotografico') || t.includes('anexo fotográfico') || t.includes('informe de visita') || t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('dictamen técnico') || t.includes('informe pericial') || (t.includes('informe') && !t.includes('constancia de visita')) || (t.includes('fotogr') && !t.includes('constancia de visita'))) {
-    return { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' };
+  // 1. Iluminación (Res. 84/12) - Prioridad alta para que "Informe de Iluminación" sea clasificado como Iluminación
+  if (t.includes('iluminaci') || t.includes('iluminación') || t.includes('iluminacion') || t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || t.includes('ilum')) {
+    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación', icono: '💡', codigo: 'ILUM' };
   }
 
-  // 2. Constancia de Visita (CV oficial SRT firmado in situ)
-  if (t.includes('constancia de visita') || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita')) || (t.includes('visita') && !t.includes('informe') && !t.includes('fotogr') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado')))) {
-    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' };
+  // 2. Ruido (Res. 85/12) - Prioridad alta
+  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || t.includes('sonomet') || t.includes('ruido')) {
+    return { id: 'medicion_ruido', nombre: 'Medición de Ruido', icono: '🔊', codigo: 'RUIDO' };
   }
-  // 2. RAR (Relevamiento de Agentes de Riesgo)
+
+  // 3. Puesta a tierra (PAT - Res. 900/15) - Prioridad alta
+  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas') || t.includes('resistencia de puesta a tierra') || /\bpat\b/i.test(texto)) {
+    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT)', icono: '⚡', codigo: 'PAT' };
+  }
+
+  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo de Laboratorio
+  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('aerobios mesófilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && (t.includes('protocolo') || t.includes('analisis') || t.includes('análisis') || t.includes('laboratorio'))) || t.includes('bromatolog') || t.includes('bromatológ')) {
+    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo)', icono: '🔬', codigo: 'AGUA_PROTOCOLO' };
+  }
+
+  // 5. Muestra de agua (Toma in situ)
+  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión') || t.includes('remito de muestra'))) {
+    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)', icono: '💧', codigo: 'AGUA_TOMA' };
+  }
+
+  // 6. RAR (Relevamiento de Agentes de Riesgo)
   if (/\b(?:confeccion_)?rar\b/i.test(texto) ||
       t.includes('relevamiento de agentes de riesgo') ||
       t.includes('agentes de riesgo') ||
@@ -4690,7 +4720,8 @@ function detectarTipoActividadDeTexto(texto) {
       t.includes('relevamiento rar')) {
     return { id: 'confeccion_rar', nombre: 'Confección de RAR', icono: '👥', codigo: 'RAR' };
   }
-  // 3. RGRL (Relevamiento General de Riesgos Laborales)
+
+  // 7. RGRL (Relevamiento General de Riesgos Laborales)
   if (/\b(?:confeccion_)?rgrl\b/i.test(texto) ||
       t.includes('relevamiento general de riesgos') ||
       t.includes('relevamiento general') ||
@@ -4699,44 +4730,34 @@ function detectarTipoActividadDeTexto(texto) {
       t.includes('formulario rgrl')) {
     return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL', icono: '📋', codigo: 'RGRL' };
   }
-  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo de Laboratorio
-  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('aerobios mesófilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && t.includes('protocolo')) || t.includes('analisis de agua') || t.includes('análisis de agua') || t.includes('bromatolog') || t.includes('bromatológ')) {
-    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo)', icono: '🔬', codigo: 'AGUA_PROTOCOLO' };
-  }
-  // 5. Muestra de agua (Toma in situ)
-  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión') || t.includes('remito de muestra'))) {
-    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)', icono: '💧', codigo: 'AGUA_TOMA' };
-  }
-  // 6. Puesta a tierra (PAT)
-  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas') || t.includes('resistencia de puesta a tierra') || /\bpat\b/i.test(texto)) {
-    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT)', icono: '⚡', codigo: 'PAT' };
-  }
-  // 7. Ruido (Res. 85/12)
-  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || (t.includes('ruido') && (t.includes('protocolo') || t.includes('medicion') || t.includes('medición')))) {
-    return { id: 'medicion_ruido', nombre: 'Medición de Ruido', icono: '🔊', codigo: 'RUIDO' };
-  }
-  // 8. Iluminación (Res. 84/12)
-  if (t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || ((t.includes('iluminaci') || t.includes('iluminación')) && (t.includes('protocolo') || t.includes('medicion') || t.includes('medición')))) {
-    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación', icono: '💡', codigo: 'ILUM' };
-  }
-  // 9. Ergonomía (Res. 886/15)
+
+  // 8. Ergonomía (Res. 886/15)
   if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos') || t.includes('trastornos musculoesqueléticos')) {
     return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT', icono: '🪑', codigo: 'RES886' };
   }
-  // 10. Capacitaciones HyS
+
+  // 9. Capacitaciones HyS
   if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento preventivo') || t.includes('registro de capacitacion') || t.includes('registro de capacitación')) {
     return { id: 'capacitaciones', nombre: 'Capacitaciones HyS', icono: '🎓', codigo: 'CAPACITACION' };
   }
-  // 11. Carga de Fuego
+
+  // 10. Carga de Fuego
   if (t.includes('carga de fuego') || t.includes('potencial extintor') || t.includes('carga termica') || t.includes('carga térmica') || t.includes('poder calorifico') || t.includes('poder calorífico')) {
     return { id: 'carga_fuego', nombre: 'Evaluación de Carga de Fuego', icono: '🔥', codigo: 'CARGA_FUEGO' };
   }
-  // 12. Simulacro de Evacuación
+
+  // 11. Simulacro de Evacuación
   if (t.includes('simulacro') || t.includes('rol de evacuacion') || t.includes('rol de evacuación') || t.includes('plan de evacuacion') || t.includes('plan de evacuación') || t.includes('tiempo de evacuacion') || t.includes('tiempo de evacuación')) {
     return { id: 'simulacro', nombre: 'Simulacro de Evacuación', icono: '🚨', codigo: 'SIMULACRO' };
   }
-  // 13. Informe Fotográfico / Técnico (fallback)
-  if (t.includes('informe') || t.includes('foto') || t.includes('dictamen') || t.includes('relevamiento')) {
+
+  // 12. Constancia de Visita (CV oficial SRT firmado in situ)
+  if (t.includes('constancia de visita') || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita')) || (t.includes('visita') && !t.includes('informe') && !t.includes('fotogr') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado')))) {
+    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' };
+  }
+
+  // 13. Informe Fotográfico / Técnico (solo cuando no coincide con ninguna medición técnica específica)
+  if (t.includes('informe fotografico') || t.includes('informe fotográfico') || t.includes('registro fotografico') || t.includes('registro fotográfico') || t.includes('relevamiento fotografico') || t.includes('relevamiento fotográfico') || t.includes('reporte fotografico') || t.includes('anexo fotografico') || t.includes('anexo fotográfico') || t.includes('informe de visita') || t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('dictamen técnico') || t.includes('informe pericial') || t.includes('informe') || t.includes('fotogr') || t.includes('foto') || t.includes('dictamen')) {
     return { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' };
   }
 
@@ -5840,6 +5861,7 @@ function cerrarModalVersionDesactualizada() {
 function normalizarActividadDesdeSheet(str) {
   if (!str) return '';
   const s = String(str).toLowerCase().trim();
+
   // 1. RAR (Evaluar antes de RGRL)
   if (s === 'rar' || s === 'confeccion_rar' || /\b(?:confeccion_)?rar\b/i.test(s) || s.includes('agentes de riesgo') || s.includes('expuestos') || s.includes('relevamiento de agentes')) {
     return 'confeccion_rar';
@@ -5848,13 +5870,46 @@ function normalizarActividadDesdeSheet(str) {
   if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
     return 'confeccion_rgrl';
   }
-  // Informe Fotográfico / Técnico (prioridad sobre visita)
+  // 3. Iluminación (evaluar antes de informe técnico para que "Informe de Iluminación" sea reconocido como Iluminación)
+  if (s === 'medicion_iluminacion' || s === 'ilum' || s.includes('iluminaci') || s.includes('iluminac') || s.includes('lux') || s.includes('84/12')) {
+    return 'medicion_iluminacion';
+  }
+  // 4. Ruido
+  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('ruido') || s.includes('sonoro') || s.includes('85/12') || s.includes('decibel')) {
+    return 'medicion_ruido';
+  }
+  // 5. Puesta a Tierra (PAT)
+  if (s === 'medicion_pat' || s === 'pat' || s.includes('puesta a tierra') || s.includes('telurimetr') || s.includes('telurímetr') || s.includes('900/15') || /\bpat\b/i.test(s)) {
+    return 'medicion_pat';
+  }
+  // 6. Agua (Análisis / Muestra)
+  if (s.includes('agua') || s.includes('bacteriolog') || s.includes('bromatolog')) {
+    if (s.includes('toma') || s.includes('muestreo') || s.includes('remito')) return 'muestra_agua';
+    return 'analisis_agua';
+  }
+  // 7. Ergonomía
+  if (s === 'res_886' || s.includes('ergonom') || s.includes('886')) {
+    return 'res_886';
+  }
+  // 8. Capacitaciones
+  if (s.includes('capacita')) {
+    return 'capacitaciones';
+  }
+  // 9. Carga de Fuego
+  if (s.includes('fuego') || s.includes('extintor')) {
+    return 'carga_fuego';
+  }
+  // 10. Simulacro
+  if (s.includes('simulacro') || s.includes('evacuacion')) {
+    return 'simulacro';
+  }
+  // 11. Constancia de Visita (CV)
+  if (s.includes('constancia') || s === 'cv' || s.startsWith('cv_') || s.startsWith('cv ') || (s.includes('visita') && !s.includes('informe') && !s.includes('fotogr'))) {
+    return 'constancia_visita';
+  }
+  // 12. Informe Fotográfico / Técnico (solo cuando no coincide con una medición técnica específica)
   if (s.includes('informe') || s.includes('fotograf') || s.includes('fotogr') || s === 'inf' || s.startsWith('informe_') || s.startsWith('informe ')) {
     return 'informe_tecnico';
-  }
-  // Constancia de Visita (CV)
-  if (s.includes('constancia') || s === 'cv' || s.startsWith('cv_') || s.startsWith('cv ') || s.includes('visita')) {
-    return 'constancia_visita';
   }
   for (const [key, val] of Object.entries(CATALOGO_ACTIVIDADES)) {
     if (s.includes(key) || s.includes(val.codigo.toLowerCase()) || s.includes(val.nombre.toLowerCase())) {
@@ -7660,6 +7715,16 @@ function configurarDropzoneLateral() {
 window.configurarDropzoneLateral = configurarDropzoneLateral;
 
 /**
+ * Extrae y formatea una fecha encontrada en texto (DD/MM/AAAA)
+ */
+function extraerFechaTexto(texto) {
+  if (!texto) return null;
+  const f = buscarFechasEnTexto(texto);
+  return f ? formatearFechaDdmmaaa(f) : null;
+}
+window.extraerFechaTexto = extraerFechaTexto;
+
+/**
  * Procesa los archivos arrastrados con OCR y extrae fecha y tipo de documento
  */
 function manejarArchivosDropzoneLateral(files) {
@@ -7686,59 +7751,76 @@ function manejarArchivosDropzoneLateral(files) {
   fileArray.forEach((file) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const base64Data = e.target.result.split(',')[1];
+      let base64Data = '';
       let ocrTexto = '';
       let fechaDetectada = '';
       let tipoDetectado = '';
 
       try {
+        const resStr = e.target.result || '';
+        base64Data = (resStr.includes(',') ? resStr.split(',')[1] : resStr).trim().replace(/\s+/g, '');
+
         if (file.type === 'application/pdf' && window.pdfjsLib) {
-          const loadingTask = pdfjsLib.getDocument({ data: atob(base64Data) });
-          const pdfDoc = await loadingTask.promise;
-          const maxPages = Math.min(pdfDoc.numPages, 3);
-          for (let p = 1; p <= maxPages; p++) {
-            const page = await pdfDoc.getPage(p);
-            const textContent = await page.getTextContent();
-            ocrTexto += ' ' + textContent.items.map(it => it.str).join(' ');
+          try {
+            const rawBytes = atob(base64Data);
+            const loadingTask = pdfjsLib.getDocument({ data: rawBytes });
+            const pdfDoc = await loadingTask.promise;
+            const maxPages = Math.min(pdfDoc.numPages, 3);
+            for (let p = 1; p <= maxPages; p++) {
+              const page = await pdfDoc.getPage(p);
+              const textContent = await page.getTextContent();
+              ocrTexto += ' ' + textContent.items.map(it => it.str).join(' ');
+            }
+          } catch(errPdf) {
+            console.warn('Extracción PDF lateral:', errPdf);
           }
         }
-      } catch (err) {
-        console.warn('Extracción PDF lateral:', err);
+
+        // 1. Extraer fecha automáticamente
+        const fDetectada = buscarFechasEnTexto(ocrTexto) || (extraerFechaDeArchivo(file, base64Data)?.fecha);
+        fechaDetectada = fDetectada ? formatearFechaDdmmaaa(fDetectada) : (extraerFechaTexto(ocrTexto) || formatearFechaDdmmaaa(new Date()));
+
+        // 2. Determinar tipo de documento
+        tipoDetectado = determinarTipoDocumentoTexto(file.name + ' ' + ocrTexto);
+        if (!tipoDetectado || tipoDetectado === 'otro') {
+          const lower = file.name.toLowerCase();
+          if (lower.includes('ilum') || lower.includes('luz') || lower.includes('84/12')) tipoDetectado = 'medicion_iluminacion';
+          else if (lower.includes('ruido') || lower.includes('85/12')) tipoDetectado = 'medicion_ruido';
+          else if (lower.includes('pat') || lower.includes('tierra') || lower.includes('900/15')) tipoDetectado = 'medicion_pat';
+          else if (lower.includes('agua')) tipoDetectado = 'analisis_agua';
+          else if (lower.includes('cv') || lower.includes('visita') || lower.includes('constancia')) tipoDetectado = 'constancia_visita';
+          else if (lower.includes('rgrl')) tipoDetectado = 'confeccion_rgrl';
+          else if (lower.includes('rar')) tipoDetectado = 'confeccion_rar';
+          else if (lower.includes('informe') || lower.includes('fotogr') || lower.includes('foto')) tipoDetectado = 'informe_tecnico';
+          else tipoDetectado = 'informe_tecnico';
+        }
+
+        archivosDetectadosLateral.push({
+          file: file,
+          base64: base64Data,
+          mime: file.type || 'application/pdf',
+          name: file.name,
+          tipoActividad: tipoDetectado,
+          fecha: fechaDetectada,
+          estId: est.id
+        });
+      } catch (errGen) {
+        console.error('Error procesando archivo lateral:', file.name, errGen);
+      } finally {
+        procesados++;
+        if (procesados === fileArray.length) {
+          renderizarListaDetectadosLateral();
+        }
       }
+    };
 
-      // 1. Extraer fecha automáticamente
-      fechaDetectada = extraerFechaTexto(ocrTexto) || formatearFechaDdmmaaa(new Date());
-
-      // 2. Determinar tipo de documento
-      tipoDetectado = determinarTipoDocumentoTexto(file.name + ' ' + ocrTexto);
-      if (!tipoDetectado || tipoDetectado === 'otro') {
-        const lower = file.name.toLowerCase();
-        if (lower.includes('pat') || lower.includes('tierra')) tipoDetectado = 'medicion_pat';
-        else if (lower.includes('ruido')) tipoDetectado = 'medicion_ruido';
-        else if (lower.includes('ilum') || lower.includes('luz')) tipoDetectado = 'medicion_iluminacion';
-        else if (lower.includes('informe') || lower.includes('fotogr') || lower.includes('foto')) tipoDetectado = 'informe_tecnico';
-        else if (lower.includes('cv') || lower.includes('visita') || lower.includes('constancia')) tipoDetectado = 'constancia_visita';
-        else if (lower.includes('agua')) tipoDetectado = 'analisis_agua';
-        else if (lower.includes('rgrl')) tipoDetectado = 'confeccion_rgrl';
-        else if (lower.includes('rar')) tipoDetectado = 'confeccion_rar';
-        else tipoDetectado = 'informe_tecnico';
-      }
-
-      archivosDetectadosLateral.push({
-        file: file,
-        base64: base64Data,
-        mime: file.type || 'application/pdf',
-        name: file.name,
-        tipoActividad: tipoDetectado,
-        fecha: fechaDetectada,
-        estId: est.id
-      });
-
+    reader.onerror = () => {
       procesados++;
       if (procesados === fileArray.length) {
         renderizarListaDetectadosLateral();
       }
     };
+
     reader.readAsDataURL(file);
   });
 }
@@ -7837,12 +7919,16 @@ window.corregirItemDetectadoLateral = corregirItemDetectadoLateral;
  * Guarda y registra un documento cargado desde el panel lateral
  */
 async function guardarActividadConArchivo(estId, tipoActividad, fecha, originalFileName, base64, mimeType) {
-  const est = AppState.establecimientos[estId];
-  if (!est) return;
+  const est = AppState.establecimientos[estId] || AppState.establecimientoSeleccionado;
+  if (!est) {
+    console.warn('No se encontró el establecimiento para guardar actividad:', estId);
+    return;
+  }
 
-  const actInfo = CATALOGO_ACTIVIDADES[tipoActividad] || { codigo: 'DOC' };
+  const tipoNorm = normalizarTipoActividad(tipoActividad);
+  const actInfo = CATALOGO_ACTIVIDADES[tipoNorm] || CATALOGO_ACTIVIDADES[tipoActividad] || { codigo: 'DOC' };
   const ext = (originalFileName && originalFileName.includes('.')) ? originalFileName.split('.').pop() : 'pdf';
-  const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, tipoActividad, fecha, 'Doc', ext);
+  const codedFileName = generarCodigoArchivo(est.organismo, est.nroEstab, tipoNorm || tipoActividad, fecha, 'Doc', ext);
   const mInfo = parsearAnioMesCliente(fecha);
 
   let cleanB64 = (base64 || '').trim();
@@ -7851,7 +7937,7 @@ async function guardarActividadConArchivo(estId, tipoActividad, fecha, originalF
 
   const payload = {
     tipoOperacion: 'upload_actividad_documento',
-    tipoActividad: tipoActividad,
+    tipoActividad: tipoNorm || tipoActividad,
     fechaActividad: fecha,
     estadoActividad: 'Completado',
     detalle: 'Doc',
@@ -7911,7 +7997,7 @@ async function guardarActividadConArchivo(estId, tipoActividad, fecha, originalF
 
   const nuevoRegistro = {
     id: registroId,
-    tipoActividad: tipoActividad,
+    tipoActividad: tipoNorm || tipoActividad,
     fechaActividad: fecha,
     estadoActividad: 'Completado',
     detalle: 'Doc',
@@ -7935,18 +8021,23 @@ window.guardarActividadConArchivo = guardarActividadConArchivo;
  * Guarda los documentos del panel lateral en Google Drive y actualiza el legajo
  */
 async function guardarDocumentosDetectadosLateral() {
-  if (archivosDetectadosLateral.length === 0) return;
+  if (archivosDetectadosLateral.length === 0) {
+    mostrarToast('No hay archivos pendientes para guardar. Soltá o seleccioná un archivo primero.');
+    return;
+  }
   const btnGuardar = document.getElementById('side-btn-guardar-drive');
   if (btnGuardar) {
     btnGuardar.disabled = true;
     btnGuardar.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando en Drive...`;
   }
 
+  const cantidad = archivosDetectadosLateral.length;
   try {
     for (const item of archivosDetectadosLateral) {
-      await guardarActividadConArchivo(item.estId, item.tipoActividad, item.fecha, item.name, item.base64, item.mime);
+      const estIdFinal = item.estId || (AppState.establecimientoSeleccionado ? AppState.establecimientoSeleccionado.id : null);
+      await guardarActividadConArchivo(estIdFinal, item.tipoActividad, item.fecha, item.name, item.base64, item.mime);
     }
-    mostrarToast(`Se guardaron ${archivosDetectadosLateral.length} documentos exitosamente en Drive.`);
+    mostrarToast(`✓ Se guardaron ${cantidad} documento${cantidad > 1 ? 's' : ''} exitosamente.`);
     archivosDetectadosLateral = [];
     const container = document.getElementById('side-detected-container');
     if (container) container.style.display = 'none';
@@ -7955,9 +8046,12 @@ async function guardarDocumentosDetectadosLateral() {
     if (AppState.establecimientoSeleccionado) {
       actualizarFichaLateralMaqueta(AppState.establecimientoSeleccionado);
     }
+    renderRepositorioGlobal(true);
+    renderMatrizAnual();
+    renderDashboard();
   } catch (err) {
     console.error('Error al guardar en Drive:', err);
-    mostrarToast('Se guardaron los documentos localmente.');
+    mostrarToast('⚠️ Se guardaron los documentos localmente.');
   } finally {
     if (btnGuardar) {
       btnGuardar.disabled = false;
