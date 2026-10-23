@@ -6951,34 +6951,65 @@ function actualizarKPIsPlanMaqueta() {
   const allEsts = Object.values(AppState.establecimientos);
   const totalSedes = allEsts.length || 452;
 
+  const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+  const mesFiltro = AppState.filtroMes || 'todos';
+
   let sedesVisitadas = 0;
   let sedesSup1000Total = 0;
   let sedesSup1000ConMed = 0;
   let sedesSinSup = 0;
 
+  // Determinar mes a evaluar en Card 2
   const ahora = new Date();
-  const mesActualNum = String(ahora.getMonth() + 1).padStart(2, '0');
-  const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const nombreMesActual = nombresMeses[ahora.getMonth()];
+  let mesEvaluadoNum = (ahora.getMonth() + 1);
+  let labelMesEvaluado = MESES_NOMBRES[mesEvaluadoNum - 1] || 'Mes actual';
 
-  let visitasMesActual = 0;
+  if (mesFiltro && mesFiltro !== 'todos') {
+    mesEvaluadoNum = parseInt(mesFiltro, 10);
+    labelMesEvaluado = MESES_NOMBRES[mesEvaluadoNum - 1] || 'Mes';
+  } else {
+    // Si es 'todos', buscar si hay meses con actividades registradas para mostrar el más representativo
+    const mesesConVisitas = {};
+    allEsts.forEach(est => {
+      const acts = obtenerActividadesDeSede(est);
+      acts.forEach(a => {
+        if (!a || !a.fechaActividad) return;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return;
+        }
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        if (mInfo && mInfo.mes) mesesConVisitas[mInfo.mes] = (mesesConVisitas[mInfo.mes] || 0) + 1;
+      });
+    });
+    const mesesKeys = Object.keys(mesesConVisitas).map(Number).sort((a,b)=>b-a);
+    if (mesesKeys.length > 0) {
+      mesEvaluadoNum = mesesKeys[0];
+      labelMesEvaluado = `${MESES_NOMBRES[mesEvaluadoNum - 1]}`;
+    }
+  }
+
+  let visitasMesEvaluado = 0;
 
   allEsts.forEach(est => {
     const acts = obtenerActividadesDeSede(est);
-    const hasActs = acts.length > 0 || !!est.data;
+    // Filtrar actividades por año evaluado
+    const actsAnio = acts.filter(a => {
+      if (anioFiltro === 'todos') return true;
+      const anioAct = extraerAnioDeFecha(a.fechaActividad);
+      return !anioAct || anioAct === anioFiltro;
+    });
+
+    const hasActs = actsAnio.length > 0 || (anioFiltro === 'todos' ? !!est.data : (est.data && (!est.fecha || extraerAnioDeFecha(est.fecha) === anioFiltro)));
     if (hasActs) sedesVisitadas++;
 
-    // Visitas en el mes en curso (mes y año estricto)
-    const targetMesInt = parseInt(mesActualNum, 10);
-    const anioActualStr = String(ahora.getFullYear());
-    const visitsThisMonth = acts.filter(a => {
+    // Visitas en el mes evaluado (mes y año estricto)
+    const visitsInMonth = actsAnio.filter(a => {
       if (!a || !a.fechaActividad) return false;
       const mInfo = parsearAnioMesCliente(a.fechaActividad);
-      if (!mInfo || mInfo.mes !== targetMesInt) return false;
-      const aAnio = extraerAnioDeFecha(a.fechaActividad);
-      return !aAnio || aAnio === anioActualStr;
+      return mInfo && mInfo.mes === mesEvaluadoNum;
     });
-    visitasMesActual += visitsThisMonth.length;
+    visitasMesEvaluado += visitsInMonth.length;
 
     // Superficie
     const supNum = Number(est.superficie);
@@ -6986,7 +7017,7 @@ function actualizarKPIsPlanMaqueta() {
       sedesSinSup++;
     } else if (supNum >= 1000) {
       sedesSup1000Total++;
-      const actsTipos = new Set(acts.map(a => normalizarTipoActividad(a.tipoActividad)));
+      const actsTipos = new Set(actsAnio.map(a => normalizarTipoActividad(a.tipoActividad)));
       if (actsTipos.has('medicion_pat') && actsTipos.has('medicion_ruido') && actsTipos.has('medicion_iluminacion')) {
         sedesSup1000ConMed++;
       }
@@ -7002,10 +7033,10 @@ function actualizarKPIsPlanMaqueta() {
   const elCobBar = document.getElementById('kpi-cobertura-bar');
   if (elCobBar) elCobBar.style.width = `${pctCobertura}%`;
 
-  // Visitas del mes
-  const displayVisMes = visitasMesActual > 0 ? visitasMesActual : 19;
+  // Visitas del mes evaluado
+  const displayVisMes = visitasMesEvaluado > 0 ? visitasMesEvaluado : 19;
   const elVisMesTitulo = document.getElementById('kpi-visitas-titulo');
-  if (elVisMesTitulo) elVisMesTitulo.textContent = `Visitas de ${nombreMesActual} · meta 25 a 30`;
+  if (elVisMesTitulo) elVisMesTitulo.textContent = `Visitas de ${labelMesEvaluado} · meta 25 a 30`;
   const elVisTxt = document.getElementById('kpi-visitas-txt');
   const faltanMin = Math.max(0, 25 - displayVisMes);
   const msgVis = faltanMin > 0 ? `<span style="font-size:15px;font-weight:400;color:var(--alert)">faltan ${faltanMin} para el mínimo</span>` : `<span style="font-size:15px;font-weight:400;color:var(--primary)">meta mensual alcanzada</span>`;
@@ -7016,7 +7047,7 @@ function actualizarKPIsPlanMaqueta() {
   // Sedes > 1000 m²
   const displaySupTotal = sedesSup1000Total > 0 ? sedesSup1000Total : 58;
   const displaySupConMed = sedesSup1000Total > 0 ? sedesSup1000ConMed : 31;
-  const displaySupSinMed = displaySupTotal - displaySupConMed;
+  const displaySupSinMed = Math.max(0, displaySupTotal - displaySupConMed);
   const elSup1000Txt = document.getElementById('kpi-sup1000-txt');
   if (elSup1000Txt) elSup1000Txt.innerHTML = `${displaySupConMed} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${displaySupTotal} con mediciones</span>`;
   const elSup1000Alerta = document.getElementById('kpi-sup1000-alerta');
@@ -7368,20 +7399,25 @@ const PLAN_HYS_CONFIG = {
   ANIO_INICIO_CICLO: 2026
 };
 
-const MESES_ANUAL_2026 = [
-  { cod: '01', anio: 2026, mes: 1, label: 'Ene 26', nombre: 'Enero' },
-  { cod: '02', anio: 2026, mes: 2, label: 'Feb 26', nombre: 'Febrero' },
-  { cod: '03', anio: 2026, mes: 3, label: 'Mar 26', nombre: 'Marzo' },
-  { cod: '04', anio: 2026, mes: 4, label: 'Abr 26', nombre: 'Abril' },
-  { cod: '05', anio: 2026, mes: 5, label: 'May 26', nombre: 'Mayo' },
-  { cod: '06', anio: 2026, mes: 6, label: 'Jun 26', nombre: 'Junio' },
-  { cod: '07', anio: 2026, mes: 7, label: 'Jul 26', nombre: 'Julio' },
-  { cod: '08', anio: 2026, mes: 8, label: 'Ago 26', nombre: 'Agosto' },
+const CICLO_MESES_ANUAL = [
   { cod: '09', anio: 2026, mes: 9, label: 'Sep 26', nombre: 'Septiembre' },
   { cod: '10', anio: 2026, mes: 10, label: 'Oct 26', nombre: 'Octubre' },
   { cod: '11', anio: 2026, mes: 11, label: 'Nov 26', nombre: 'Noviembre' },
-  { cod: '12', anio: 2026, mes: 12, label: 'Dic 26', nombre: 'Diciembre' }
+  { cod: '12', anio: 2026, mes: 12, label: 'Dic 26', nombre: 'Diciembre' },
+  { cod: '01', anio: 2027, mes: 1, label: 'Ene 27', nombre: 'Enero' },
+  { cod: '02', anio: 2027, mes: 2, label: 'Feb 27', nombre: 'Febrero' },
+  { cod: '03', anio: 2027, mes: 3, label: 'Mar 27', nombre: 'Marzo' },
+  { cod: '04', anio: 2027, mes: 4, label: 'Abr 27', nombre: 'Abril' },
+  { cod: '05', anio: 2027, mes: 5, label: 'May 27', nombre: 'Mayo' },
+  { cod: '06', anio: 2027, mes: 6, label: 'Jun 27', nombre: 'Junio' },
+  { cod: '07', anio: 2027, mes: 7, label: 'Jul 27', nombre: 'Julio' },
+  { cod: '08', anio: 2027, mes: 8, label: 'Ago 27', nombre: 'Agosto' }
 ];
+const MESES_ANUAL_2026 = CICLO_MESES_ANUAL;
+if (typeof window !== 'undefined') {
+  window.CICLO_MESES_ANUAL = CICLO_MESES_ANUAL;
+  window.MESES_ANUAL_2026 = MESES_ANUAL_2026;
+}
 
 /**
  * Genera un anillo Donut SVG proporcional y estilizado
@@ -7415,6 +7451,12 @@ function extraerMesAnioActividad(act) {
   if (mInfo && mInfo.mes) {
     const cod = (mInfo.mes < 10 ? '0' : '') + mInfo.mes;
     return { anio: mInfo.anio, mes: mInfo.mes, codMes: cod, key: mInfo.key };
+  }
+  if (act.monthKey && act.monthKey.length >= 7) {
+    const p = act.monthKey.split('-');
+    if (p.length === 2) {
+      return { anio: parseInt(p[0], 10), mes: parseInt(p[1], 10), codMes: p[1].padStart(2, '0'), key: act.monthKey };
+    }
   }
   return { anio: null, mes: null, codMes: null, key: '' };
 }
@@ -8520,19 +8562,19 @@ function actualizarSelectorMesesSedes() {
     selectMetricas.innerHTML = '';
     const optCiclo = document.createElement('option');
     optCiclo.value = 'ciclo';
-    optCiclo.textContent = `🗓️ Todo el Año (${sedesConActAnio} sedes)`;
+    optCiclo.textContent = `🗓️ Ciclo Anual Completo (${sedesConActAnio} sedes intervenidas)`;
     if (currentMetricasVal === 'ciclo' || currentMetricasVal === 'todos') optCiclo.selected = true;
     selectMetricas.appendChild(optCiclo);
 
-    for (let m = 1; m <= 12; m++) {
-      const mCod = (m < 10 ? '0' : '') + m;
-      const count = sedesPorMes[mCod] || 0;
+    CICLO_MESES_ANUAL.forEach(mObj => {
+      const count = sedesPorMes[mObj.cod] || 0;
       const opt = document.createElement('option');
-      opt.value = mCod;
-      opt.textContent = `${mCod} - ${MESES_NOMBRES[m - 1]} (${count} ${count === 1 ? 'sede' : 'sedes'})`;
-      if (mCod === currentMetricasVal) opt.selected = true;
+      opt.value = mObj.cod;
+      const sufijo = (mObj.cod === '09') ? ' (Inicio de Ciclo)' : '';
+      opt.textContent = `${mObj.cod} - ${mObj.nombre}${sufijo} (${count} ${count === 1 ? 'sede' : 'sedes'})`;
+      if (mObj.cod === currentMetricasVal) opt.selected = true;
       selectMetricas.appendChild(opt);
-    }
+    });
   }
 }
 window.actualizarSelectorMesesSedes = actualizarSelectorMesesSedes;
@@ -8546,6 +8588,9 @@ function cambiarFiltroAnioGlobal(anio) {
   actualizarSelectorMesesSedes();
   actualizarKPIsPlanMaqueta();
   renderListaEstablecimientos();
+  if (document.getElementById('vista-metricas') && document.getElementById('vista-metricas').style.display !== 'none') {
+    renderVistaMetricasMaqueta();
+  }
 }
 window.cambiarFiltroAnioGlobal = cambiarFiltroAnioGlobal;
 

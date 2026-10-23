@@ -709,7 +709,7 @@
             <label style="font-size:12px;color:var(--text-muted)">
               Mes de visita
               <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-                <select id="filtro-mes" class="input-clean" style="min-width:130px;">
+                <select id="filtro-mes" class="input-clean" style="min-width:130px;" onchange="AppState.filtroMes = this.value; renderListaEstablecimientos(); actualizarKPIsPlanMaqueta();">
                   <option value="todos">Todo el año</option>
                   <option value="01">Enero</option>
                   <option value="02">Febrero</option>
@@ -1603,7 +1603,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261022_4"></script>
+<script src="portal_app_v2.js?v=20261022_5"></script>
 
 <script>
   // Control responsivo de menú móvil
