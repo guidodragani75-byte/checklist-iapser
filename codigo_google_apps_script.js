@@ -576,6 +576,17 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3g. Limpiar y desduplicar archivos con el mismo nombre en todas las carpetas
+    if (action === "desduplicar_archivos_drive" || action === "limpiar_archivos_duplicados") {
+      var rootClean = getOrCreateRootFolder();
+      var statsClean = desduplicarArchivosDrive(rootClean);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Limpieza y desduplicación de archivos completada exitosamente.",
+        stats: statsClean
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3e. Diagnóstico de carpetas por nombre en todo Drive
     if (action === "buscar_carpetas_sede") {
       var queryName = (e.parameter.nombre || "Estab_1 - CORDOBA - 351 (PARANA)").toString().trim();
@@ -1070,6 +1081,17 @@ function doPost(e) {
         status: "success",
         message: "Consolidación de carpetas duplicadas completada exitosamente.",
         stats: statsPost
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CASO 1.11: DESDUPLICAR ARCHIVOS CON EL MISMO NOMBRE
+    if (data.tipoOperacion === "desduplicar_archivos_drive" || data.tipoOperacion === "limpiar_archivos_duplicados") {
+      var rootCleanPost = getOrCreateRootFolder();
+      var statsCleanPost = desduplicarArchivosDrive(rootCleanPost);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Limpieza y desduplicación de archivos completada exitosamente.",
+        stats: statsCleanPost
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1812,4 +1834,107 @@ function repararArchivosEstablecimiento45() {
     targetFolderId: estab45F.getId(),
     log: log
   };
+}
+
+// ========================================================
+// MANTENIMIENTO: DESDUPLICAR ARCHIVOS CON EL MISMO NOMBRE
+// ========================================================
+
+function desduplicarArchivosDrive(rootFolder) {
+  if (!rootFolder) rootFolder = getOrCreateRootFolder();
+  var ss = getSpreadsheet();
+  var activeFileIds = {};
+
+  // 1. Obtener todos los IDs de archivos referenciados en Legajo_Actividades_Archivos
+  var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+  if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+    var lData = sheetLegajo.getDataRange().getValues();
+    var headers = lData[0] || [];
+    var idColIdx = headers.indexOf("ID Drive");
+    if (idColIdx === -1) idColIdx = 12;
+    for (var r = 1; r < lData.length; r++) {
+      var fid = String(lData[r][idColIdx] || "").trim();
+      if (fid) activeFileIds[fid] = true;
+    }
+  }
+
+  var stats = {
+    carpetasRevisadas: 0,
+    archivosAnalizados: 0,
+    archivosDuplicadosEliminados: 0,
+    detalles: []
+  };
+
+  function desduplicarEnCarpeta(folder) {
+    if (!folder) return;
+    stats.carpetasRevisadas++;
+    var fileIter = folder.getFiles();
+    var porNombre = {};
+
+    while (fileIter.hasNext()) {
+      var fl = fileIter.next();
+      stats.archivosAnalizados++;
+      var fNom = fl.getName().trim();
+      if (!porNombre[fNom]) {
+        porNombre[fNom] = [];
+      }
+      porNombre[fNom].push(fl);
+    }
+
+    for (var fName in porNombre) {
+      var lista = porNombre[fName];
+      if (lista.length > 1) {
+        // Preservar preferentemente el ID registrado en el Legajo
+        var bestIndex = -1;
+        for (var k = 0; k < lista.length; k++) {
+          if (activeFileIds[lista[k].getId()]) {
+            bestIndex = k;
+            break;
+          }
+        }
+        // Si ninguno está en el legajo, preferir el más reciente
+        if (bestIndex === -1) {
+          bestIndex = 0;
+          for (var k = 1; k < lista.length; k++) {
+            if (lista[k].getDateCreated() > lista[bestIndex].getDateCreated()) {
+              bestIndex = k;
+            }
+          }
+        }
+
+        var keepFile = lista[bestIndex];
+        for (var d = 0; d < lista.length; d++) {
+          if (d !== bestIndex) {
+            var dupFile = lista[d];
+            try {
+              dupFile.setTrashed(true);
+              stats.archivosDuplicadosEliminados++;
+              stats.detalles.push({
+                nombre: fName,
+                carpeta: folder.getName(),
+                idEliminado: dupFile.getId(),
+                idConservado: keepFile.getId()
+              });
+            } catch(eTr) {
+              Logger.log("Error al enviar archivo duplicado a papelera: " + eTr.toString());
+            }
+          }
+        }
+      }
+    }
+
+    // Recorrer subcarpetas
+    var subFolds = folder.getFolders();
+    while (subFolds.hasNext()) {
+      var sf = subFolds.next();
+      try {
+        if (!sf.isTrashed()) {
+          desduplicarEnCarpeta(sf);
+        }
+      } catch(eSf) {}
+    }
+  }
+
+  desduplicarEnCarpeta(rootFolder);
+  return stats;
 }
