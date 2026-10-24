@@ -587,6 +587,17 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3h. Auditoría y consolidación masiva de TODOS los establecimientos en Drive
+    if (action === "consolidar_todos_los_establecimientos" || action === "corregir_todas_las_carpetas") {
+      var rootMasivo = getOrCreateRootFolder();
+      var resMasivo = consolidarTodosLosEstablecimientosDrive(rootMasivo);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Consolidación de todos los establecimientos completada exitosamente.",
+        stats: resMasivo
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3e. Diagnóstico de carpetas por nombre en todo Drive
     if (action === "buscar_carpetas_sede") {
       var queryName = (e.parameter.nombre || "Estab_1 - CORDOBA - 351 (PARANA)").toString().trim();
@@ -1092,6 +1103,17 @@ function doPost(e) {
         status: "success",
         message: "Limpieza y desduplicación de archivos completada exitosamente.",
         stats: statsCleanPost
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CASO 1.12: CORREGIR Y CONSOLIDAR TODAS LAS CARPETAS DE ESTABLECIMIENTOS
+    if (data.tipoOperacion === "consolidar_todos_los_establecimientos" || data.tipoOperacion === "corregir_todas_las_carpetas") {
+      var rootMasivoPost = getOrCreateRootFolder();
+      var statsMasivoPost = consolidarTodosLosEstablecimientosDrive(rootMasivoPost);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Consolidación de todos los establecimientos completada exitosamente.",
+        stats: statsMasivoPost
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1936,5 +1958,147 @@ function desduplicarArchivosDrive(rootFolder) {
   }
 
   desduplicarEnCarpeta(rootFolder);
+  return stats;
+}
+
+// ========================================================
+// MANTENIMIENTO: CONSOLIDAR TODOS LOS ESTABLECIMIENTOS EN DRIVE
+// ========================================================
+
+function consolidarTodosLosEstablecimientosDrive(rootFolder) {
+  if (!rootFolder) rootFolder = getOrCreateRootFolder();
+
+  var stats = {
+    organismosProcesados: 0,
+    carpetasOrganismosUnificadas: 0,
+    sedesConsolidadas: 0,
+    archivosTrasladados: 0,
+    carpetasPapelera: 0
+  };
+
+  // 1. Recorrer todas las carpetas que estén en la raíz oficial
+  var rootSubs = rootFolder.getFolders();
+  var listaCarpetasOrg = [];
+  var listaCarpetasMes = [];
+
+  while (rootSubs.hasNext()) {
+    var sub = rootSubs.next();
+    try {
+      if (!sub.isTrashed()) {
+        var sNom = sub.getName().trim();
+        if (/^\d{6}$/.test(sNom) || /^\d{4}-\d{2}/.test(sNom) || sNom === "Carpetas_Mensuales") {
+          listaCarpetasMes.push(sub);
+        } else {
+          listaCarpetasOrg.push(sub);
+        }
+      }
+    } catch(eSub) {}
+  }
+
+  // 2. Procesar y unificar carpetas de organismos hacia sus nombres canónicos
+  for (var o = 0; o < listaCarpetasOrg.length; o++) {
+    var orgF = listaCarpetasOrg[o];
+    var orgOriginal = orgF.getName().trim();
+    var canonOrgName = obtenerNombreOrganismoCanonico(orgOriginal);
+    var targetOrgF = getOrCreateSubfolder(rootFolder, canonOrgName);
+    stats.organismosProcesados++;
+
+    var subSedIter = orgF.getFolders();
+    while (subSedIter.hasNext()) {
+      var sedeFolder = subSedIter.next();
+      try {
+        if (!sedeFolder.isTrashed()) {
+          var sedeNom = sedeFolder.getName().trim();
+          var targetSedeF = getOrCreateSubfolder(targetOrgF, sedeNom);
+
+          // Si la carpeta de la sede no era la oficial o estaba en una carpeta de organismo con nombre variante
+          if (sedeFolder.getId() !== targetSedeF.getId()) {
+            var files = sedeFolder.getFiles();
+            while (files.hasNext()) {
+              var fl = files.next();
+              try {
+                fl.moveTo(targetSedeF);
+                stats.archivosTrasladados++;
+              } catch(eMove) {
+                try { fl.makeCopy(fl.getName(), targetSedeF); fl.setTrashed(true); stats.archivosTrasladados++; } catch(eC) {}
+              }
+            }
+            // Mover subcarpetas si hubiera
+            var deepSubs = sedeFolder.getFolders();
+            while (deepSubs.hasNext()) {
+              var ds = deepSubs.next();
+              try { ds.moveTo(targetSedeF); } catch(eDs) {}
+            }
+            sedeFolder.setTrashed(true);
+            stats.carpetasPapelera++;
+            stats.sedesConsolidadas++;
+          }
+        }
+      } catch(eSede) {
+        Logger.log("Error al consolidar sede " + sedeFolder.getName() + ": " + eSede.toString());
+      }
+    }
+
+    // Mover cualquier archivo suelto en la carpeta del organismo hacia la canónica
+    if (orgF.getId() !== targetOrgF.getId()) {
+      var filesOrg = orgF.getFiles();
+      while (filesOrg.hasNext()) {
+        var fo = filesOrg.next();
+        try { fo.moveTo(targetOrgF); stats.archivosTrasladados++; } catch(eFo) {}
+      }
+      orgF.setTrashed(true);
+      stats.carpetasPapelera++;
+      stats.carpetasOrganismosUnificadas++;
+    }
+  }
+
+  // 3. Procesar carpetas mensuales para que también usen el organismo canónico y no tengan sedes duplicadas
+  for (var m = 0; m < listaCarpetasMes.length; m++) {
+    var mesF = listaCarpetasMes[m];
+    try {
+      var orgInMesIter = mesF.getFolders();
+      while (orgInMesIter.hasNext()) {
+        var orgInMes = orgInMesIter.next();
+        try {
+          if (!orgInMes.isTrashed()) {
+            var orgInMesName = orgInMes.getName().trim();
+            var canonInMes = obtenerNombreOrganismoCanonico(orgInMesName);
+            var targetOrgInMes = getOrCreateSubfolder(mesF, canonInMes);
+
+            var sIter = orgInMes.getFolders();
+            while (sIter.hasNext()) {
+              var sF = sIter.next();
+              try {
+                if (!sF.isTrashed()) {
+                  var targetSF = getOrCreateSubfolder(targetOrgInMes, sF.getName());
+                  if (sF.getId() !== targetSF.getId()) {
+                    var sfFiles = sF.getFiles();
+                    while (sfFiles.hasNext()) {
+                      var sff = sfFiles.next();
+                      try { sff.moveTo(targetSF); stats.archivosTrasladados++; } catch(eSff) {
+                        try { sff.makeCopy(sff.getName(), targetSF); sff.setTrashed(true); stats.archivosTrasladados++; } catch(eSff2) {}
+                      }
+                    }
+                    sF.setTrashed(true);
+                    stats.carpetasPapelera++;
+                  }
+                }
+              } catch(eS) {}
+            }
+
+            if (orgInMes.getId() !== targetOrgInMes.getId()) {
+              orgInMes.setTrashed(true);
+              stats.carpetasPapelera++;
+            }
+          }
+        } catch(eOIM) {}
+      }
+    } catch(eMes) {}
+  }
+
+  // 4. Ejecutar desduplicación de archivos homónimos en toda la estructura
+  var statsArchivos = desduplicarArchivosDrive(rootFolder);
+  stats.archivosDuplicadosEliminados = statsArchivos.archivosDuplicadosEliminados;
+
   return stats;
 }
