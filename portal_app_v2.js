@@ -7664,7 +7664,7 @@ function actualizarKPIsPlanMaqueta() {
   const elCobTxt = document.getElementById('kpi-cobertura-txt');
   if (elCobTxt) elCobTxt.innerHTML = `${displayVisitadas} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${metaSedesAcordadas} acordadas</span>`;
 
-  // 2. CARD 2: STOCK VISITAS (META 1.000)
+  // 2. CARD 2: STOCK ACCIONES (META 1.000)
   const elVisNum = document.getElementById('kpi-visitas-stock-num');
   if (elVisNum) elVisNum.textContent = displayTotalVisitas;
   const elVisPct = document.getElementById('kpi-visitas-stock-pct');
@@ -7672,7 +7672,7 @@ function actualizarKPIsPlanMaqueta() {
   const elVisBar = document.getElementById('kpi-visitas-stock-bar');
   if (elVisBar) elVisBar.style.width = `${Math.min(100, pctVisitas)}%`;
   const elVisRes = document.getElementById('kpi-visitas-stock-residual');
-  if (elVisRes) elVisRes.textContent = `${residualVisitas} visitas`;
+  if (elVisRes) elVisRes.textContent = `${residualVisitas} acciones`;
   const elVisProm = document.getElementById('kpi-visitas-stock-prom');
   if (elVisProm) elVisProm.textContent = promedioVisitas;
 
@@ -8579,7 +8579,7 @@ function renderChartPresupuestoHyS(data) {
         barPercentage: 0.55
       },
       {
-        label: 'Visitas HyS Efectivas',
+        label: 'Acciones HyS Efectivas',
         data: visitasRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
         backgroundColor: '#64748B',
         borderRadius: 2,
@@ -8816,7 +8816,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   if (elVisCons) elVisCons.textContent = data.stockVisitasConsumido;
   if (elVisMeta) elVisMeta.textContent = (PLAN_HYS_CONFIG.META_VISITAS_ANUAL).toLocaleString();
   if (elVisConsBadge) elVisConsBadge.textContent = `${data.stockVisitasConsumido} (${data.pctVisitasAvance}%)`;
-  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} visitas`;
+  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} acciones`;
   if (elVisProm) elVisProm.textContent = data.promedioVisitas;
 
   // Ritmo mensual & Desvío
@@ -8955,7 +8955,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const elTotActLabel = document.getElementById('stat-total-actividades-label');
   if (elTotActLabel) {
     const totalActsDisplay = (periodoKey === 'ciclo' || periodoKey === 'todos') ? data.totalVisitasCiclo : data.totalVisitasPeriodo;
-    elTotActLabel.textContent = `Total actividades: ${totalActsDisplay} ejecutadas (${((totalActsDisplay / PLAN_HYS_CONFIG.META_VISITAS_ANUAL)*100).toFixed(1)}% de 1.000 anuales)`;
+    elTotActLabel.textContent = `Total acciones: ${totalActsDisplay} ejecutadas (${((totalActsDisplay / PLAN_HYS_CONFIG.META_VISITAS_ANUAL)*100).toFixed(1)}% de 1.000 anuales)`;
   }
 
   const elHbarsCont = document.getElementById('contenedor-barras-tareas-horizontales');
@@ -9031,7 +9031,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
           </div>
           <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);">
             <span><b>${o.sedesVisitadas}</b> de ${o.totalSedes}</span>
-            <span><b>${o.totalVisitas}</b> vis.</span>
+            <span><b>${o.totalVisitas}</b> acc.</span>
           </div>
         </div>
       `;
@@ -9081,7 +9081,7 @@ function exportarMetricasConsolidadas() {
   let csv = "data:text/csv;charset=utf-8,\uFEFF";
   csv += "INDICADOR;VALOR;META;RESIDUAL;PORCENTAJE\n";
   csv += `Stock Sedes Objetivo;${metricas.stockSedesConsumido};${PLAN_HYS_CONFIG.META_SEDES_ANUAL};${metricas.stockSedesResidual};${metricas.pctSedesAvance}%\n`;
-  csv += `Stock Visitas HyS;${metricas.stockVisitasConsumido};${PLAN_HYS_CONFIG.META_VISITAS_ANUAL};${metricas.stockVisitasResidual};${metricas.pctVisitasAvance}%\n`;
+  csv += `Stock Acciones HyS;${metricas.stockVisitasConsumido};${PLAN_HYS_CONFIG.META_VISITAS_ANUAL};${metricas.stockVisitasResidual};${metricas.pctVisitasAvance}%\n`;
   csv += `Ritmo Mensual;${metricas.ritmoMes};${PLAN_HYS_CONFIG.META_SEDES_MENSUAL};-;-\n\n`;
 
   csv += "TAREA TECNICA;CODIGO;CANTIDAD;PARTICIPACION;SEDES CUBIERTAS\n";
@@ -9089,7 +9089,7 @@ function exportarMetricasConsolidadas() {
     csv += `"${t.nombre}";${t.codigo};${t.count};${t.sharePct}%;${t.sedesRecibieron}\n`;
   });
 
-  csv += "\nORGANISMO;SEDES TOTALES;SEDES VISITADAS;COBERTURA;TOTAL VISITAS\n";
+  csv += "\nORGANISMO;SEDES TOTALES;SEDES VISITADAS;COBERTURA;TOTAL ACCIONES\n";
   metricas.resumenOrganismos.forEach(o => {
     csv += `"${o.organismo}";${o.totalSedes};${o.sedesVisitadas};${o.coberturaPct}%;${o.totalVisitas}\n`;
   });
