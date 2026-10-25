@@ -605,6 +605,13 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3j. Sincronizar y poblar réplicas de Octubre 2026 en Google Drive
+    if (action === "sincronizar_octubre" || action === "reparar_octubre") {
+      var resOct = sincronizarCarpetaOctubreDrive();
+      return ContentService.createTextOutput(JSON.stringify(resOct))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3e. Diagnóstico de carpetas por nombre en todo Drive
     if (action === "buscar_carpetas_sede") {
       var queryName = (e.parameter.nombre || "Estab_1 - CORDOBA - 351 (PARANA)").toString().trim();
@@ -2233,6 +2240,133 @@ function sincronizarCarpetaSeptiembreDrive() {
   return {
     status: "success",
     message: "Sincronización de Septiembre 2026 completada exitosamente.",
+    stats: stats
+  };
+}
+
+// ========================================================
+// MANTENIMIENTO: SINCRONIZAR Y POBLAR RÉPLICAS DE OCTUBRE 2026
+// ========================================================
+
+function sincronizarCarpetaOctubreDrive() {
+  var ss = getSpreadsheet();
+  var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+  if (!sheetLegajo) {
+    return { status: "error", message: "No se encontró la hoja Legajo_Actividades_Archivos" };
+  }
+
+  var rootFolder = getOrCreateRootFolder();
+  var monthlyParent = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
+  var octFolder = getOrCreateSubfolder(monthlyParent, "2026-10_OCTUBRE");
+  try { octFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(e) {}
+
+  var data = sheetLegajo.getDataRange().getValues();
+  if (data.length <= 1) {
+    return { status: "success", message: "No hay registros en el legajo.", count: 0 };
+  }
+
+  var stats = {
+    totalFilas: data.length - 1,
+    filasOctubre: 0,
+    archivosCopiados: 0,
+    archivosYaExistentes: 0,
+    urlsActualizadas: 0,
+    errores: [],
+    monthFolderUrl: octFolder.getUrl(),
+    monthFolderId: octFolder.getId()
+  };
+
+  var colFecha = 2;       // Col C (0-indexed)
+  var colOrg = 3;         // Col D
+  var colNro = 4;         // Col E
+  var colNom = 5;         // Col F
+  var colNomArchivo = 10; // Col K
+  var colDriveId = 12;    // Col M (ID Drive)
+  var colUrlMensual = 15; // Col P (URL Carpeta Mensual)
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var rFecha = row[colFecha];
+    var sFecha = "";
+    if (rFecha instanceof Date) {
+      try {
+        sFecha = Utilities.formatDate(rFecha, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd");
+      } catch(e) {
+        sFecha = rFecha.toISOString().substring(0, 10);
+      }
+    } else {
+      sFecha = String(rFecha || "").trim();
+    }
+
+    // Verificar si es de Octubre 2026
+    var esOct2026 = false;
+    if (sFecha.indexOf("2026-10") !== -1 || sFecha.indexOf("2026/10") !== -1 || sFecha.indexOf("10/2026") !== -1) {
+      esOct2026 = true;
+    } else {
+      var mInfo = parsearAnioMes(sFecha);
+      if (mInfo && mInfo.key === "202610") {
+        esOct2026 = true;
+      }
+    }
+
+    if (esOct2026) {
+      stats.filasOctubre++;
+      var orgNom = String(row[colOrg] || "POLICIA").trim();
+      var canonOrg = obtenerNombreOrganismoCanonico(orgNom);
+      var nroEstab = String(row[colNro] || "").trim();
+      var estabNom = String(row[colNom] || "Establecimiento").trim();
+      var fileId = String(row[colDriveId] || "").trim();
+      var fileName = String(row[colNomArchivo] || "").trim();
+
+      // 1. Crear subcarpeta del organismo dentro de 2026-10_OCTUBRE
+      var orgOctFolder = getOrCreateSubfolder(octFolder, canonOrg);
+      try { orgOctFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eOrg) {}
+
+      // 2. Crear subcarpeta del establecimiento dentro del organismo
+      var cleanNroTag = nroEstab ? ("Estab_" + nroEstab) : "Estab_General";
+      var estabFolderName = cleanNroTag + " - " + estabNom;
+      var estabOctFolder = getOrCreateSubfolder(orgOctFolder, estabFolderName);
+      try { estabOctFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eEst) {}
+
+      // 3. Copiar archivo físico a la carpeta de la sede dentro del mes si existe fileId
+      if (fileId) {
+        try {
+          var originalFile = DriveApp.getFileById(fileId);
+          var actualName = originalFile.getName();
+          if (!fileName) fileName = actualName;
+
+          // Verificar si ya existe en estabOctFolder
+          var existingFiles = estabOctFolder.getFilesByName(fileName);
+          var yaExiste = false;
+          while (existingFiles.hasNext()) {
+            var ef = existingFiles.next();
+            if (!ef.isTrashed()) {
+              yaExiste = true;
+              break;
+            }
+          }
+
+          if (yaExiste) {
+            stats.archivosYaExistentes++;
+          } else {
+            var copy = originalFile.makeCopy(fileName, estabOctFolder);
+            try { copy.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eCp) {}
+            stats.archivosCopiados++;
+          }
+        } catch(eFile) {
+          stats.errores.push("Fila " + (i + 1) + " (" + fileName + "): " + eFile.toString());
+        }
+      }
+
+      // 4. Actualizar la celda URL Carpeta Mensual en Sheets con la URL activa de Octubre
+      sheetLegajo.getRange(i + 1, colUrlMensual + 1).setValue(octFolder.getUrl());
+      stats.urlsActualizadas++;
+    }
+  }
+
+  return {
+    status: "success",
+    message: "Sincronización de Octubre 2026 completada exitosamente.",
     stats: stats
   };
 }
