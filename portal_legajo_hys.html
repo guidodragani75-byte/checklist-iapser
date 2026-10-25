@@ -1144,6 +1144,9 @@
                 <button type="button" class="chip" onclick="generarReporteMensualPdf()" style="min-height:36px;padding:4px 10px;font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF del mes seleccionado">
                   <i class="fa-solid fa-file-pdf"></i> PDF
                 </button>
+                <button type="button" id="btn-descargar-zip-mes" class="chip" onclick="descargarZipMesSeleccionado()" style="min-height:36px;padding:4px 10px;font-weight:600;color:#0F4C5C;border-color:var(--border-control);display:inline-flex;align-items:center;gap:5px;" title="Descargar paquete ZIP con todos los documentos del mes seleccionado">
+                  <i class="fa-solid fa-file-zipper" style="color:#0F4C5C;"></i> <span>ZIP</span>
+                </button>
               </div>
             </label>
 
@@ -1305,7 +1308,10 @@
             <button type="button" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="width:100%;font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Subida rápida por lote con OCR para esta sede">
               <i class="fa-solid fa-cloud-arrow-up"></i> Subida Masiva (OCR)
             </button>
-</div>
+            <button type="button" class="chip" onclick="descargarZipSedeActual()" style="width:100%;font-weight:600;background:#F0F4F8;border-color:#C9D6DA;color:#0F4C5C;display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Descargar paquete ZIP con todos los documentos técnicos de esta sede">
+              <i class="fa-solid fa-file-zipper" style="color:#0F4C5C;"></i> Descargar Legajo en ZIP
+            </button>
+          </div>
 
           <!-- Zona Drag & Drop: Carga Rápida de Documentos con OCR -->
           <div style="margin-top:18px;font-size:12px;color:var(--text-muted)">Cargar documentos</div>
@@ -2251,7 +2257,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261024_chip_mes"></script>
+<script src="portal_app_v2.js?v=20261025_zip"></script>
 
 <script>
   // Control responsivo de menú móvil

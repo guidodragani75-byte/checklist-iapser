@@ -6635,6 +6635,9 @@ function abrirModalCarpetasMensuales() {
           <button type="button" class="chip" onclick="generarReporteMensualPdf('${k.split('-')[1]}', '${k.split('-')[0]}')" style="min-height:30px;padding:3px 8px;font-size:11px;color:var(--alert);" title="Exportar reporte PDF de este mes">
             <i class="fa-solid fa-file-pdf"></i> PDF
           </button>
+          <button type="button" class="chip" onclick="descargarZipMesClave('${k}', this)" style="min-height:30px;padding:3px 8px;font-size:11px;color:#0F4C5C;font-weight:600;" title="Descargar paquete ZIP con todos los documentos de este mes">
+            <i class="fa-solid fa-file-zipper"></i> ZIP
+          </button>
         </div>
       `;
       container.appendChild(card);
@@ -10130,4 +10133,185 @@ document.addEventListener('click', function(e) {
     }
   }
 });
+
+// ==================== EXPORTACIÓN Y DESCARGA EN LOTE .ZIP ====================
+
+/**
+ * Descarga el paquete ZIP de documentos del mes actualmente seleccionado
+ */
+async function descargarZipMesSeleccionado() {
+  const btn = document.getElementById('btn-descargar-zip-mes');
+  let mesVal = AppState.filtroMes;
+  if (!mesVal || mesVal === 'todos') {
+    mesVal = '09'; // Default septiembre si está en 'todos'
+  }
+  const anioVal = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generando ZIP...`;
+  }
+
+  mostrarToast(`Generando archivo ZIP en Google Drive... Esto puede demorar unos segundos.`);
+
+  try {
+    const webhookUrl = getWebhookUrl();
+    const url = `${webhookUrl}?action=generar_zip_mes&mes=${encodeURIComponent(mesVal)}&anio=${encodeURIComponent(anioVal)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (json && json.status === 'success') {
+      if (json.multiPart && Array.isArray(json.partes)) {
+        mostrarToast(`✓ Paquete grande (${json.cantArchivos} archivos). Descargando ${json.partes.length} volúmenes ZIP...`);
+        json.partes.forEach((p, idx) => {
+          setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = p.downloadUrl;
+            link.target = '_blank';
+            link.download = p.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, idx * 700);
+        });
+      } else if (json.downloadUrl) {
+        mostrarToast(`✓ Paquete ZIP generado (${json.cantArchivos} archivos, ${json.tamanoMb} MB). Iniciando descarga...`);
+        const link = document.createElement('a');
+        link.href = json.downloadUrl;
+        link.target = '_blank';
+        link.download = json.fileName || 'Informes_HyS_IAPSER.zip';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else if (json && json.status === 'empty') {
+      mostrarToast(`ℹ️ ${json.message || 'No se encontraron documentos en este mes para comprimir.'}`);
+    } else {
+      mostrarToast(`⚠️ Error al generar el archivo ZIP: ${(json && json.message) || 'Intente nuevamente.'}`);
+    }
+  } catch(err) {
+    console.error('Error al descargar ZIP:', err);
+    mostrarToast('⚠️ Ocurrió un error al contactar al servidor para generar el ZIP.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+window.descargarZipMesSeleccionado = descargarZipMesSeleccionado;
+
+/**
+ * Descarga el paquete ZIP para una clave de mes específica (ej: '2026-09') desde el modal
+ */
+async function descargarZipMesClave(monthKey, btnEl) {
+  let anio = '2026';
+  let mes = '09';
+  const clean = String(monthKey || '').trim();
+
+  if (clean.includes('-')) {
+    const parts = clean.split('-');
+    anio = parts[0];
+    mes = parts[1];
+  } else if (clean.length === 6) {
+    anio = clean.substring(0, 4);
+    mes = clean.substring(4, 6);
+  } else {
+    mes = clean;
+  }
+
+  const originalHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+  }
+
+  mostrarToast(`Generando ZIP para el período ${mes}/${anio} en Drive...`);
+
+  try {
+    const webhookUrl = getWebhookUrl();
+    const url = `${webhookUrl}?action=generar_zip_mes&mes=${encodeURIComponent(mes)}&anio=${encodeURIComponent(anio)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (json && json.status === 'success') {
+      if (json.multiPart && Array.isArray(json.partes)) {
+        mostrarToast(`✓ Descargando ${json.partes.length} partes ZIP (${json.cantArchivos} archivos en total)...`);
+        json.partes.forEach((p, idx) => {
+          setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = p.downloadUrl;
+            link.target = '_blank';
+            link.download = p.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, idx * 700);
+        });
+      } else if (json.downloadUrl) {
+        mostrarToast(`✓ Descargando ${json.fileName} (${json.cantArchivos} archivos, ${json.tamanoMb} MB)...`);
+        const link = document.createElement('a');
+        link.href = json.downloadUrl;
+        link.target = '_blank';
+        link.download = json.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else if (json && json.status === 'empty') {
+      mostrarToast(`ℹ️ No hay documentos registrados para ${mes}/${anio}.`);
+    } else {
+      mostrarToast(`⚠️ Error al generar ZIP.`);
+    }
+  } catch(err) {
+    console.error('Error al generar ZIP mensual:', err);
+    mostrarToast('⚠️ Error al generar el archivo ZIP.');
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalHtml;
+    }
+  }
+}
+window.descargarZipMesClave = descargarZipMesClave;
+
+/**
+ * Descarga el paquete ZIP con todos los documentos técnicos de la sede actualmente seleccionada
+ */
+async function descargarZipSedeActual() {
+  const est = AppState.establecimientoSeleccionado;
+  if (!est) {
+    mostrarToast('Seleccioná primero un establecimiento para descargar su legajo.');
+    return;
+  }
+
+  mostrarToast(`Generando paquete ZIP para la sede ${est.nombreEstablecimiento}...`);
+
+  try {
+    const webhookUrl = getWebhookUrl();
+    const url = `${webhookUrl}?action=generar_zip_sede&estId=${encodeURIComponent(est.id || '')}&nroEstab=${encodeURIComponent(est.nroEstab || '')}&organismo=${encodeURIComponent(est.organismo || '')}&nombreEstab=${encodeURIComponent(est.nombreEstablecimiento || '')}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (json && json.status === 'success' && json.downloadUrl) {
+      mostrarToast(`✓ Paquete ZIP de la sede generado (${json.cantArchivos} archivos). Descargando...`);
+      const link = document.createElement('a');
+      link.href = json.downloadUrl;
+      link.target = '_blank';
+      link.download = json.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (json && json.status === 'empty') {
+      mostrarToast(`ℹ️ Esta sede aún no tiene documentos técnicos para comprimir.`);
+    } else {
+      mostrarToast(`⚠️ Error al generar ZIP de la sede.`);
+    }
+  } catch(err) {
+    console.error('Error al generar ZIP de sede:', err);
+    mostrarToast('⚠️ Error al generar archivo ZIP de la sede.');
+  }
+}
+window.descargarZipSedeActual = descargarZipSedeActual;
 

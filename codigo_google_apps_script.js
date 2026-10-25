@@ -638,6 +638,26 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3k. Generar archivo comprimido .ZIP de un mes completo en Google Drive
+    if (action === "generar_zip_mes" || action === "descargar_zip_mes") {
+      var paramMes = (e.parameter.mes || "").toString().trim();
+      var paramAnio = (e.parameter.anio || "2026").toString().trim();
+      var resZipMes = generarZipMensualDrive(paramAnio, paramMes);
+      return ContentService.createTextOutput(JSON.stringify(resZipMes))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3l. Generar archivo comprimido .ZIP de un establecimiento en Google Drive
+    if (action === "generar_zip_sede" || action === "descargar_zip_sede") {
+      var paramEstId = (e.parameter.estId || "").toString().trim();
+      var paramNro = (e.parameter.nroEstab || "").toString().trim();
+      var paramOrg = (e.parameter.organismo || "").toString().trim();
+      var paramNom = (e.parameter.nombreEstab || e.parameter.establecimiento || "").toString().trim();
+      var resZipSede = generarZipSedeDrive(paramEstId, paramNro, paramOrg, paramNom);
+      return ContentService.createTextOutput(JSON.stringify(resZipSede))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3e. Diagnóstico de carpetas por nombre en todo Drive
     if (action === "buscar_carpetas_sede") {
       var queryName = (e.parameter.nombre || "Estab_1 - CORDOBA - 351 (PARANA)").toString().trim();
@@ -2394,5 +2414,323 @@ function sincronizarCarpetaOctubreDrive() {
     status: "success",
     message: "Sincronización de Octubre 2026 completada exitosamente.",
     stats: stats
+  };
+}
+
+// ========================================================
+// MANTENIMIENTO: GENERACIÓN Y DESCARGA EN LOTE .ZIP
+// ========================================================
+
+function generarZipMensualDrive(anio, mes) {
+  var rootFolder = getOrCreateRootFolder();
+  var monthlyParent = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
+  var zipExportFolder = getOrCreateSubfolder(rootFolder, "Exportaciones_ZIP");
+  try { zipExportFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eZ) {}
+
+  var cleanAnio = String(anio || "2026").trim();
+  var numMes = parseInt(mes, 10);
+  if (isNaN(numMes) || numMes < 1 || numMes > 12) {
+    numMes = 9; // Default septiembre
+  }
+  var mesStr = (numMes < 10 ? "0" : "") + numMes;
+  var mesNombre = MESES_NOMBRES[numMes - 1] || "Mes";
+  var expectedFolderName = cleanAnio + "-" + mesStr + "_" + mesNombre.toUpperCase();
+  var prefixDash = cleanAnio + "-" + mesStr;
+  var prefix6 = cleanAnio + mesStr;
+
+  // 1. Buscar la carpeta mensual en Carpetas_Mensuales
+  var targetMonthFolder = null;
+  var subF = monthlyParent.getFolders();
+  while (subF.hasNext()) {
+    var sf = subF.next();
+    try {
+      if (!sf.isTrashed()) {
+        var nom = sf.getName().trim().toUpperCase();
+        if (nom === expectedFolderName.toUpperCase() || nom.indexOf(prefixDash) === 0 || nom.indexOf(prefix6) === 0) {
+          targetMonthFolder = sf;
+          break;
+        }
+      }
+    } catch(e) {}
+  }
+
+  var blobs = [];
+  var nombresUsados = {};
+
+  // Función recursiva para recolectar archivos de una carpeta
+  function recolectarBlobsDeCarpeta(folder, rutaRelativa) {
+    if (!folder) return;
+    var files = folder.getFiles();
+    while (files.hasNext()) {
+      var f = files.next();
+      try {
+        if (!f.isTrashed()) {
+          var fName = f.getName();
+          var uniquePath = rutaRelativa ? (rutaRelativa + "/" + fName) : fName;
+          if (nombresUsados[uniquePath]) {
+            uniquePath = (rutaRelativa ? (rutaRelativa + "/") : "") + f.getId().substring(0, 4) + "_" + fName;
+          }
+          nombresUsados[uniquePath] = true;
+          var b = f.getBlob();
+          b.setName(uniquePath);
+          blobs.push(b);
+        }
+      } catch(eF) {}
+    }
+
+    var subFolders = folder.getFolders();
+    while (subFolders.hasNext()) {
+      var sub = subFolders.next();
+      try {
+        if (!sub.isTrashed()) {
+          var subRuta = rutaRelativa ? (rutaRelativa + "/" + sub.getName()) : sub.getName();
+          recolectarBlobsDeCarpeta(sub, subRuta);
+        }
+      } catch(eS) {}
+    }
+  }
+
+  if (targetMonthFolder) {
+    recolectarBlobsDeCarpeta(targetMonthFolder, "");
+  }
+
+  // 2. Si la carpeta mensual no tiene blobs o no se encontró, recolectar directamente desde la hoja de Sheets
+  if (blobs.length === 0) {
+    var ss = getSpreadsheet();
+    var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+    if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+      var data = sheetLegajo.getDataRange().getValues();
+      var colFecha = 2;
+      var colOrg = 3;
+      var colNro = 4;
+      var colNomArch = 10;
+      var colDriveId = 12;
+
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var sF = String(row[colFecha] || "").trim();
+        var mMatch = sF.indexOf(cleanAnio + "-" + mesStr) !== -1 || sF.indexOf(cleanAnio + "/" + mesStr) !== -1;
+        if (!mMatch && sF.indexOf("/" + mesStr + "/" + cleanAnio) !== -1) mMatch = true;
+
+        if (mMatch) {
+          var fileId = String(row[colDriveId] || "").trim();
+          var nomOrg = String(row[colOrg] || "POLICIA").trim();
+          var nro = String(row[colNro] || "000").trim();
+          var nomArch = String(row[colNomArch] || "").trim();
+          if (fileId) {
+            try {
+              var fileObj = DriveApp.getFileById(fileId);
+              if (!fileObj.isTrashed()) {
+                var actualNom = nomArch || fileObj.getName();
+                var orgCanon = obtenerAbreviaturaOrganismo(nomOrg);
+                var path = orgCanon + "/Estab_" + nro + "/" + actualNom;
+                var b2 = fileObj.getBlob();
+                b2.setName(path);
+                blobs.push(b2);
+              }
+            } catch(eRec) {}
+          }
+        }
+      }
+    }
+  }
+
+  if (blobs.length === 0) {
+    return {
+      status: "empty",
+      message: "No se encontraron documentos registrados para el mes " + mesNombre + " de " + cleanAnio + ".",
+      cantArchivos: 0
+    };
+  }
+
+  // 3. Crear archivo(s) ZIP con control estricto del límite de 50 MB de Google Apps Script
+  var maxBytesPorLote = 38 * 1024 * 1024; // 38 MB por volumen para margen de seguridad
+  var lotes = [];
+  var currentLote = [];
+  var currentBytes = 0;
+
+  for (var k = 0; k < blobs.length; k++) {
+    var b = blobs[k];
+    var bLen = 0;
+    try { bLen = b.getBytes().length; } catch(eB) { bLen = 1024 * 1024; }
+    if (currentBytes + bLen > maxBytesPorLote && currentLote.length > 0) {
+      lotes.push(currentLote);
+      currentLote = [];
+      currentBytes = 0;
+    }
+    currentLote.push(b);
+    currentBytes += bLen;
+  }
+  if (currentLote.length > 0) {
+    lotes.push(currentLote);
+  }
+
+  var resultadosArchivos = [];
+  var baseZipName = "Informes_HyS_IAPSER_" + cleanAnio + "_" + mesStr + "_" + mesNombre.toUpperCase();
+
+  for (var p = 0; p < lotes.length; p++) {
+    var sufijoParte = (lotes.length > 1) ? ("_Parte_" + (p + 1) + "_de_" + lotes.length) : "";
+    var currentZipName = baseZipName + sufijoParte + ".zip";
+
+    // Limpiar ZIPs previos con el mismo nombre
+    var oldZips = zipExportFolder.getFilesByName(currentZipName);
+    while (oldZips.hasNext()) {
+      try { oldZips.next().setTrashed(true); } catch(eTr) {}
+    }
+
+    var currentZipBlob = Utilities.zip(lotes[p], currentZipName);
+    var zipFile = zipExportFolder.createFile(currentZipBlob);
+    try {
+      zipFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch(eS) {}
+
+    resultadosArchivos.push({
+      fileName: currentZipName,
+      fileId: zipFile.getId(),
+      downloadUrl: "https://drive.google.com/uc?export=download&id=" + zipFile.getId(),
+      viewUrl: zipFile.getUrl(),
+      cantArchivos: lotes[p].length,
+      tamanoMb: (currentZipBlob.getBytes().length / (1024 * 1024)).toFixed(2)
+    });
+  }
+
+  if (resultadosArchivos.length === 1) {
+    var r1 = resultadosArchivos[0];
+    return {
+      status: "success",
+      multiPart: false,
+      fileName: r1.fileName,
+      fileId: r1.fileId,
+      downloadUrl: r1.downloadUrl,
+      viewUrl: r1.viewUrl,
+      cantArchivos: r1.cantArchivos,
+      tamanoMb: r1.tamanoMb
+    };
+  } else {
+    return {
+      status: "success",
+      multiPart: true,
+      cantPartes: resultadosArchivos.length,
+      cantArchivos: blobs.length,
+      partes: resultadosArchivos
+    };
+  }
+}
+
+function generarZipSedeDrive(estId, nroEstab, organismo, nombreEstab) {
+  var rootFolder = getOrCreateRootFolder();
+  var zipExportFolder = getOrCreateSubfolder(rootFolder, "Exportaciones_ZIP");
+  try { zipExportFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch(eZ) {}
+
+  var canonOrg = obtenerNombreOrganismoCanonico(organismo || "");
+  var orgFolder = getOrCreateSubfolder(rootFolder, canonOrg);
+
+  var cleanNro = String(nroEstab || "").trim();
+  var nroNum = parseInt(cleanNro, 10);
+  var nroPadded = (!isNaN(nroNum) ? ("" + (nroNum < 100 ? (nroNum < 10 ? "00" + nroNum : "0" + nroNum) : nroNum)) : cleanNro);
+  var cleanNombre = String(nombreEstab || "").toLowerCase().trim();
+
+  var blobs = [];
+  var targetSedeFolder = null;
+
+  if (cleanNro) {
+    var subF = orgFolder.getFolders();
+    while (subF.hasNext()) {
+      var sf = subF.next();
+      try {
+        if (!sf.isTrashed()) {
+          var sfNom = sf.getName().trim();
+          var matchNro = sfNom.indexOf("Estab_" + cleanNro) === 0 || 
+                         sfNom.indexOf("Estab_" + nroPadded) === 0 || 
+                         (!isNaN(nroNum) && sfNom.indexOf("Estab_" + nroNum) === 0);
+          if (matchNro || (cleanNombre && sfNom.toLowerCase().indexOf(cleanNombre) !== -1)) {
+            targetSedeFolder = sf;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  if (targetSedeFolder) {
+    var files = targetSedeFolder.getFiles();
+    while (files.hasNext()) {
+      var f = files.next();
+      try {
+        if (!f.isTrashed()) {
+          blobs.push(f.getBlob());
+        }
+      } catch(e) {}
+    }
+  }
+
+  if (blobs.length === 0) {
+    var ss = getSpreadsheet();
+    var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+    if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+      var data = sheetLegajo.getDataRange().getValues();
+      var colNro = 4;
+      var colNom = 5;
+      var colNomArch = 10;
+      var colDriveId = 12;
+
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var rNro = String(row[colNro] || "").trim();
+        var rNom = String(row[colNom] || "").toLowerCase().trim();
+
+        var matchFila = false;
+        if (cleanNro && (rNro === cleanNro || rNro === nroPadded || (!isNaN(nroNum) && rNro === String(nroNum)))) {
+          matchFila = true;
+        } else if (cleanNombre && rNom.indexOf(cleanNombre) !== -1) {
+          matchFila = true;
+        }
+
+        if (matchFila) {
+          var fId = String(row[colDriveId] || "").trim();
+          if (fId) {
+            try {
+              var fObj = DriveApp.getFileById(fId);
+              if (!fObj.isTrashed()) {
+                var b = fObj.getBlob();
+                b.setName(String(row[colNomArch] || fObj.getName()));
+                blobs.push(b);
+              }
+            } catch(eF) {}
+          }
+        }
+      }
+    }
+  }
+
+  if (blobs.length === 0) {
+    return {
+      status: "empty",
+      message: "No se encontraron documentos técnicos para este establecimiento.",
+      cantArchivos: 0
+    };
+  }
+
+  var zipName = "Legajo_HyS_Estab_" + (cleanNro || "Sede") + ".zip";
+  var zipBlob = Utilities.zip(blobs, zipName);
+
+  var oldZips = zipExportFolder.getFilesByName(zipName);
+  while (oldZips.hasNext()) {
+    try { oldZips.next().setTrashed(true); } catch(eTr) {}
+  }
+
+  var zipFile = zipExportFolder.createFile(zipBlob);
+  try {
+    zipFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(eS) {}
+
+  return {
+    status: "success",
+    fileName: zipName,
+    fileId: zipFile.getId(),
+    downloadUrl: "https://drive.google.com/uc?export=download&id=" + zipFile.getId(),
+    viewUrl: zipFile.getUrl(),
+    cantArchivos: blobs.length,
+    tamanoMb: (zipBlob.getBytes().length / (1024 * 1024)).toFixed(2)
   };
 }
