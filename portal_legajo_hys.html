@@ -1119,12 +1119,12 @@
             </label>
           </div>
 
-          <!-- Fila 2: Mes de Visita y Menú Desplegable Faltantes -->
-          <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;position:relative;">
-            <label style="flex:1;font-size:12px;color:var(--text-muted)">
+          <!-- Fila 2: Mes de Visita, Chip de Gestión y Menú Desplegable Faltantes -->
+          <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;position:relative;flex-wrap:wrap;">
+            <label style="flex:1;min-width:280px;font-size:12px;color:var(--text-muted)">
               Mes de visita
-              <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-                <select id="filtro-mes" class="input-clean" style="flex:1;" onchange="AppState.filtroMes = this.value; renderListaEstablecimientos(); actualizarKPIsPlanMaqueta();">
+              <div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+                <select id="filtro-mes" class="input-clean" style="flex:1;min-width:160px;" onchange="AppState.filtroMes = this.value; renderListaEstablecimientos(); actualizarKPIsPlanMaqueta();">
                   <option value="todos">Todo el año</option>
                   <option value="01">01 - Enero</option>
                   <option value="02">02 - Febrero</option>
@@ -1139,6 +1139,11 @@
                   <option value="11">11 - Noviembre</option>
                   <option value="12">12 - Diciembre</option>
                 </select>
+                <!-- Chip dinámico con la cantidad de sedes con gestión -->
+                <span id="badge-sedes-gestion-mes" class="chip" style="min-height:36px;padding:0 12px;font-size:12px;font-weight:700;background:#E3EDEF;border-color:#C9D6DA;color:#0F4C5C;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;" title="Cantidad de sedes con gestión registradas">
+                  <i class="fa-solid fa-building-circle-check" style="color:#0F4C5C;"></i>
+                  <span id="badge-sedes-gestion-mes-txt">0 sedes con gestión</span>
+                </span>
                 <button type="button" class="chip" onclick="generarReporteMensualPdf()" style="min-height:36px;padding:4px 10px;font-weight:600;color:var(--alert);border-color:var(--border-control);" title="Descargar o imprimir reporte ejecutivo en PDF del mes seleccionado">
                   <i class="fa-solid fa-file-pdf"></i> PDF
                 </button>
@@ -2249,7 +2254,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261023_3"></script>
+<script src="portal_app_v2.js?v=20261024_chip_mes"></script>
 
 <script>
   // Control responsivo de menú móvil

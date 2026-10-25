@@ -1061,6 +1061,7 @@ function renderListaEstablecimientos() {
   if (counterMaqueta) {
     counterMaqueta.innerHTML = `${filtered.length} de ${totalSedes} sedes · ✓ presente &nbsp; ✗ falta &nbsp; — no corresponde`;
   }
+  actualizarChipSedesConGestion();
   renderChipsFiltrosActivos();
 
   // Renderizar en la tabla de la nueva interfaz si existe
@@ -7720,6 +7721,8 @@ function actualizarKPIsPlanMaqueta() {
   const displaySinSup = sedesSinSup > 0 ? sedesSinSup : 12;
   const elSinSupTxt = document.getElementById('kpi-sin-sup-txt');
   if (elSinSupTxt) elSinSupTxt.textContent = `${displaySinSup}`;
+
+  actualizarChipSedesConGestion();
 }
 window.actualizarKPIsPlanMaqueta = actualizarKPIsPlanMaqueta;
 
@@ -9794,8 +9797,84 @@ function actualizarSelectorMesesSedes() {
 
     selectMetricas.appendChild(optGroupPrev);
   }
+  actualizarChipSedesConGestion();
 }
 window.actualizarSelectorMesesSedes = actualizarSelectorMesesSedes;
+
+/**
+ * Calcula la cantidad de sedes únicas con gestión técnica en un mes determinado
+ */
+function calcularSedesConGestionMes(targetMes, anio = '2026') {
+  const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || anio || '2026').trim();
+  let count = 0;
+  const isTodos = !targetMes || targetMes === 'todos';
+  const tMesNum = isTodos ? null : parseInt(targetMes, 10);
+
+  Object.values(AppState.establecimientos).forEach(e => {
+    const acts = obtenerActividadesDeSede(e);
+    if (isTodos) {
+      const tieneEnAnio = acts.some(a => {
+        if (!a || !a.fechaActividad) return false;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return false;
+        }
+        return true;
+      });
+      if (tieneEnAnio || (anioFiltro === 'todos' && e.data)) count++;
+    } else {
+      const tieneEnMes = acts.some(a => {
+        if (!a || !a.fechaActividad) return false;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return false;
+        }
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        return mInfo && mInfo.mes === tMesNum;
+      });
+      if (tieneEnMes) count++;
+    }
+  });
+
+  return count;
+}
+window.calcularSedesConGestionMes = calcularSedesConGestionMes;
+
+/**
+ * Actualiza el chip visual de sedes con gestión situado junto al filtro de mes
+ */
+function actualizarChipSedesConGestion() {
+  const badgeEl = document.getElementById('badge-sedes-gestion-mes');
+  const txtEl = document.getElementById('badge-sedes-gestion-mes-txt');
+  if (!badgeEl && !txtEl) return;
+
+  const mesVal = AppState.filtroMes || 'todos';
+  const count = calcularSedesConGestionMes(mesVal);
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  if (mesVal && mesVal !== 'todos') {
+    const idx = parseInt(mesVal, 10) - 1;
+    const mesNom = (idx >= 0 && idx < 12) ? meses[idx] : mesVal;
+    if (txtEl) txtEl.textContent = `${count} ${count === 1 ? 'sede' : 'sedes'} con gestión (${mesNom})`;
+    if (badgeEl) {
+      badgeEl.title = `${count} establecimientos con actividades HyS registradas en ${mesNom}`;
+      badgeEl.style.display = 'inline-flex';
+      badgeEl.style.background = count > 0 ? '#E3EDEF' : '#FBEFE6';
+      badgeEl.style.borderColor = count > 0 ? '#C9D6DA' : '#EED4C2';
+      badgeEl.style.color = count > 0 ? '#0F4C5C' : '#A8470A';
+    }
+  } else {
+    if (txtEl) txtEl.textContent = `${count} sedes con gestión en el año`;
+    if (badgeEl) {
+      badgeEl.title = `${count} establecimientos con actividades HyS registradas en todo el año`;
+      badgeEl.style.display = 'inline-flex';
+      badgeEl.style.background = '#F0F1EE';
+      badgeEl.style.borderColor = '#D5D8D3';
+      badgeEl.style.color = '#2C3E50';
+    }
+  }
+}
+window.actualizarChipSedesConGestion = actualizarChipSedesConGestion;
 
 function cambiarFiltroAnioGlobal(anio) {
   AppState.matrizAnio = anio;
@@ -9983,7 +10062,8 @@ function renderChipsFiltrosActivos() {
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const idx = parseInt(AppState.filtroMes, 10) - 1;
     const mesNom = (idx >= 0 && idx < 12) ? meses[idx] : AppState.filtroMes;
-    chips.push({ id: 'mes', label: `Mes: ${mesNom}` });
+    const cantGestion = calcularSedesConGestionMes(AppState.filtroMes);
+    chips.push({ id: 'mes', label: `Mes: ${mesNom} (${cantGestion} con gestión)` });
   }
   if (AppState.filtrosFaltantes && AppState.filtrosFaltantes.size > 0) {
     const nombresFaltantes = {
