@@ -150,20 +150,48 @@ function parsearAnioMes(fecha) {
 
 function getOrCreateMonthlyFolder(rootFolder, fecha) {
   var mInfo = parsearAnioMes(fecha);
-  // Estructura mensual directa bajo la raíz oficial: AAAAMM (ej: 202610)
-  var monthFolder = getOrCreateSubfolder(rootFolder, mInfo.key);
+  var monthlyParent = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
+  try {
+    monthlyParent.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(e) {}
+
+  var stdName = mInfo.anio + "-" + mInfo.mesStr + "_" + (MESES_NOMBRES[mInfo.mes - 1] || "MES").toUpperCase();
+  var prefixDash = mInfo.anio + "-" + mInfo.mesStr;
+  var prefix6 = mInfo.key;
+
+  // Buscar si ya existe una carpeta para este mes en Carpetas_Mensuales
+  var subFolders = monthlyParent.getFolders();
+  var monthFolder = null;
+  while (subFolders.hasNext()) {
+    var sf = subFolders.next();
+    try {
+      if (!sf.isTrashed()) {
+        var sfNom = sf.getName().trim().toUpperCase();
+        if (sfNom === stdName.toUpperCase() || sfNom.indexOf(prefixDash) === 0 || sfNom.indexOf(prefix6) === 0) {
+          monthFolder = sf;
+          break;
+        }
+      }
+    } catch(eSf) {}
+  }
+
+  // Si no existe, crearla con el nombre canónico oficial (ej: 2026-11_NOVIEMBRE)
+  if (!monthFolder) {
+    monthFolder = monthlyParent.createFolder(stdName);
+  }
+
   try {
     monthFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch(e) {}
+  } catch(eShare) {}
 
   return {
     folder: monthFolder,
     url: monthFolder.getUrl(),
     id: monthFolder.getId(),
     key: mInfo.key,
-    label: mInfo.label,
-    parentUrl: rootFolder.getUrl(),
-    parentId: rootFolder.getId()
+    label: monthFolder.getName(),
+    parentUrl: monthlyParent.getUrl(),
+    parentId: monthlyParent.getId()
   };
 }
 
@@ -482,15 +510,32 @@ function doGet(e) {
     // 3b. Obtener Listado de Carpetas Mensuales en Google Drive
     if (action === "get_carpetas_mensuales") {
       var rootF = getOrCreateRootFolder();
+      var monthlyParent = getOrCreateSubfolder(rootF, "Carpetas_Mensuales");
       var listCarpetas = [];
       var seenIds = {};
 
-      // 1. Carpetas directas AAAAMM en la raíz (ej: 202610, 202410)
+      // 1. Carpetas dentro del contenedor oficial 'Carpetas_Mensuales'
+      var legSubs = monthlyParent.getFolders();
+      while (legSubs.hasNext()) {
+        var legSub = legSubs.next();
+        try {
+          if (!legSub.isTrashed() && !seenIds[legSub.getId()]) {
+            seenIds[legSub.getId()] = true;
+            listCarpetas.push({
+              name: legSub.getName().trim(),
+              id: legSub.getId(),
+              url: legSub.getUrl()
+            });
+          }
+        } catch(eLeg) {}
+      }
+
+      // 2. Compatibilidad si hubiera alguna carpeta directa en la raíz
       var rootSubs = rootF.getFolders();
       while (rootSubs.hasNext()) {
         var sub = rootSubs.next();
         try {
-          if (!sub.isTrashed()) {
+          if (!sub.isTrashed() && !seenIds[sub.getId()]) {
             var subName = sub.getName().trim();
             if (/^\d{6}$/.test(subName) || /^\d{4}-\d{2}/.test(subName)) {
               seenIds[sub.getId()] = true;
@@ -504,28 +549,9 @@ function doGet(e) {
         } catch(eSub) {}
       }
 
-      // 2. Compatibilidad con carpetas preexistentes en 'Carpetas_Mensuales'
-      var legacyParent = rootF.getFoldersByName("Carpetas_Mensuales");
-      if (legacyParent.hasNext()) {
-        var pM = legacyParent.next();
-        var legSubs = pM.getFolders();
-        while (legSubs.hasNext()) {
-          var legSub = legSubs.next();
-          try {
-            if (!legSub.isTrashed() && !seenIds[legSub.getId()]) {
-              listCarpetas.push({
-                name: legSub.getName().trim(),
-                id: legSub.getId(),
-                url: legSub.getUrl()
-              });
-            }
-          } catch(eLeg) {}
-        }
-      }
-
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "success", 
-        parentMensualUrl: rootF.getUrl(), 
+        parentMensualUrl: monthlyParent.getUrl(), 
         carpetas: listCarpetas 
       })).setMimeType(ContentService.MimeType.JSON);
     }
