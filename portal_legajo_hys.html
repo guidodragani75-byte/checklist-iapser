@@ -1426,200 +1426,231 @@
         </div>
       </div>
 
-      <!-- FILA 1: STAT CARDS EJECUTIVAS (ESTILO IAPSER GERENCIADAS) -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:24px;">
+      <!-- FILA 1: STAT CARDS EJECUTIVAS Y GRÁFICOS DE ANILLO DE AVANCE -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:24px;">
         
-        <!-- Stat 1: Sedes Objetivo Acordadas (370) -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Stock Sedes Acordadas</span>
-            <span class="badge" style="background:#E3EDEF; color:#0F4C5C; border:1px solid #C4DDE2; font-size:11px; font-weight:600;">Sep 26 – Ago 27</span>
-          </div>
-          <div class="stat-number">
-            <span id="kpi-sedes-consumidas">0</span>
-            <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-sedes-meta">370</span></span>
-          </div>
-          <div class="stat-callout ok" id="calloutSedesCumplimiento">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Consumido: <span id="kpi-sedes-consumidas-badge">0 (0.0%)</span>
-          </div>
-          <div class="stat-meta">
-            Residual acordado: <strong id="kpi-sedes-residual-badge">370 sedes</strong> (cadencia ~30/mes)
-          </div>
-          <div id="donut-sedes-container" style="display:none;"></div>
-        </div>
-
-        <!-- Stat 2: Stock Acciones Contractuales (1.000) -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Stock Acciones HyS</span>
-            <span class="badge" style="background:#ECEEEA; color:#5B6670; border:1px solid #D5D8D3; font-size:11px; font-weight:600;">1.000 Anual</span>
-          </div>
-          <div class="stat-number">
-            <span id="kpi-visitas-consumidas">0</span>
-            <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-visitas-meta">1.000</span></span>
-          </div>
-          <div class="stat-callout ok" id="calloutVisitasCumplimiento">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Ejecutadas: <span id="kpi-visitas-consumidas-badge">0 (0.0%)</span>
-          </div>
-          <div class="stat-meta">
-            Residual disponible: <strong id="kpi-visitas-residual-badge">1.000 acciones</strong> · Intensidad: <strong id="kpi-visitas-promedio">0.0</strong>/sede
-          </div>
-          <div id="donut-visitas-container" style="display:none;"></div>
-        </div>
-
-        <!-- Stat 3: Ritmo & Cadencia Mensual (25-30/mes) -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Ritmo & Cadencia</span>
-            <span class="m" style="font-size:12px; color:#5B6670;">Meta: 25-30 / mes</span>
-          </div>
-          <div class="stat-number">
-            <span id="kpi-ritmo-mes">0</span>
-            <span style="font-size:16px; font-weight:400; color:#5B6670;">sedes en período</span>
-          </div>
-          <div class="stat-callout" id="calloutRitmoAlerta">
-            <div id="kpi-desvio-container">
-              <!-- Inyectado dinámicamente -->
+        <!-- Stat 1: Stock Sedes Acordadas (370) -->
+        <div class="stat-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="stat-header">
+              <span class="stat-title">Stock Sedes Acordadas</span>
+              <span class="badge" style="background:#E3EDEF; color:#0F4C5C; border:1px solid #C4DDE2; font-size:11px; font-weight:600;">Sep 26 – Ago 27</span>
+            </div>
+            <div class="stat-number">
+              <span id="kpi-sedes-consumidas">0</span>
+              <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-sedes-meta">370</span></span>
+            </div>
+            <div class="stat-callout ok" id="calloutSedesCumplimiento">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Sedes Únicas: <span id="kpi-sedes-consumidas-badge">0 (0.0%)</span>
             </div>
           </div>
-          <div class="stat-meta">
-            Cadencia prevista: <strong>25 a 30 sedes / mes</strong> (Compensación de desvíos)
+          <div class="stat-meta" style="margin-top:12px;">
+            Residual acordado: <strong id="kpi-sedes-residual-badge">370 sedes</strong>
           </div>
         </div>
 
-        <!-- Stat 4: Importancia m²: Sedes ≥ 1.000 m² -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Superficie ≥ 1.000 m²</span>
-            <span class="badge" style="background:#FBEFE6; color:#A8470A; border:1px solid #F3CCA8; font-size:11px; font-weight:600;">Mediciones & Riesgo</span>
+        <!-- Stat 2: Gráfico de Anillo - % Avance en Cantidad de Sedes Visitadas -->
+        <div class="stat-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; min-height:160px;">
+          <div class="stat-header" style="width:100%; margin-bottom:4px;">
+            <span class="stat-title">% Avance Sedes Relevadas</span>
+            <span class="badge" style="background:#E3EDEF; color:#0F4C5C; font-size:10.5px;">Meta 370</span>
           </div>
-          <div class="stat-number">
-            <span id="kpi-sup-con-med" style="color:var(--primary);">0</span>
-            <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-sup-total">0</span></span>
+          <div style="position:relative; width:130px; height:130px; margin:4px auto;">
+            <canvas id="chartDonutAvanceSedes"></canvas>
+            <div id="donut-sedes-center-label" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+              <span id="donut-sedes-center-pct" style="font-size:19px; font-weight:700; color:#0F4C5C; font-family:'IBM Plex Mono', monospace; display:block; line-height:1.1;">0%</span>
+              <span style="font-size:10px; color:#5B6670; text-transform:uppercase; letter-spacing:0.04em;">Avance</span>
+            </div>
           </div>
-          <div class="stat-callout warn" id="calloutSupAlerta">
-            <i class="fa-solid fa-bolt-lightning" style="margin-right:4px;"></i>
-            Con mediciones: <span id="kpi-sup-pct-label">0%</span>
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; color:#5B6670; margin-top:8px; border-top:1px solid #EEF2F6; padding-top:6px;">
+            <span><i class="fa-solid fa-circle" style="color:#0F4C5C; font-size:8px; margin-right:4px;"></i>Visitadas: <b id="lbl-donut-sedes-vis">0</b></span>
+            <span><i class="fa-solid fa-circle" style="color:#E2E8F0; font-size:8px; margin-right:4px;"></i>Pendientes: <b id="lbl-donut-sedes-pend">370</b></span>
           </div>
-          <div style="width:100%;background:#F1F5F9;border-radius:1px;height:6px;overflow:hidden;margin-top:8px;">
-            <div id="kpi-sup-bar" style="background:var(--primary);height:100%;width:0%;transition:width 0.4s ease;"></div>
+        </div>
+
+        <!-- Stat 3: Stock Visitas Contractuales Estimadas (1.000) - SOLO CV SUBIDAS -->
+        <div class="stat-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="stat-header">
+              <span class="stat-title">Stock Visitas SRT (CV)</span>
+              <span class="badge" style="background:#ECEEEA; color:#5B6670; border:1px solid #D5D8D3; font-size:11px; font-weight:600;">1.000 Estimadas</span>
+            </div>
+            <div class="stat-number">
+              <span id="kpi-visitas-consumidas">0</span>
+              <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-visitas-meta">1.000</span></span>
+            </div>
+            <div class="stat-callout ok" id="calloutVisitasCumplimiento">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              CV Subidas: <span id="kpi-visitas-consumidas-badge">0 (0.0%)</span>
+            </div>
           </div>
-          <div class="stat-meta" style="margin-top:6px;">
-            PAT (Res. 900), Ruido (Res. 85), Ilum (Res. 84) y Carga de Fuego
+          <div class="stat-meta" style="margin-top:12px;">
+            Residual disponible: <strong id="kpi-visitas-residual-badge">1.000 visitas</strong> · Promedio: <strong id="kpi-visitas-promedio">0.0</strong> CV/sede
+          </div>
+        </div>
+
+        <!-- Stat 4: Gráfico de Anillo - % Avance en Cantidad de Visitas (CV) -->
+        <div class="stat-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; min-height:160px;">
+          <div class="stat-header" style="width:100%; margin-bottom:4px;">
+            <span class="stat-title">% Avance Visitas (CV)</span>
+            <span class="badge" style="background:#ECEEEA; color:#5B6670; font-size:10.5px;">Bolsa 1.000</span>
+          </div>
+          <div style="position:relative; width:130px; height:130px; margin:4px auto;">
+            <canvas id="chartDonutAvanceVisitas"></canvas>
+            <div id="donut-visitas-center-label" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+              <span id="donut-visitas-center-pct" style="font-size:19px; font-weight:700; color:#0284c7; font-family:'IBM Plex Mono', monospace; display:block; line-height:1.1;">0%</span>
+              <span style="font-size:10px; color:#5B6670; text-transform:uppercase; letter-spacing:0.04em;">Ejecutado</span>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; color:#5B6670; margin-top:8px; border-top:1px solid #EEF2F6; padding-top:6px;">
+            <span><i class="fa-solid fa-circle" style="color:#0284c7; font-size:8px; margin-right:4px;"></i>CV Subidas: <b id="lbl-donut-cv-sub">0</b></span>
+            <span><i class="fa-solid fa-circle" style="color:#E2E8F0; font-size:8px; margin-right:4px;"></i>Disponibles: <b id="lbl-donut-cv-disp">1.000</b></span>
           </div>
         </div>
 
       </div>
 
-      <!-- FILA 2: GRÁFICO 1: ACCIONES Y SEDES VS PRESUPUESTADAS (ESTILO IAPSER GERENCIADAS) -->
+      <!-- FILA 2: GRÁFICO INDEPENDIENTE 1: AVANCE DE SEDES RELEVADAS VS META -->
       <div class="chart-panel">
         <div class="chart-header">
           <div>
-            <div class="chart-title" id="lblTituloChartHyS">Avance de Sedes y Acciones Técnicas vs Meta Programada (Ciclo Sep 2026 – Ago 2027)</div>
-            <div class="chart-subtitle" id="lblSubtituloChartHyS">Línea de tiempo del año de proyecto iniciando en Septiembre 2026 (Mes 0) con meta de 30 sedes/mes y bolsa de 1.000 acciones anuales</div>
+            <div class="chart-title" id="lblTituloChartSedes">Avance de Sedes Relevadas vs Meta Programada (Ciclo Sep 2026 – Ago 2027)</div>
+            <div class="chart-subtitle" id="lblSubtituloChartSedes">Monitoreo de establecimientos relevados respecto a la meta de cadencia (25-30 sedes/mes) y meta contractual acumulada (370 sedes)</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="chip on" id="btnToggleChartMensual" onclick="toggleModoPresupuestoHyS('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
-            <button type="button" class="chip" id="btnToggleChartAcumulado" onclick="toggleModoPresupuestoHyS('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
+            <button type="button" class="chip on" id="btnToggleChartSedesMensual" onclick="toggleModoChartSedes('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
+            <button type="button" class="chip" id="btnToggleChartSedesAcumulado" onclick="toggleModoChartSedes('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
           </div>
         </div>
 
-        <div class="chart-canvas-box" id="boxChartPresupuestoHyS">
-          <canvas id="chartPresupuestoHyS"></canvas>
+        <div class="chart-canvas-box" id="boxChartAvanceSedes" style="height:280px;">
+          <canvas id="chartAvanceSedes"></canvas>
         </div>
 
-        <!-- Evolución alternativa en columnas tipo timeline para fallback -->
-        <div id="contenedor-evolucion-ciclo" style="display:none; grid-template-columns:repeat(12, 1fr); gap:8px; padding-top:6px;">
-          <!-- Fallback dinámico -->
-        </div>
-
-        <div style="display:flex; gap:24px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-table); flex-wrap:wrap; font-size:12px; color:var(--text-muted);">
+        <div style="display:flex; gap:24px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-table); flex-wrap:wrap; font-size:12px; color:var(--text-muted);">
           <div>Mes cerrado M0 (Sep 26): <strong style="color:var(--primary);" id="lblResumenM0">0 sedes relevadas</strong></div>
           <div>Mes en curso M1 (Oct 26): <strong id="lblResumenM1">0 sedes</strong></div>
           <div>Desvío acumulado a la fecha: <strong style="color:var(--alert);" id="lblDesvioAcumulado">0 sedes vs meta esperada</strong></div>
+          <div style="margin-left:auto; font-size:11.5px; color:#64748B;"><i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:4px;"></i><span>En visión mensual se registran intervenciones por mes. En curva acumulada se computan sedes únicas sin repeticiones (<b id="lblSedesUnicasChart">32</b> sedes).</span></div>
         </div>
       </div>
 
-      <!-- FILA 3: DOS PANELES EJECUTIVOS (DESGLOSE DE SERVICIOS BRINDADOS + SEGMENTACIÓN m²) -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:20px; margin-bottom:24px;">
-
-        <!-- Panel A: Desglose y Ranking de Servicios Brindados -->
-        <div class="chart-panel" style="margin-bottom:0;">
-          <div class="chart-header">
-            <div>
-              <div class="chart-title">Tipos de Servicios Brindados (Desglose Técnico)</div>
-              <div class="chart-subtitle">Volumen total de prestaciones ejecutadas sobre la bolsa anual de 1.000 acciones</div>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="chip on" id="btnToggleServiciosBarras" onclick="toggleModoServicios('barras')" style="min-height:30px; font-size:11px; padding:2px 8px;">Ranking</button>
-              <button type="button" class="chip" id="btnToggleServiciosDonut" onclick="toggleModoServicios('donut')" style="min-height:30px; font-size:11px; padding:2px 8px;">Distribución</button>
-            </div>
+      <!-- FILA 3: GRÁFICO INDEPENDIENTE 2: AVANCE DE VISITAS EFECTIVAS (CV) VS META 1.000 -->
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title" id="lblTituloChartVisitas">Avance de Visitas Efectivas (CV) vs Bolsa Estimada (1.000 Anuales)</div>
+            <div class="chart-subtitle" id="lblSubtituloChartVisitas">Monitoreo exclusivo de Constancias de Visita (CV) oficiales subidas mes a mes respecto al cupo de 1.000 visitas (~83 visitas/mes)</div>
           </div>
-
-          <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:10px;" id="stat-total-actividades-label">
-            Total actividades ejecutadas: 0 / 1.000 previstas
-          </div>
-
-          <!-- Vista 1: Barras horizontales precisas -->
-          <div id="contenedor-barras-tareas-horizontales" style="max-height:320px; overflow-y:auto; padding-right:4px;">
-            <!-- Inyectado dinámicamente con barras horizontales de precisión -->
-          </div>
-
-          <!-- Vista 2: Gráfico Donut de participación -->
-          <div class="chart-canvas-box" id="boxChartServiciosDonut" style="display:none; height:320px;">
-            <canvas id="chartServiciosDonut"></canvas>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-table); font-size:12px; color:var(--text-muted);">
-            <div>Mediciones (PAT, Ruido, Ilum): <strong style="color:var(--primary);" id="lblTotMediciones">0</strong></div>
-            <div>Ergonomía & Carga Fuego: <strong id="lblTotErgoFuego">0</strong></div>
-            <div>Análisis Agua & RGRL: <strong id="lblTotAguaRgrl">0</strong></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="chip on" id="btnToggleChartVisitasMensual" onclick="toggleModoChartVisitas('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
+            <button type="button" class="chip" id="btnToggleChartVisitasAcumulado" onclick="toggleModoChartVisitas('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
           </div>
         </div>
 
-        <!-- Panel B: Segmentación por Tamaño (m²) y Cobertura Institucional -->
-        <div class="chart-panel" style="margin-bottom:0;">
-          <div class="chart-header">
-            <div>
-              <div class="chart-title">Segmentación por Superficie (m²) y Organismos</div>
-              <div class="chart-subtitle">Impacto de la superficie cubierta y cobertura de sedes por dependencia</div>
-            </div>
+        <div class="chart-canvas-box" id="boxChartAvanceVisitas" style="height:280px;">
+          <canvas id="chartAvanceVisitas"></canvas>
+        </div>
+
+        <div style="display:flex; gap:24px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-table); flex-wrap:wrap; font-size:12px; color:var(--text-muted);">
+          <div>Total CV subidas: <strong style="color:#0284c7;" id="lblResumenVisitasTotal">0</strong></div>
+          <div>Saldo de visitas disponibles: <strong style="color:var(--primary);" id="lblResumenVisitasResidual">1.000</strong></div>
+          <div>Promedio de intensidad: <strong id="lblResumenVisitasPromedio">0.0</strong> CV/sede</div>
+        </div>
+      </div>
+
+      <!-- FILA 4: GRÁFICO DE BARRAS DE ACCIONES POR TIPO + GRÁFICO DE ANILLO CON LOS % (LADO A LADO) -->
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Acciones Técnicas Ejecutadas por Tipo de Prestación</div>
+            <div class="chart-subtitle">Desglose de tareas técnicas realizadas: cantidades absolutas por tipo (izquierda) y distribución porcentual participativa (derecha)</div>
           </div>
-
-          <!-- Bloque explicativo de m² -->
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
-            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px 12px; border-radius:2px;">
-              <div style="font-size:11px; font-weight:700; color:#7C3AED; text-transform:uppercase;">Grandes Sedes (≥1.000 m²)</div>
-              <div style="font-size:18px; font-weight:700; color:var(--text-main); margin-top:2px;">
-                <span id="card-sup-grandes-con">0</span> <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ <span id="card-sup-grandes-tot">0</span> completas</span>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-                Exigen protocolo completo de PAT, Ruido, Ilum y Carga de Fuego.
-              </div>
-            </div>
-
-            <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px 12px; border-radius:2px;">
-              <div style="font-size:11px; font-weight:700; color:var(--primary); text-transform:uppercase;">Sedes Menores (<1.000 m²)</div>
-              <div style="font-size:18px; font-weight:700; color:var(--text-main); margin-top:2px;">
-                <span id="card-sup-menores-vis">0</span> <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ <span id="card-sup-menores-tot">0</span> visitadas</span>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-                Inspección técnica, relevamiento RGRL/RAR y muestreo de agua.
-              </div>
-            </div>
-          </div>
-
-          <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px;">
-            Distribución por Organismo Provincial:
-          </div>
-
-          <div id="contenedor-distribucion-organismos" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; max-height:220px; overflow-y:auto; padding-right:4px;">
-            <!-- Inyectado dinámicamente con tarjetas consolidadas por organismo -->
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted);" id="stat-total-actividades-label">
+            Total acciones: 0 ejecutadas
           </div>
         </div>
 
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(380px, 1fr)); gap:24px; align-items:start;">
+          
+          <!-- Lado Izquierdo: Gráfico de Barras con Cantidades por Tipo de Acción -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:6px;">
+              <span style="font-size:13px; font-weight:700; color:var(--text-main);">
+                <i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:6px;"></i>Cantidades de Acciones por Tipo
+              </span>
+              <span style="font-size:11px; color:var(--text-muted);">Total prestaciones</span>
+            </div>
+            
+            <div id="contenedor-barras-tareas-horizontales" style="max-height:360px; overflow-y:auto; padding-right:8px;">
+              <!-- Inyectado dinámicamente con barras de cantidad -->
+            </div>
+          </div>
+
+          <!-- Lado Derecho: Gráfico de Anillo con los % -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:6px;">
+              <span style="font-size:13px; font-weight:700; color:var(--text-main);">
+                <i class="fa-solid fa-chart-pie" style="color:#0284c7; margin-right:6px;"></i>Distribución Porcentual (%)
+              </span>
+              <span style="font-size:11px; color:var(--text-muted);">Participación relativa</span>
+            </div>
+
+            <div class="chart-canvas-box" id="boxChartServiciosDonut" style="height:340px; position:relative;">
+              <canvas id="chartServiciosDonut"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-table); font-size:12px; color:var(--text-muted); flex-wrap:wrap; gap:12px;">
+          <div>Mediciones Técnicas (PAT, Ruido, Ilum): <strong style="color:var(--primary);" id="lblTotMediciones">0</strong></div>
+          <div>Ergonomía & Carga Fuego: <strong id="lblTotErgoFuego">0</strong></div>
+          <div>Análisis de Agua & RGRL: <strong id="lblTotAguaRgrl">0</strong></div>
+          <div>Constancias de Visita (CV): <strong style="color:#0284c7;" id="lblTotCvAcciones">0</strong></div>
+        </div>
+      </div>
+
+      <!-- FILA 5: PANEL EJECUTIVO (SEGMENTACIÓN m² Y COBERTURA POR ORGANISMOS) -->
+      <div class="chart-panel" style="margin-bottom:24px;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Segmentación por Superficie (m²) y Organismos Provinciales</div>
+            <div class="chart-subtitle">Impacto de la superficie cubierta y cobertura de sedes por dependencia</div>
+          </div>
+        </div>
+
+        <!-- Bloque explicativo de m² -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px 12px; border-radius:2px;">
+            <div style="font-size:11px; font-weight:700; color:#7C3AED; text-transform:uppercase;">Grandes Sedes (≥1.000 m²)</div>
+            <div style="font-size:18px; font-weight:700; color:var(--text-main); margin-top:2px;">
+              <span id="card-sup-grandes-con">0</span> <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ <span id="card-sup-grandes-tot">0</span> completas</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              Exigen protocolo completo de PAT, Ruido, Ilum y Carga de Fuego.
+            </div>
+          </div>
+
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px 12px; border-radius:2px;">
+            <div style="font-size:11px; font-weight:700; color:var(--primary); text-transform:uppercase;">Sedes Menores (&lt;1.000 m²)</div>
+            <div style="font-size:18px; font-weight:700; color:var(--text-main); margin-top:2px;">
+              <span id="card-sup-menores-vis">0</span> <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ <span id="card-sup-menores-tot">0</span> visitadas</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              Inspección técnica, relevamiento RGRL/RAR y muestreo de agua.
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px;">
+          Distribución por Organismo Provincial:
+        </div>
+
+        <div id="contenedor-distribucion-organismos" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; max-height:220px; overflow-y:auto; padding-right:4px;">
+          <!-- Inyectado dinámicamente con tarjetas consolidadas por organismo -->
+        </div>
       </div>
 
       <!-- FILA 4: TABLA DE RESUMEN EJECUTIVO MENSUAL DEL PROYECTO (1 AÑO) -->

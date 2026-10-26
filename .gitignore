@@ -7,6 +7,8 @@ reporte_measure.html
 __pycache__/
 *.pyc
 *.backup_pre_rediseño.*
+*.backup.*
+*.backup.html
 scratch_*
 
 

@@ -8212,13 +8212,14 @@ function extraerMesAnioActividad(act) {
 
 /**
  * Motor central de cálculo de indicadores de avance y stocks del Plan Anual
- * Metas: 370 sedes acordadas, 1.000 visitas anuales, cadencia 25 a 30 sedes/mes
+ * Metas: 370 sedes acordadas, 1.000 visitas anuales (CV subidas), cadencia 25 a 30 sedes/mes
  */
 function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const anioEvaluado = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
   const allEsts = Object.values(AppState.establecimientos);
   const sedesUnicasCiclo = new Set();
-  let totalVisitasCiclo = 0;
+  let totalCvCiclo = 0;
+  let totalAccionesCiclo = 0;
 
   const conteoTareasTotal = {};
   const sedesPorTareaTotal = {};
@@ -8230,11 +8231,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   CICLO_MESES_ANUAL.forEach(m => {
     timelineSedesMes[m.key] = new Set();
     timelineVisitasMes[m.key] = 0;
-    detallesMes[m.key] = { mediciones: 0, ergoFuego: 0, aguaRgrl: 0, sedes1000: new Set() };
+    detallesMes[m.key] = { mediciones: 0, ergoFuego: 0, aguaRgrl: 0, cv: 0, sedes1000: new Set() };
   });
 
   const sedesPeriodo = new Set();
-  let totalVisitasPeriodo = 0;
+  let totalCvPeriodo = 0;
+  let totalAccionesPeriodo = 0;
   const conteoTareasPeriodo = {};
   const sedesPorTareaPeriodo = {};
   const sedesPorOrgPeriodo = {};
@@ -8290,10 +8292,15 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
     // Acumuladores del consolidado oficial del ciclo
     actsDelCiclo.forEach(a => {
-      totalVisitasCiclo++;
+      totalAccionesCiclo++;
       orgAgregado[orgNombre].totalVisitas++;
 
       const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
+      const isCv = (tNorm === 'constancia_visita');
+      if (isCv) {
+        totalCvCiclo++;
+      }
+
       conteoTareasTotal[tNorm] = (conteoTareasTotal[tNorm] || 0) + 1;
       if (!sedesPorTareaTotal[tNorm]) sedesPorTareaTotal[tNorm] = new Set();
       sedesPorTareaTotal[tNorm].add(est.id);
@@ -8310,12 +8317,17 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     // Alimentación estricta de la línea de tiempo por año y mes
     acts.forEach(a => {
       const fInfo = extraerMesAnioActividad(a);
+      const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
+      const isCv = (tNorm === 'constancia_visita');
+
       if (fInfo.key && timelineSedesMes[fInfo.key]) {
         timelineSedesMes[fInfo.key].add(est.id);
-        timelineVisitasMes[fInfo.key]++;
+        if (isCv) {
+          timelineVisitasMes[fInfo.key] = (timelineVisitasMes[fInfo.key] || 0) + 1;
+        }
 
-        const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
         if (detallesMes[fInfo.key]) {
+          if (isCv) detallesMes[fInfo.key].cv = (detallesMes[fInfo.key].cv || 0) + 1;
           if (tNorm === 'medicion_pat' || tNorm === 'medicion_ruido' || tNorm === 'medicion_iluminacion') {
             detallesMes[fInfo.key].mediciones++;
           } else if (tNorm === 'res_886' || tNorm === 'carga_fuego') {
@@ -8348,8 +8360,9 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
       if (coincidePeriodo) {
         sedesPeriodo.add(est.id);
-        totalVisitasPeriodo++;
-        const tNorm = normalizarTipoActividad(a.tipoActividad) || 'informe_tecnico';
+        totalAccionesPeriodo++;
+        if (isCv) totalCvPeriodo++;
+
         conteoTareasPeriodo[tNorm] = (conteoTareasPeriodo[tNorm] || 0) + 1;
         if (!sedesPorTareaPeriodo[tNorm]) sedesPorTareaPeriodo[tNorm] = new Set();
         sedesPorTareaPeriodo[tNorm].add(est.id);
@@ -8384,7 +8397,8 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const stockSedesResidual = Math.max(0, PLAN_HYS_CONFIG.META_SEDES_ANUAL - stockSedesConsumido);
   const pctSedesAvance = ((stockSedesConsumido / PLAN_HYS_CONFIG.META_SEDES_ANUAL) * 100).toFixed(1);
 
-  const stockVisitasConsumido = totalVisitasCiclo;
+  // Meta 1.000: Únicamente cantidad de CV subidas
+  const stockVisitasConsumido = totalCvCiclo;
   const stockVisitasResidual = Math.max(0, PLAN_HYS_CONFIG.META_VISITAS_ANUAL - stockVisitasConsumido);
   const pctVisitasAvance = ((stockVisitasConsumido / PLAN_HYS_CONFIG.META_VISITAS_ANUAL) * 100).toFixed(1);
 
@@ -8399,11 +8413,11 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const metaEsperadaALaFecha = mesesTranscurridos * PLAN_HYS_CONFIG.META_SEDES_MENSUAL;
   const desvioTemporal = stockSedesConsumido - metaEsperadaALaFecha;
 
-  // Ranking de tareas ordenadas: si se filtra por mes, muestra EXCLUSIVAMENTE las tareas de dicho mes
+  // Ranking de tareas ordenadas: sobre el universo total de prestaciones técnicas
   const esPeriodoFiltro = (periodoKey !== 'ciclo' && periodoKey !== 'todos');
   const fuenteTareas = esPeriodoFiltro ? conteoTareasPeriodo : conteoTareasTotal;
   const fuenteSedesTareas = esPeriodoFiltro ? sedesPorTareaPeriodo : sedesPorTareaTotal;
-  const totalVisitasRef = esPeriodoFiltro ? totalVisitasPeriodo : totalVisitasCiclo;
+  const totalAccionesRef = esPeriodoFiltro ? totalAccionesPeriodo : totalAccionesCiclo;
 
   let maxCountTarea = 1;
   const rankingTareas = Object.keys(CATALOGO_ACTIVIDADES).map(key => {
@@ -8411,7 +8425,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     const count = fuenteTareas[key] || 0;
     if (count > maxCountTarea) maxCountTarea = count;
     const sedesRecibieron = fuenteSedesTareas[key] ? fuenteSedesTareas[key].size : 0;
-    const sharePct = totalVisitasRef > 0 ? ((count / totalVisitasRef) * 100).toFixed(1) : '0';
+    const sharePct = totalAccionesRef > 0 ? ((count / totalAccionesRef) * 100).toFixed(1) : '0';
     const cupoAnualPct = ((count / PLAN_HYS_CONFIG.META_VISITAS_ANUAL) * 100).toFixed(1);
     return {
       key,
@@ -8447,7 +8461,10 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     pctVisitasAvance,
     promedioVisitas,
     ritmoMes: sedesPeriodo.size,
-    totalVisitasPeriodo,
+    totalCvCiclo,
+    totalCvPeriodo,
+    totalAccionesCiclo,
+    totalAccionesPeriodo,
     desvioTemporal,
     mesesTranscurridos,
     metaEsperadaALaFecha,
@@ -8467,8 +8484,7 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     timelineVisitasMes,
     rankingTareas,
     maxCountTarea,
-    resumenOrganismos,
-    totalVisitasCiclo
+    resumenOrganismos
   };
 }
 window.calcularMetricasPlanAnual = calcularMetricasPlanAnual;
@@ -8484,75 +8500,179 @@ function renderVistaMetricasMaqueta() {
 window.renderVistaMetricasMaqueta = renderVistaMetricasMaqueta;
 
 // Variables globales para instancias de gráficos y modos
-let chartPresupuestoHySInstance = null;
+let chartDonutAvanceSedesInstance = null;
+let chartDonutAvanceVisitasInstance = null;
+let chartAvanceSedesInstance = null;
+let chartAvanceVisitasInstance = null;
 let chartServiciosDonutInstance = null;
-let modoPresupuestoHyS = 'mensual'; // 'mensual' | 'acumulado'
-let modoServiciosVista = 'barras';  // 'barras' | 'donut'
+
+let modoChartSedes = 'mensual';   // 'mensual' | 'acumulado'
+let modoChartVisitas = 'mensual'; // 'mensual' | 'acumulado'
 
 /**
- * Conmuta entre Visión Mensual y Curva Acumulada en el gráfico de avance
+ * Conmuta entre Visión Mensual y Curva Acumulada en el gráfico de SEDES
  */
-function toggleModoPresupuestoHyS(modo) {
-  modoPresupuestoHyS = modo;
-  const btnM = document.getElementById('btnToggleChartMensual');
-  const btnA = document.getElementById('btnToggleChartAcumulado');
+function toggleModoChartSedes(modo) {
+  modoChartSedes = modo;
+  const btnM = document.getElementById('btnToggleChartSedesMensual');
+  const btnA = document.getElementById('btnToggleChartSedesAcumulado');
   if (btnM) btnM.classList.toggle('on', modo === 'mensual');
   if (btnA) btnA.classList.toggle('on', modo === 'acumulado');
 
   const selMes = document.getElementById('metricas-filtro-mes')?.value || 'ciclo';
   const data = calcularMetricasPlanAnual(selMes);
-  renderChartPresupuestoHyS(data);
+  renderChartAvanceSedes(data);
+}
+window.toggleModoChartSedes = toggleModoChartSedes;
+
+/**
+ * Conmuta entre Visión Mensual y Curva Acumulada en el gráfico de VISITAS (CV)
+ */
+function toggleModoChartVisitas(modo) {
+  modoChartVisitas = modo;
+  const btnM = document.getElementById('btnToggleChartVisitasMensual');
+  const btnA = document.getElementById('btnToggleChartVisitasAcumulado');
+  if (btnM) btnM.classList.toggle('on', modo === 'mensual');
+  if (btnA) btnA.classList.toggle('on', modo === 'acumulado');
+
+  const selMes = document.getElementById('metricas-filtro-mes')?.value || 'ciclo';
+  const data = calcularMetricasPlanAnual(selMes);
+  renderChartAvanceVisitas(data);
+}
+window.toggleModoChartVisitas = toggleModoChartVisitas;
+
+/**
+ * Compatibilidad con llamados anteriores
+ */
+function toggleModoPresupuestoHyS(modo) {
+  toggleModoChartSedes(modo);
+  toggleModoChartVisitas(modo);
 }
 window.toggleModoPresupuestoHyS = toggleModoPresupuestoHyS;
 
-/**
- * Conmuta entre Ranking de Barras y Gráfico Donut de Servicios
- */
-function toggleModoServicios(modo) {
-  modoServiciosVista = modo;
-  const btnB = document.getElementById('btnToggleServiciosBarras');
-  const btnD = document.getElementById('btnToggleServiciosDonut');
-  const boxBars = document.getElementById('contenedor-barras-tareas-horizontales');
-  const boxDonut = document.getElementById('boxChartServiciosDonut');
-
-  if (btnB) btnB.classList.toggle('on', modo === 'barras');
-  if (btnD) btnD.classList.toggle('on', modo === 'donut');
-
-  if (modo === 'barras') {
-    if (boxBars) boxBars.style.display = 'block';
-    if (boxDonut) boxDonut.style.display = 'none';
-  } else {
-    if (boxBars) boxBars.style.display = 'none';
-    if (boxDonut) boxDonut.style.display = 'block';
-    const selMes = document.getElementById('metricas-filtro-mes')?.value || 'ciclo';
-    const data = calcularMetricasPlanAnual(selMes);
-    renderChartServiciosDonut(data);
-  }
-}
+function toggleModoServicios() {}
 window.toggleModoServicios = toggleModoServicios;
 
 /**
- * Renderiza el gráfico interactivo de avance (Visitas y Sedes vs Meta)
+ * Renderiza el Gráfico de Anillo de % Avance en Cantidad de Sedes Visitadas
  */
-function renderChartPresupuestoHyS(data) {
-  const canvas = document.getElementById('chartPresupuestoHyS');
-  if (!canvas || !window.Chart) {
-    const fb = document.getElementById('contenedor-evolucion-ciclo');
-    if (fb) fb.style.display = 'grid';
-    return;
-  }
+function renderChartDonutAvanceSedes(data) {
+  const canvas = document.getElementById('chartDonutAvanceSedes');
+  if (!canvas || !window.Chart) return;
 
   const ctx = canvas.getContext('2d');
-  if (chartPresupuestoHySInstance) {
-    chartPresupuestoHySInstance.destroy();
+  if (chartDonutAvanceSedesInstance) chartDonutAvanceSedesInstance.destroy();
+
+  const visitadas = data.stockSedesConsumido;
+  const pendientes = data.stockSedesResidual;
+
+  chartDonutAvanceSedesInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Sedes Visitadas', 'Sedes Pendientes'],
+      datasets: [{
+        data: [visitadas, pendientes],
+        backgroundColor: ['#0F4C5C', '#E2E8F0'],
+        borderWidth: 0,
+        hoverOffset: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              const val = c.parsed;
+              const tot = visitadas + pendientes;
+              const pct = tot > 0 ? ((val / tot) * 100).toFixed(1) : 0;
+              return ` ${c.label}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      },
+      cutout: '74%'
+    }
+  });
+
+  const centerPct = document.getElementById('donut-sedes-center-pct');
+  if (centerPct) centerPct.textContent = `${data.pctSedesAvance}%`;
+  const lblVis = document.getElementById('lbl-donut-sedes-vis');
+  if (lblVis) lblVis.textContent = visitadas;
+  const lblPend = document.getElementById('lbl-donut-sedes-pend');
+  if (lblPend) lblPend.textContent = pendientes;
+}
+
+/**
+ * Renderiza el Gráfico de Anillo de % Avance en Cantidad de Visitas (CV Subidas vs 1.000)
+ */
+function renderChartDonutAvanceVisitas(data) {
+  const canvas = document.getElementById('chartDonutAvanceVisitas');
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext('2d');
+  if (chartDonutAvanceVisitasInstance) chartDonutAvanceVisitasInstance.destroy();
+
+  const subidas = data.stockVisitasConsumido;
+  const disp = data.stockVisitasResidual;
+
+  chartDonutAvanceVisitasInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['CV Subidas', 'Visitas Disponibles'],
+      datasets: [{
+        data: [subidas, disp],
+        backgroundColor: ['#0284c7', '#E2E8F0'],
+        borderWidth: 0,
+        hoverOffset: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              const val = c.parsed;
+              const tot = subidas + disp;
+              const pct = tot > 0 ? ((val / tot) * 100).toFixed(1) : 0;
+              return ` ${c.label}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      },
+      cutout: '74%'
+    }
+  });
+
+  const centerPct = document.getElementById('donut-visitas-center-pct');
+  if (centerPct) centerPct.textContent = `${data.pctVisitasAvance}%`;
+  const lblSub = document.getElementById('lbl-donut-cv-sub');
+  if (lblSub) lblSub.textContent = subidas;
+  const lblDisp = document.getElementById('lbl-donut-cv-disp');
+  if (lblDisp) lblDisp.textContent = disp;
+}
+
+/**
+ * Renderiza el Gráfico Independiente 1: Avance de Sedes Relevadas vs Meta
+ */
+function renderChartAvanceSedes(data) {
+  const canvas = document.getElementById('chartAvanceSedes');
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext('2d');
+  if (chartAvanceSedesInstance) {
+    chartAvanceSedesInstance.destroy();
   }
 
   const labels = CICLO_MESES_ANUAL.map(m => m.label);
   const sedesRealesMes = CICLO_MESES_ANUAL.map(m => data.timelineSedesMes[m.key] ? data.timelineSedesMes[m.key].size : 0);
-  const visitasRealesMes = CICLO_MESES_ANUAL.map(m => data.timelineVisitasMes[m.key] || 0);
   const metaMensualSedes = new Array(12).fill(30);
 
-  // Curvas acumuladas
   const ahora = new Date();
   let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
   if (mesesTranscurridos < 1) mesesTranscurridos = 1;
@@ -8575,19 +8695,12 @@ function renderChartPresupuestoHyS(data) {
   }
 
   let datasets = [];
-  if (modoPresupuestoHyS === 'mensual') {
+  if (modoChartSedes === 'mensual') {
     datasets = [
       {
-        label: 'Sedes Relevadas (Meta 30)',
+        label: 'Sedes Relevadas en el Mes (Meta: 30)',
         data: sedesRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
         backgroundColor: '#0F4C5C',
-        borderRadius: 2,
-        barPercentage: 0.55
-      },
-      {
-        label: 'Acciones HyS Efectivas',
-        data: visitasRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
-        backgroundColor: '#64748B',
         borderRadius: 2,
         barPercentage: 0.55
       },
@@ -8631,7 +8744,7 @@ function renderChartPresupuestoHyS(data) {
     ];
   }
 
-  chartPresupuestoHySInstance = new Chart(ctx, {
+  chartAvanceSedesInstance = new Chart(ctx, {
     type: 'bar',
     data: { labels, datasets },
     options: {
@@ -8643,11 +8756,9 @@ function renderChartPresupuestoHyS(data) {
           labels: { font: { family: 'IBM Plex Sans', size: 12 }, usePointStyle: true }
         },
         tooltip: {
-          titleFont: { family: 'IBM Plex Sans' },
-          bodyFont: { family: 'IBM Plex Mono' },
           callbacks: {
-            label: function(context) {
-              return ` ${context.dataset.label}: ${context.parsed.y}`;
+            label: function(c) {
+              return ` ${c.dataset.label}: ${c.parsed.y} sedes`;
             }
           }
         }
@@ -8665,10 +8776,141 @@ function renderChartPresupuestoHyS(data) {
       }
     }
   });
+
+  const lblUnicas = document.getElementById('lblSedesUnicasChart');
+  if (lblUnicas) lblUnicas.textContent = data.stockSedesConsumido;
 }
 
 /**
- * Renderiza el gráfico Donut de distribución por servicio
+ * Renderiza el Gráfico Independiente 2: Avance de Visitas Efectivas (CV) vs Bolsa 1.000
+ */
+function renderChartAvanceVisitas(data) {
+  const canvas = document.getElementById('chartAvanceVisitas');
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext('2d');
+  if (chartAvanceVisitasInstance) {
+    chartAvanceVisitasInstance.destroy();
+  }
+
+  const labels = CICLO_MESES_ANUAL.map(m => m.label);
+  const cvRealesMes = CICLO_MESES_ANUAL.map(m => data.timelineVisitasMes[m.key] || 0);
+  const metaMensualCv = new Array(12).fill(Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12)); // ~83
+
+  const ahora = new Date();
+  let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
+  if (mesesTranscurridos < 1) mesesTranscurridos = 1;
+  if (mesesTranscurridos > 12) mesesTranscurridos = 12;
+
+  const cvAcum = [];
+  const metaAcumCv = [];
+  let sumCv = 0;
+  let sumMetaCv = 0;
+
+  for (let i = 0; i < 12; i++) {
+    sumMetaCv += Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12);
+    metaAcumCv.push(i === 11 ? 1000 : sumMetaCv);
+    if (i < mesesTranscurridos) {
+      sumCv += cvRealesMes[i];
+      cvAcum.push(sumCv);
+    } else {
+      cvAcum.push(null);
+    }
+  }
+
+  let datasets = [];
+  if (modoChartVisitas === 'mensual') {
+    datasets = [
+      {
+        label: 'Visitas (CV) Subidas en el Mes',
+        data: cvRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
+        backgroundColor: '#0284c7',
+        borderRadius: 2,
+        barPercentage: 0.55
+      },
+      {
+        label: 'Meta Estimada (~83 visitas/mes)',
+        data: metaMensualCv,
+        type: 'line',
+        borderColor: '#E07A5F',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 3,
+        pointBackgroundColor: '#E07A5F',
+        fill: false
+      }
+    ];
+  } else {
+    datasets = [
+      {
+        label: 'Visitas (CV) Acumuladas',
+        data: cvAcum,
+        type: 'line',
+        borderColor: '#0284c7',
+        backgroundColor: 'rgba(2, 132, 199, 0.12)',
+        fill: true,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointBackgroundColor: '#0284c7',
+        tension: 0.2
+      },
+      {
+        label: 'Meta Acumulada Anual (1.000 Visitas)',
+        data: metaAcumCv,
+        type: 'line',
+        borderColor: '#E07A5F',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 3,
+        pointBackgroundColor: '#E07A5F',
+        fill: false
+      }
+    ];
+  }
+
+  chartAvanceVisitasInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { family: 'IBM Plex Sans', size: 12 }, usePointStyle: true }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              return ` ${c.dataset.label}: ${c.parsed.y} CV`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E3E5E1' },
+          ticks: { font: { family: 'IBM Plex Mono', size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'IBM Plex Sans', size: 11 } }
+        }
+      }
+    }
+  });
+
+  const lblTot = document.getElementById('lblResumenVisitasTotal');
+  if (lblTot) lblTot.textContent = `${data.stockVisitasConsumido} CV`;
+  const lblRes = document.getElementById('lblResumenVisitasResidual');
+  if (lblRes) lblRes.textContent = `${data.stockVisitasResidual} disponibles`;
+  const lblProm = document.getElementById('lblResumenVisitasPromedio');
+  if (lblProm) lblProm.textContent = data.promedioVisitas;
+}
+
+/**
+ * Renderiza el Gráfico Donut de distribución porcentual por tipo de acción
  */
 function renderChartServiciosDonut(data) {
   const canvas = document.getElementById('chartServiciosDonut');
@@ -8711,7 +8953,7 @@ function renderChartServiciosDonut(data) {
           }
         }
       },
-      cutout: '60%'
+      cutout: '58%'
     }
   });
 }
@@ -8822,10 +9064,14 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   if (elVisCons) elVisCons.textContent = data.stockVisitasConsumido;
   if (elVisMeta) elVisMeta.textContent = (PLAN_HYS_CONFIG.META_VISITAS_ANUAL).toLocaleString();
   if (elVisConsBadge) elVisConsBadge.textContent = `${data.stockVisitasConsumido} (${data.pctVisitasAvance}%)`;
-  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} acciones`;
+  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} visitas`;
   if (elVisProm) elVisProm.textContent = data.promedioVisitas;
 
-  // Ritmo mensual & Desvío
+  // Renderizar Gráficos de Anillo de Avance
+  renderChartDonutAvanceSedes(data);
+  renderChartDonutAvanceVisitas(data);
+
+  // Ritmo mensual & Desvío (si existen en el DOM)
   const elRitmo = document.getElementById('kpi-ritmo-mes');
   const elDesvioCont = document.getElementById('kpi-desvio-container');
   if (elRitmo) elRitmo.textContent = data.ritmoMes;
@@ -8847,7 +9093,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }
   }
 
-  // Grandes superficies
+  // Grandes superficies (si existen en el DOM)
   const elSupMed = document.getElementById('kpi-sup-con-med');
   const elSupTot = document.getElementById('kpi-sup-total');
   const elSupBar = document.getElementById('kpi-sup-bar');
@@ -8934,7 +9180,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }
   }
 
-  // 3. Resúmenes del Gráfico 1
+  // 3. Resúmenes del Gráfico 1 (Sedes)
   const lblM0 = document.getElementById('lblResumenM0');
   const lblM1 = document.getElementById('lblResumenM1');
   const lblDesv = document.getElementById('lblDesvioAcumulado');
@@ -8954,14 +9200,15 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }
   }
 
-  // Renderizar Gráfico de Avance
-  renderChartPresupuestoHyS(data);
+  // Renderizar Gráficos Independientes de Avance
+  renderChartAvanceSedes(data);
+  renderChartAvanceVisitas(data);
 
-  // 4. Ranking de Servicios Brindados (Barras Horizontales)
+  // 4. Ranking de Acciones Técnicas por Tipo (Barras Horizontales a la Izquierda)
   const elTotActLabel = document.getElementById('stat-total-actividades-label');
   if (elTotActLabel) {
-    const totalActsDisplay = (periodoKey === 'ciclo' || periodoKey === 'todos') ? data.totalVisitasCiclo : data.totalVisitasPeriodo;
-    elTotActLabel.textContent = `Total acciones: ${totalActsDisplay} ejecutadas (${((totalActsDisplay / PLAN_HYS_CONFIG.META_VISITAS_ANUAL)*100).toFixed(1)}% de 1.000 anuales)`;
+    const totalActsDisplay = (periodoKey === 'ciclo' || periodoKey === 'todos') ? data.totalAccionesCiclo : data.totalAccionesPeriodo;
+    elTotActLabel.textContent = `Total acciones técnicas: ${totalActsDisplay} ejecutadas`;
   }
 
   const elHbarsCont = document.getElementById('contenedor-barras-tareas-horizontales');
@@ -8982,7 +9229,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
           </div>
           <div class="hbar-stats">
             <span class="badge-stock badge-stock-consumido"><b>${t.count}</b> tareas</span>
-            <span class="badge-stock badge-stock-residual" title="% sobre 1.000 anuales">${t.cupoAnualPct}% anual</span>
+            <span class="badge-stock badge-stock-residual" title="% de participación">${t.sharePct}%</span>
             <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${t.sedesRecibieron} sedes</span>
           </div>
         </div>
@@ -8990,17 +9237,18 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
     }).join('');
   }
 
+  // Renderizar Gráfico de Anillo de Distribución Porcentual (a la Derecha)
+  renderChartServiciosDonut(data);
+
   // Totales de resumen de servicios
   const elTotMed = document.getElementById('lblTotMediciones');
   const elTotErgo = document.getElementById('lblTotErgoFuego');
   const elTotAgua = document.getElementById('lblTotAguaRgrl');
+  const elTotCv = document.getElementById('lblTotCvAcciones');
   if (elTotMed) elTotMed.textContent = `${data.totMedicionesCiclo} mediciones`;
   if (elTotErgo) elTotErgo.textContent = `${data.totErgoFuegoCiclo} tareas`;
   if (elTotAgua) elTotAgua.textContent = `${data.totAguaRgrlCiclo} tareas`;
-
-  if (modoServiciosVista === 'donut') {
-    renderChartServiciosDonut(data);
-  }
+  if (elTotCv) elTotCv.textContent = `${data.totalCvCiclo} CV`;
 
   // 5. Segmentación por m²
   const elGrandesCon = document.getElementById('card-sup-grandes-con');
