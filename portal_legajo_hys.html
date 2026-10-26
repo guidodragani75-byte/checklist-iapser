@@ -989,81 +989,83 @@
       <section aria-label="Avance y Metas del Plan" class="kpis">
         
         <!-- Card 1: Cobertura Sedes Acordadas (Meta 370) -->
-        <div class="kpi-card">
-          <div class="kpi-label" style="display:flex; justify-content:space-between;">
-            <span>SEDES OBJETIVO · META 370</span>
-            <span style="color:var(--primary); font-weight:600;">Sep 26 – Ago 27</span>
+        <div class="kpi-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="kpi-label" style="display:flex; justify-content:space-between;">
+              <span>SEDES OBJETIVO · META 370</span>
+              <span style="color:var(--primary); font-weight:600;">Sep 26 – Ago 27</span>
+            </div>
+            <div class="kpi-val">
+              <span id="kpi-cobertura-num">0</span>
+              <span class="kpi-sub">/ 370 acordadas (<span id="kpi-cobertura-pct">0.0%</span>)</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" id="kpi-cobertura-bar" style="width: 0%;"></div>
+            </div>
           </div>
-          <div class="kpi-val">
-            <span id="kpi-cobertura-num">0</span>
-            <span class="kpi-sub">/ 370 acordadas (<span id="kpi-cobertura-pct">0.0%</span>)</span>
-          </div>
-          <div class="kpi-bar">
-            <div class="kpi-bar-fill" id="kpi-cobertura-bar" style="width: 0%;"></div>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:6px;" id="kpi-cobertura-sub">
-            Cadencia: 25-30/mes · Residual: <strong id="kpi-cobertura-residual">370 sedes</strong>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px;" id="kpi-cobertura-sub">
+            Residual acordado: <strong id="kpi-cobertura-residual">370 sedes</strong>
           </div>
           <span id="kpi-cobertura-txt" style="display:none;"></span>
         </div>
 
-        <!-- Card 2: Stock Acciones Contractuales (Meta 1.000) -->
-        <div class="kpi-card">
-          <div class="kpi-label" style="display:flex; justify-content:space-between;">
-            <span>ACCIONES HYS · STOCK 1.000</span>
-            <span style="color:var(--primary); font-weight:600;">1 Año de Plan</span>
+        <!-- Card 2: Gráfico de Anillo - % Avance en Cantidad de Sedes Visitadas -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; min-height:140px;">
+          <div class="kpi-label" style="width:100%; display:flex; justify-content:space-between; margin-bottom:2px;">
+            <span>% AVANCE SEDES</span>
+            <span style="color:var(--primary); font-weight:600;">Meta 370</span>
           </div>
-          <div class="kpi-val">
-            <span id="kpi-visitas-stock-num">0</span>
-            <span class="kpi-sub">/ 1.000 previstas (<span id="kpi-visitas-stock-pct">0.0%</span>)</span>
+          <div style="position:relative; width:110px; height:110px; margin:2px auto;">
+            <canvas id="chartDonutSedesPrincipal"></canvas>
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+              <span id="donut-sedes-prin-pct" style="font-size:17px; font-weight:700; color:#0F4C5C; font-family:'IBM Plex Mono', monospace; display:block; line-height:1.1;">0%</span>
+              <span style="font-size:9.5px; color:#5B6670; text-transform:uppercase;">Avance</span>
+            </div>
           </div>
-          <div class="kpi-bar">
-            <div class="kpi-bar-fill" id="kpi-visitas-stock-bar" style="width: 0%;"></div>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:6px;" id="kpi-visitas-stock-sub">
-            Promedio: <strong id="kpi-visitas-stock-prom">0.0</strong> acciones/sede · Saldo: <strong id="kpi-visitas-stock-residual">1.000</strong>
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:10.5px; color:#5B6670; margin-top:6px; border-top:1px solid #EEF2F6; padding-top:4px;">
+            <span>Visitadas: <b id="lbl-donut-prin-vis">0</b></span>
+            <span>Pendientes: <b id="lbl-donut-prin-pend">370</b></span>
           </div>
         </div>
 
-        <!-- Card 3: Cadencia Mensual (Meta 25-30) -->
-        <div class="kpi-card">
-          <div class="kpi-label" style="display:flex; justify-content:space-between;">
-            <span>CADENCIA MENSUAL (META 25-30)</span>
-            <span style="color:var(--primary); font-weight:600;" id="kpi-visitas-titulo">Mes actual</span>
+        <!-- Card 3: Stock Visitas Contractuales Estimadas (1.000) - SOLO CV SUBIDAS -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="kpi-label" style="display:flex; justify-content:space-between;">
+              <span>VISITAS ESTIMADAS (CV) · META 1.000</span>
+              <span style="color:var(--primary); font-weight:600;">1 Año</span>
+            </div>
+            <div class="kpi-val">
+              <span id="kpi-visitas-stock-num">0</span>
+              <span class="kpi-sub">/ 1.000 estimadas (<span id="kpi-visitas-stock-pct">0.0%</span>)</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" id="kpi-visitas-stock-bar" style="width: 0%;"></div>
+            </div>
           </div>
-          <div class="kpi-val">
-            <span id="kpi-visitas-mes-num">0</span>
-            <span class="kpi-sub" id="kpi-visitas-mes-sub">sedes relevadas</span>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px;" id="kpi-visitas-stock-sub">
+            CV Subidas · Saldo disponible: <strong id="kpi-visitas-stock-residual">1.000</strong>
           </div>
-          <div class="kpi-bar">
-            <div class="kpi-bar-fill" id="kpi-visitas-bar" style="width: 0%;"></div>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:6px;" id="kpi-visitas-mes-status">
-            Meta 25-30 sedes/mes · <strong id="kpi-visitas-mes-faltan" style="color:var(--alert);">Faltan 25</strong>
-          </div>
-          <span id="kpi-visitas-txt" style="display:none;"></span>
+          <span id="kpi-visitas-stock-prom" style="display:none;">0.0</span>
         </div>
 
-        <!-- Card 4: Importancia m²: Sedes ≥ 1.000 m² -->
-        <div class="kpi-card">
-          <div class="kpi-label" style="display:flex; justify-content:space-between;">
-            <span>SUPERFICIE ≥ 1.000 m²</span>
-            <span style="color:var(--alert); font-weight:600;">Mediciones & Riesgo</span>
+        <!-- Card 4: Gráfico de Anillo - % Avance Visitas (CV) -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; min-height:140px;">
+          <div class="kpi-label" style="width:100%; display:flex; justify-content:space-between; margin-bottom:2px;">
+            <span>% AVANCE VISITAS</span>
+            <span style="color:#0284c7; font-weight:600;">Bolsa 1.000</span>
           </div>
-          <div class="kpi-val">
-            <span id="kpi-sup1000-num">0</span>
-            <span class="kpi-sub">/ <span id="kpi-sup1000-tot">0</span> con mediciones</span>
+          <div style="position:relative; width:110px; height:110px; margin:2px auto;">
+            <canvas id="chartDonutVisitasPrincipal"></canvas>
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+              <span id="donut-visitas-prin-pct" style="font-size:17px; font-weight:700; color:#0284c7; font-family:'IBM Plex Mono', monospace; display:block; line-height:1.1;">0%</span>
+              <span style="font-size:9.5px; color:#5B6670; text-transform:uppercase;">Ejecutado</span>
+            </div>
           </div>
-          <div class="kpi-bar">
-            <div class="kpi-bar-fill" id="kpi-sup1000-bar" style="width: 0%;"></div>
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:10.5px; color:#5B6670; margin-top:6px; border-top:1px solid #EEF2F6; padding-top:4px;">
+            <span>CV: <b id="lbl-donut-prin-cv-sub">0</b></span>
+            <span>Saldo: <b id="lbl-donut-prin-cv-disp">1.000</b></span>
           </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
-            <span id="kpi-sup1000-alerta">PAT · Ruido · Ilum · Carga Fuego</span>
-            <a href="#" onclick="abrirModalSuperficiesGlobal(); return false;" style="color:var(--primary); text-decoration:none; font-weight:500;">
-              <b id="kpi-sin-sup-txt">0</b> sin m² →
-            </a>
-          </div>
-          <span id="kpi-sup1000-txt" style="display:none;"></span>
         </div>
 
       </section>
@@ -1536,27 +1538,27 @@
         </div>
       </div>
 
-      <!-- FILA 3: GRÁFICO INDEPENDIENTE 2: AVANCE DE VISITAS EFECTIVAS (CV) VS META 1.000 -->
+      <!-- FILA 3: GRÁFICO INDEPENDIENTE 2: AVANCE DE ACCIONES TÉCNICAS VS META -->
       <div class="chart-panel">
         <div class="chart-header">
           <div>
-            <div class="chart-title" id="lblTituloChartVisitas">Avance de Visitas Efectivas (CV) vs Bolsa Estimada (1.000 Anuales)</div>
-            <div class="chart-subtitle" id="lblSubtituloChartVisitas">Monitoreo exclusivo de Constancias de Visita (CV) oficiales subidas mes a mes respecto al cupo de 1.000 visitas (~83 visitas/mes)</div>
+            <div class="chart-title" id="lblTituloChartAcciones">Avance de Acciones Técnicas vs Meta Programada (Ciclo Sep 2026 – Ago 2027)</div>
+            <div class="chart-subtitle" id="lblSubtituloChartAcciones">Monitoreo exclusivo de prestaciones y tareas técnicas ejecutadas mes a mes respecto a la bolsa anual de 1.000 acciones (~83 acciones/mes)</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="chip on" id="btnToggleChartVisitasMensual" onclick="toggleModoChartVisitas('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
-            <button type="button" class="chip" id="btnToggleChartVisitasAcumulado" onclick="toggleModoChartVisitas('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
+            <button type="button" class="chip on" id="btnToggleChartAccionesMensual" onclick="toggleModoChartAcciones('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
+            <button type="button" class="chip" id="btnToggleChartAccionesAcumulado" onclick="toggleModoChartAcciones('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
           </div>
         </div>
 
-        <div class="chart-canvas-box" id="boxChartAvanceVisitas" style="height:280px;">
-          <canvas id="chartAvanceVisitas"></canvas>
+        <div class="chart-canvas-box" id="boxChartAvanceAcciones" style="height:280px;">
+          <canvas id="chartAvanceAcciones"></canvas>
         </div>
 
         <div style="display:flex; gap:24px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-table); flex-wrap:wrap; font-size:12px; color:var(--text-muted);">
-          <div>Total CV subidas: <strong style="color:#0284c7;" id="lblResumenVisitasTotal">0</strong></div>
-          <div>Saldo de visitas disponibles: <strong style="color:var(--primary);" id="lblResumenVisitasResidual">1.000</strong></div>
-          <div>Promedio de intensidad: <strong id="lblResumenVisitasPromedio">0.0</strong> CV/sede</div>
+          <div>Total acciones técnicas ejecutadas: <strong style="color:#2563EB;" id="lblResumenAccionesTotal">0</strong></div>
+          <div>Saldo de acciones disponibles: <strong style="color:var(--primary);" id="lblResumenAccionesResidual">1.000</strong></div>
+          <div>Promedio por sede: <strong id="lblResumenAccionesPromedio">0.0</strong> acciones/sede</div>
         </div>
       </div>
 
@@ -1565,7 +1567,7 @@
         <div class="chart-header">
           <div>
             <div class="chart-title">Acciones Técnicas Ejecutadas por Tipo de Prestación</div>
-            <div class="chart-subtitle">Desglose de tareas técnicas realizadas: cantidades absolutas por tipo (izquierda) y distribución porcentual participativa (derecha)</div>
+            <div class="chart-subtitle">Desglose técnico completo: gráfico de barras con cantidades absolutas por tipo (izquierda) y gráfico de anillo con porcentajes de participación (derecha)</div>
           </div>
           <div style="font-size:12px; font-weight:600; color:var(--text-muted);" id="stat-total-actividades-label">
             Total acciones: 0 ejecutadas
@@ -1580,11 +1582,11 @@
               <span style="font-size:13px; font-weight:700; color:var(--text-main);">
                 <i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:6px;"></i>Cantidades de Acciones por Tipo
               </span>
-              <span style="font-size:11px; color:var(--text-muted);">Total prestaciones</span>
+              <span style="font-size:11px; color:var(--text-muted);">Total tareas</span>
             </div>
             
-            <div id="contenedor-barras-tareas-horizontales" style="max-height:360px; overflow-y:auto; padding-right:8px;">
-              <!-- Inyectado dinámicamente con barras de cantidad -->
+            <div class="chart-canvas-box" id="boxChartAccionesBarras" style="height:340px; position:relative;">
+              <canvas id="chartAccionesBarras"></canvas>
             </div>
           </div>
 
@@ -2288,7 +2290,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261025_zip"></script>
+<script src="portal_app_v2.js?v=20261026_kpis_v3"></script>
 
 <script>
   // Control responsivo de menú móvil
