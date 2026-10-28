@@ -513,6 +513,8 @@ function doGet(e) {
       var monthlyParent = getOrCreateSubfolder(rootF, "Carpetas_Mensuales");
       var listCarpetas = [];
       var seenIds = {};
+      var nowD = new Date();
+      var maxPeriodoNum = (nowD.getFullYear() * 100) + (nowD.getMonth() + 1);
 
       // 1. Carpetas dentro del contenedor oficial 'Carpetas_Mensuales'
       var legSubs = monthlyParent.getFolders();
@@ -520,9 +522,23 @@ function doGet(e) {
         var legSub = legSubs.next();
         try {
           if (!legSub.isTrashed() && !seenIds[legSub.getId()]) {
+            var fName = legSub.getName().trim();
+            var mMatch = fName.match(/^(\d{4})[-_\.](\d{1,2})/);
+            if (mMatch) {
+              var fY = parseInt(mMatch[1], 10);
+              var fM = parseInt(mMatch[2], 10);
+              var pNum = (fY * 100) + fM;
+              if (pNum > maxPeriodoNum) {
+                // Si es una carpeta anómala creada por error de tipeo (ej: 2028), enviarla a papelera
+                if (fY >= 2028) {
+                  try { legSub.setTrashed(true); } catch(eTr) {}
+                }
+                continue;
+              }
+            }
             seenIds[legSub.getId()] = true;
             listCarpetas.push({
-              name: legSub.getName().trim(),
+              name: fName,
               id: legSub.getId(),
               url: legSub.getUrl()
             });
@@ -537,6 +553,17 @@ function doGet(e) {
         try {
           if (!sub.isTrashed() && !seenIds[sub.getId()]) {
             var subName = sub.getName().trim();
+            var mMatchSub = subName.match(/^(\d{4})[-_\.](\d{1,2})/);
+            if (mMatchSub) {
+              var sY = parseInt(mMatchSub[1], 10);
+              var sM = parseInt(mMatchSub[2], 10);
+              if ((sY * 100 + sM) > maxPeriodoNum) {
+                if (sY >= 2028) {
+                  try { sub.setTrashed(true); } catch(eTr2) {}
+                }
+                continue;
+              }
+            }
             if (/^\d{6}$/.test(subName) || /^\d{4}-\d{2}/.test(subName)) {
               seenIds[sub.getId()] = true;
               listCarpetas.push({
@@ -1907,7 +1934,7 @@ function repararArchivosEstablecimiento45() {
 
   // 3. Actualizar celda de Iluminación en 'Matriz_Control_Gestion' para Sede 45
   var ss = getSpreadsheet();
-  actualizarMatrizPorActividad(ss, "POLICIA", "VILLAGUAY - 243 (PARANA)", "45", "medicion_iluminacion", "Completado", "09/09/2028", estab45F.getUrl());
+  actualizarMatrizPorActividad(ss, "POLICIA", "VILLAGUAY - 243 (PARANA)", "45", "medicion_iluminacion", "Completado", "09/09/2026", estab45F.getUrl());
 
   return {
     status: "success",

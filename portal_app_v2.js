@@ -332,7 +332,31 @@ function guardarCarpetasMensualesLocal() {
 function cargarCarpetasMensualesLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CARPETAS_MENSUALES);
-    if (raw) AppState.carpetasMensuales = JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const ahora = new Date();
+      const maxPeriodoNum = (ahora.getFullYear() * 100) + (ahora.getMonth() + 1);
+      const cleaned = {};
+      Object.keys(parsed).forEach(k => {
+        const item = parsed[k];
+        if (!item) return;
+        const m = String(k).match(/^(\d{4})[-_\.]?(\d{2})/);
+        if (m) {
+          const y = parseInt(m[1], 10);
+          const mon = parseInt(m[2], 10);
+          if (y * 100 + mon > maxPeriodoNum || y < 2020) {
+            return; // Descartar meses futuros (ej: 2028) o anteriores a 2020
+          }
+          const canonKey = `${y}-${mon < 10 ? '0' : ''}${mon}`;
+          cleaned[canonKey] = {
+            ...item,
+            key: canonKey
+          };
+        }
+      });
+      AppState.carpetasMensuales = cleaned;
+      guardarCarpetasMensualesLocal();
+    }
     const pUrl = localStorage.getItem(STORAGE_KEYS.PARENT_MENSUAL_URL);
     if (pUrl) AppState.parentMensualUrl = pUrl;
   } catch(e) {}
@@ -3250,28 +3274,44 @@ function actualizarSelectorMesesRepositorio(todosLosRegistros) {
   if (!selectMes) return;
 
   const currentVal = AppState.repoFiltroMes;
+  const ahora = new Date();
+  const limitePeriodoNum = (ahora.getFullYear() * 100) + (ahora.getMonth() + 1);
 
-  // Recopilar meses únicos
+  // Recopilar meses únicos con clave canónica YYYY-MM
   const monthMap = {};
   todosLosRegistros.forEach(r => {
     if (r.monthKey) {
-      if (!monthMap[r.monthKey]) {
-        monthMap[r.monthKey] = { label: r.monthLabel || r.monthKey, count: 0 };
+      const mMatch = String(r.monthKey).match(/^(\d{4})[-_\.]?(\d{2})/);
+      if (mMatch) {
+        const y = parseInt(mMatch[1], 10);
+        const m = parseInt(mMatch[2], 10);
+        if (y * 100 + m > limitePeriodoNum || y < 2020) return;
+        const canonKey = `${y}-${m < 10 ? '0' : ''}${m}`;
+        if (!monthMap[canonKey]) {
+          monthMap[canonKey] = { label: r.monthLabel || canonKey, count: 0 };
+        }
+        monthMap[canonKey].count++;
       }
-      monthMap[r.monthKey].count++;
     }
   });
 
-  // Agregar también meses registrados en AppState.carpetasMensuales
+  // Agregar también meses registrados en AppState.carpetasMensuales (filtrando <= limitePeriodoNum)
   Object.keys(AppState.carpetasMensuales).forEach(k => {
-    if (!monthMap[k]) {
-      monthMap[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0 };
+    const mMatch = String(k).match(/^(\d{4})[-_\.]?(\d{2})/);
+    if (mMatch) {
+      const y = parseInt(mMatch[1], 10);
+      const m = parseInt(mMatch[2], 10);
+      if (y * 100 + m > limitePeriodoNum || y < 2020) return;
+      const canonKey = `${y}-${m < 10 ? '0' : ''}${m}`;
+      if (!monthMap[canonKey]) {
+        monthMap[canonKey] = { label: AppState.carpetasMensuales[k].label || canonKey, count: 0 };
+      }
     }
   });
 
   // Si no hay meses todavía, agregar mes actual por defecto
   const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
-  if (!monthMap[mActual.key]) {
+  if (mActual && mActual.key && !monthMap[mActual.key]) {
     monthMap[mActual.key] = { label: mActual.label, count: 0 };
   }
 
@@ -5643,13 +5683,18 @@ function mapearFilaActividad(row) {
   const fAct = convertirDdmmaaaAIso(rawDate) || rawDate;
   const mInfo = parsearAnioMesCliente(fAct);
   const mUrl = row['URL Carpeta Mensual'] || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
-  if (mUrl && mInfo.key) {
-    AppState.carpetasMensuales[mInfo.key] = {
-      key: mInfo.key,
-      label: mInfo.label,
-      url: mUrl,
-      id: ''
-    };
+  if (mUrl && mInfo.key && mInfo.anio && mInfo.mes) {
+    const ahora = new Date();
+    const maxPeriodoNum = (ahora.getFullYear() * 100) + (ahora.getMonth() + 1);
+    const pNum = (mInfo.anio * 100) + mInfo.mes;
+    if (pNum <= maxPeriodoNum && mInfo.anio >= 2020) {
+      AppState.carpetasMensuales[mInfo.key] = {
+        key: mInfo.key,
+        label: mInfo.label,
+        url: mUrl,
+        id: ''
+      };
+    }
   }
   return {
     id: row['ID Registro'] || ('ACT_' + Math.random().toString(36).substring(2, 9)),
@@ -6602,38 +6647,103 @@ function abrirModalCarpetasMensuales() {
   if (container) {
     container.innerHTML = '';
 
-    // Contar documentos por mes a partir de todas las actividades cargadas
-    const conteoMeses = {};
-    Object.values(AppState.actividadesRegistradas).forEach(acts => {
+    const ahora = new Date();
+    const anioActual = ahora.getFullYear();
+    const mesActual = ahora.getMonth() + 1;
+    const limitePeriodoNum = (anioActual * 100) + mesActual;
+
+    // Mapa canónico para evitar duplicados: canonKey (YYYY-MM) -> info
+    const mapaMeses = {};
+
+    // 1. Contar documentos por mes a partir de todas las actividades cargadas (hasta el mes actual)
+    Object.values(AppState.actividadesRegistradas || {}).forEach(acts => {
       acts.forEach(a => {
         const mInfo = parsearAnioMesCliente(a.fechaActividad);
-        if (!conteoMeses[mInfo.key]) {
-          conteoMeses[mInfo.key] = { label: mInfo.label, count: 0, docsConUrl: 0 };
+        if (!mInfo || !mInfo.key || !mInfo.anio || !mInfo.mes) return;
+        const pNum = (mInfo.anio * 100) + mInfo.mes;
+        // Filtrar estrictamente meses futuros o fechas anómalas
+        if (pNum > limitePeriodoNum || mInfo.anio < 2020) return;
+
+        const canonKey = mInfo.key;
+        if (!mapaMeses[canonKey]) {
+          mapaMeses[canonKey] = {
+            key: canonKey,
+            anio: mInfo.anio,
+            mes: mInfo.mes,
+            label: mInfo.label,
+            count: 0,
+            docsConUrl: 0,
+            url: ''
+          };
         }
-        conteoMeses[mInfo.key].count++;
-        if (a.fileUrl) conteoMeses[mInfo.key].docsConUrl++;
+        mapaMeses[canonKey].count++;
+        if (a.fileUrl) mapaMeses[canonKey].docsConUrl++;
       });
     });
 
-    // Asegurar que los meses presentes en AppState.carpetasMensuales aparezcan
-    Object.keys(AppState.carpetasMensuales).forEach(k => {
-      if (!conteoMeses[k]) {
-        conteoMeses[k] = { label: AppState.carpetasMensuales[k].label || k, count: 0, docsConUrl: 0 };
+    // 2. Incorporar carpetas Drive registradas en AppState.carpetasMensuales (hasta el mes actual)
+    Object.entries(AppState.carpetasMensuales || {}).forEach(([k, folderData]) => {
+      if (!folderData) return;
+      const mMatch = String(k).match(/^(\d{4})[-_\.]?(\d{2})/);
+      if (!mMatch) return;
+      const y = parseInt(mMatch[1], 10);
+      const m = parseInt(mMatch[2], 10);
+      const pNum = (y * 100) + m;
+      if (pNum > limitePeriodoNum || y < 2020) return;
+
+      const mesPad = m < 10 ? '0' + m : '' + m;
+      const canonKey = `${y}-${mesPad}`;
+      const mesNombre = (MESES_NOMBRES && MESES_NOMBRES[m - 1]) ? MESES_NOMBRES[m - 1] : '';
+      const fallbackLabel = `${canonKey} (${mesNombre})`;
+
+      if (!mapaMeses[canonKey]) {
+        mapaMeses[canonKey] = {
+          key: canonKey,
+          anio: y,
+          mes: m,
+          label: folderData.label || fallbackLabel,
+          count: 0,
+          docsConUrl: 0,
+          url: folderData.url || ''
+        };
+      } else {
+        if (folderData.url) mapaMeses[canonKey].url = folderData.url;
+        if (folderData.label && folderData.label.includes('_')) {
+          mapaMeses[canonKey].label = folderData.label;
+        }
       }
     });
 
-    // Si no hay meses aún, incluir el mes actual
-    const mActual = parsearAnioMesCliente(new Date().toISOString().substring(0, 10));
-    if (!conteoMeses[mActual.key]) {
-      conteoMeses[mActual.key] = { label: mActual.label, count: 0, docsConUrl: 0 };
+    // 3. Asegurar que el mes actual siempre esté disponible
+    const mesActualStr = mesActual < 10 ? '0' + mesActual : '' + mesActual;
+    const canonActualKey = `${anioActual}-${mesActualStr}`;
+    const mesActualNombre = (MESES_NOMBRES && MESES_NOMBRES[mesActual - 1]) ? MESES_NOMBRES[mesActual - 1] : '';
+    if (!mapaMeses[canonActualKey]) {
+      const folderActual = AppState.carpetasMensuales[canonActualKey] || {};
+      mapaMeses[canonActualKey] = {
+        key: canonActualKey,
+        anio: anioActual,
+        mes: mesActual,
+        label: folderActual.label || `${canonActualKey}_${mesActualNombre.toUpperCase()}`,
+        count: 0,
+        docsConUrl: 0,
+        url: folderActual.url || ''
+      };
     }
 
-    const sortedKeys = Object.keys(conteoMeses).sort().reverse();
+    // 4. Ordenar estrictamente de forma descendente (del mes actual hacia atrás)
+    const sortedKeys = Object.keys(mapaMeses).sort((a, b) => {
+      const [ay, am] = a.split('-').map(Number);
+      const [by, bm] = b.split('-').map(Number);
+      return (by * 100 + bm) - (ay * 100 + am);
+    });
 
     sortedKeys.forEach(k => {
-      const info = conteoMeses[k];
-      const folderData = AppState.carpetasMensuales[k] || {};
-      const url = folderData.url || '';
+      const info = mapaMeses[k];
+      const url = info.url || (AppState.carpetasMensuales[k] ? AppState.carpetasMensuales[k].url : '');
+      const partes = k.split('-');
+      const anioNum = partes[0] || '';
+      const mesNum = partes[1] || '';
 
       const card = document.createElement('div');
       card.style.cssText = 'background:#fff;border:1px solid var(--border-table);padding:10px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
@@ -6661,7 +6771,7 @@ function abrirModalCarpetasMensuales() {
               <span>Ver en Drive</span>
             </button>
           `}
-          <button type="button" class="chip" onclick="generarReporteMensualPdf('${k.split('-')[1]}', '${k.split('-')[0]}')" style="min-height:30px;padding:3px 8px;font-size:11px;color:var(--alert);" title="Exportar reporte PDF de este mes">
+          <button type="button" class="chip" onclick="generarReporteMensualPdf('${mesNum}', '${anioNum}')" style="min-height:30px;padding:3px 8px;font-size:11px;color:var(--alert);" title="Exportar reporte PDF de este mes">
             <i class="fa-solid fa-file-pdf"></i> PDF
           </button>
           <button type="button" class="chip" onclick="descargarZipMesClave('${k}', this)" style="min-height:30px;padding:3px 8px;font-size:11px;color:#0F4C5C;font-weight:600;" title="Descargar paquete ZIP con todos los documentos de este mes">
@@ -6776,8 +6886,15 @@ function abrirCarpetaMensualSeleccionada() {
 
 function abrirCarpetaMensualParaClave(monthKey) {
   const cleanKey = String(monthKey || '').trim();
-  const altKey = cleanKey.includes('-') ? cleanKey.replace('-', '') : (cleanKey.length === 6 ? `${cleanKey.substring(0, 4)}-${cleanKey.substring(4, 6)}` : '');
-  const data = AppState.carpetasMensuales[cleanKey] || (altKey ? AppState.carpetasMensuales[altKey] : null);
+  const mMatch = cleanKey.match(/^(\d{4})[-_\.]?(\d{2})/);
+  let canonKey = cleanKey;
+  if (mMatch) {
+    const y = parseInt(mMatch[1], 10);
+    const m = parseInt(mMatch[2], 10);
+    canonKey = `${y}-${m < 10 ? '0' : ''}${m}`;
+  }
+  const altKey = canonKey.replace('-', '');
+  const data = AppState.carpetasMensuales[canonKey] || AppState.carpetasMensuales[altKey] || AppState.carpetasMensuales[cleanKey];
   if (data && data.url) {
     window.open(data.url, '_blank');
     return;
@@ -6786,7 +6903,7 @@ function abrirCarpetaMensualParaClave(monthKey) {
     window.open(AppState.parentMensualUrl, '_blank');
   } else {
     abrirModalCarpetasMensuales();
-    mostrarToast(`La carpeta para el mes ${cleanKey} se generará automáticamente en Google Drive al subir el primer archivo.`);
+    mostrarToast(`La carpeta para el mes ${canonKey} se generará automáticamente en Google Drive al subir el primer archivo.`);
   }
 }
 
@@ -6809,29 +6926,31 @@ async function consultarCarpetasMensualesDrive() {
         AppState.parentMensualUrl = json.parentMensualUrl;
       }
       if (Array.isArray(json.carpetas)) {
+        const ahora = new Date();
+        const maxPeriodoNum = (ahora.getFullYear() * 100) + (ahora.getMonth() + 1);
+
         json.carpetas.forEach(c => {
           const name = (c.name || '').trim();
-          let key = name;
-          let altKey = '';
+          const mMatch = name.match(/^(\d{4})[-_\.]?(\d{2})/);
+          if (!mMatch) return;
+          const y = parseInt(mMatch[1], 10);
+          const m = parseInt(mMatch[2], 10);
+          const pNum = y * 100 + m;
+          // Filtrar estrictamente meses futuros o fechas inválidas
+          if (pNum > maxPeriodoNum || y < 2020) return;
 
-          const m6 = name.match(/^(\d{4})(\d{2})$/);
-          const mDash = name.match(/^(\d{4})-(\d{2})/);
-          if (m6) {
-            key = m6[1] + m6[2];
-            altKey = m6[1] + '-' + m6[2];
-          } else if (mDash) {
-            key = mDash[1] + '-' + mDash[2];
-            altKey = mDash[1] + mDash[2];
-          }
+          const mesStr = (m < 10 ? '0' : '') + m;
+          const canonKey = `${y}-${mesStr}`;
+          const mesNombre = (MESES_NOMBRES && MESES_NOMBRES[m - 1]) ? MESES_NOMBRES[m - 1] : '';
+          const displayLabel = name.includes('_') ? name : `${canonKey} (${mesNombre})`;
 
           const item = {
-            key: key,
-            label: name,
+            key: canonKey,
+            label: displayLabel,
             url: c.url,
             id: c.id
           };
-          AppState.carpetasMensuales[key] = item;
-          if (altKey) AppState.carpetasMensuales[altKey] = item;
+          AppState.carpetasMensuales[canonKey] = item;
         });
         guardarCarpetasMensualesLocal();
         actualizarBotonCarpetaMes();
