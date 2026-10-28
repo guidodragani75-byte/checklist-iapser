@@ -7610,6 +7610,7 @@ function actualizarKPIsPlanMaqueta() {
   }
 
   let sedesMesEvaluado = 0;
+  let totalCvMesEvaluado = 0;
 
   let totalCvSubidas = 0;
   let chartDonutSedesPrinInstance = null;
@@ -7644,6 +7645,13 @@ function actualizarKPIsPlanMaqueta() {
     });
     if (visitsInMonth.length > 0) sedesMesEvaluado++;
 
+    // Contar CV específicas del mes evaluado
+    visitsInMonth.forEach(a => {
+      if (normalizarTipoActividad(a.tipoActividad) === 'constancia_visita') {
+        totalCvMesEvaluado++;
+      }
+    });
+
     // Superficie
     const supNum = Number(est.superficie);
     if (!supNum || supNum <= 0) {
@@ -7657,15 +7665,20 @@ function actualizarKPIsPlanMaqueta() {
     }
   });
 
-  const displayVisitadas = sedesVisitadas;
-  const displayTotalCv = totalCvSubidas;
-  const pctCobertura = ((displayVisitadas / metaSedesAcordadas) * 100).toFixed(1);
-  const residualSedes = Math.max(0, metaSedesAcordadas - displayVisitadas);
+  const esFiltroMesEspecifico = (mesFiltro && mesFiltro !== 'todos');
+  const metaSedesDisplay = esFiltroMesEspecifico ? 30 : metaSedesAcordadas;
+  const metaVisitasDisplay = esFiltroMesEspecifico ? 83 : metaVisitasAnual;
 
-  const pctVisitas = ((displayTotalCv / metaVisitasAnual) * 100).toFixed(1);
-  const residualVisitas = Math.max(0, metaVisitasAnual - displayTotalCv);
+  const displayVisitadas = esFiltroMesEspecifico ? sedesMesEvaluado : sedesVisitadas;
+  const displayTotalCv = esFiltroMesEspecifico ? totalCvMesEvaluado : totalCvSubidas;
 
-  // 1. CARD 1: SEDES OBJETIVO (META 370)
+  const pctCobertura = ((displayVisitadas / metaSedesDisplay) * 100).toFixed(1);
+  const residualSedes = Math.max(0, metaSedesDisplay - displayVisitadas);
+
+  const pctVisitas = ((displayTotalCv / metaVisitasDisplay) * 100).toFixed(1);
+  const residualVisitas = Math.max(0, metaVisitasDisplay - displayTotalCv);
+
+  // 1. CARD 1: SEDES OBJETIVO (META 370 ANUAL / 30 MENSUAL)
   const elCobNum = document.getElementById('kpi-cobertura-num');
   if (elCobNum) elCobNum.textContent = displayVisitadas;
   const elCobPct = document.getElementById('kpi-cobertura-pct');
@@ -7674,8 +7687,14 @@ function actualizarKPIsPlanMaqueta() {
   if (elCobBar) elCobBar.style.width = `${Math.min(100, pctCobertura)}%`;
   const elCobRes = document.getElementById('kpi-cobertura-residual');
   if (elCobRes) elCobRes.textContent = `${residualSedes} sedes`;
+  const elCobSub = document.getElementById('kpi-cobertura-sub');
+  if (elCobSub) {
+    elCobSub.innerHTML = esFiltroMesEspecifico ?
+      `Meta mensual: 25-30 sedes (${labelMesEvaluado}) · Saldo: <strong>${residualSedes} sedes</strong>` :
+      `Residual acordado: <strong>${residualSedes} sedes</strong>`;
+  }
   const elCobTxt = document.getElementById('kpi-cobertura-txt');
-  if (elCobTxt) elCobTxt.innerHTML = `${displayVisitadas} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${metaSedesAcordadas} acordadas</span>`;
+  if (elCobTxt) elCobTxt.innerHTML = `${displayVisitadas} <span style="font-size:15px;font-weight:400;color:var(--text-muted)">de ${metaSedesDisplay} ${esFiltroMesEspecifico ? 'del mes' : 'acordadas'}</span>`;
 
   // 2. CARD 2: GRÁFICO DE ANILLO DE SEDES EN VISTA PRINCIPAL
   const canvasSedesPrin = document.getElementById('chartDonutSedesPrincipal');
@@ -7685,7 +7704,7 @@ function actualizarKPIsPlanMaqueta() {
     window._chartDonutSedesPrinInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Sedes Visitadas', 'Sedes Pendientes'],
+        labels: [esFiltroMesEspecifico ? `Sedes en ${labelMesEvaluado}` : 'Sedes Visitadas', 'Sedes Pendientes'],
         datasets: [{
           data: [displayVisitadas, residualSedes],
           backgroundColor: ['#0F4C5C', '#E2E8F0'],
@@ -7708,7 +7727,7 @@ function actualizarKPIsPlanMaqueta() {
     if (elPendP) elPendP.textContent = residualSedes;
   }
 
-  // 3. CARD 3: STOCK VISITAS ESTIMADAS (META 1.000) - SOLO CV SUBIDAS
+  // 3. CARD 3: STOCK VISITAS ESTIMADAS (META 1.000 ANUAL / ~83 MENSUAL) - SOLO CV SUBIDAS
   const elVisNum = document.getElementById('kpi-visitas-stock-num');
   if (elVisNum) elVisNum.textContent = displayTotalCv;
   const elVisPct = document.getElementById('kpi-visitas-stock-pct');
@@ -7717,6 +7736,12 @@ function actualizarKPIsPlanMaqueta() {
   if (elVisBar) elVisBar.style.width = `${Math.min(100, pctVisitas)}%`;
   const elVisRes = document.getElementById('kpi-visitas-stock-residual');
   if (elVisRes) elVisRes.textContent = `${residualVisitas} visitas`;
+  const elVisSub = document.getElementById('kpi-visitas-stock-sub');
+  if (elVisSub) {
+    elVisSub.innerHTML = esFiltroMesEspecifico ?
+      `Meta mensual: ~83 CV (${labelMesEvaluado}) · Saldo: <strong>${residualVisitas} visitas</strong>` :
+      `Cupo Anual: 1.000 CV · Saldo: <strong>${residualVisitas} visitas</strong>`;
+  }
 
   // 4. CARD 4: GRÁFICO DE ANILLO DE VISITAS EN VISTA PRINCIPAL
   const canvasVisitasPrin = document.getElementById('chartDonutVisitasPrincipal');
@@ -7726,7 +7751,7 @@ function actualizarKPIsPlanMaqueta() {
     window._chartDonutVisitasPrinInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['CV Subidas', 'Visitas Disponibles'],
+        labels: [esFiltroMesEspecifico ? `CV en ${labelMesEvaluado}` : 'CV Subidas', 'Visitas Disponibles'],
         datasets: [{
           data: [displayTotalCv, residualVisitas],
           backgroundColor: ['#0284c7', '#E2E8F0'],
@@ -8597,13 +8622,15 @@ function renderChartDonutAvanceSedes(data) {
   const ctx = canvas.getContext('2d');
   if (chartDonutAvanceSedesInstance) chartDonutAvanceSedesInstance.destroy();
 
-  const visitadas = data.stockSedesConsumido;
-  const pendientes = data.stockSedesResidual;
+  const visitadas = (data.displaySedes !== undefined) ? data.displaySedes : data.stockSedesConsumido;
+  const pendientes = (data.residualSedes !== undefined) ? data.residualSedes : data.stockSedesResidual;
+  const pctStr = (data.pctSedes !== undefined) ? data.pctSedes : data.pctSedesAvance;
+  const labelVis = data.esMesEsp ? 'Sedes en el Mes' : 'Sedes Visitadas';
 
   chartDonutAvanceSedesInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Sedes Visitadas', 'Sedes Pendientes'],
+      labels: [labelVis, 'Sedes Pendientes'],
       datasets: [{
         data: [visitadas, pendientes],
         backgroundColor: ['#0F4C5C', '#E2E8F0'],
@@ -8632,7 +8659,7 @@ function renderChartDonutAvanceSedes(data) {
   });
 
   const centerPct = document.getElementById('donut-sedes-center-pct');
-  if (centerPct) centerPct.textContent = `${data.pctSedesAvance}%`;
+  if (centerPct) centerPct.textContent = `${pctStr}%`;
   const lblVis = document.getElementById('lbl-donut-sedes-vis');
   if (lblVis) lblVis.textContent = visitadas;
   const lblPend = document.getElementById('lbl-donut-sedes-pend');
@@ -8649,13 +8676,15 @@ function renderChartDonutAvanceVisitas(data) {
   const ctx = canvas.getContext('2d');
   if (chartDonutAvanceVisitasInstance) chartDonutAvanceVisitasInstance.destroy();
 
-  const subidas = data.stockVisitasConsumido;
-  const disp = data.stockVisitasResidual;
+  const subidas = (data.displayVisitas !== undefined) ? data.displayVisitas : data.stockVisitasConsumido;
+  const disp = (data.residualVisitas !== undefined) ? data.residualVisitas : data.stockVisitasResidual;
+  const pctStr = (data.pctVisitas !== undefined) ? data.pctVisitas : data.pctVisitasAvance;
+  const labelSub = data.esMesEsp ? 'CV en el Mes' : 'CV Subidas';
 
   chartDonutAvanceVisitasInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['CV Subidas', 'Visitas Disponibles'],
+      labels: [labelSub, 'Visitas Disponibles'],
       datasets: [{
         data: [subidas, disp],
         backgroundColor: ['#0284c7', '#E2E8F0'],
@@ -8684,7 +8713,7 @@ function renderChartDonutAvanceVisitas(data) {
   });
 
   const centerPct = document.getElementById('donut-visitas-center-pct');
-  if (centerPct) centerPct.textContent = `${data.pctVisitasAvance}%`;
+  if (centerPct) centerPct.textContent = `${pctStr}%`;
   const lblSub = document.getElementById('lbl-donut-cv-sub');
   if (lblSub) lblSub.textContent = subidas;
   const lblDisp = document.getElementById('lbl-donut-cv-disp');
@@ -8816,10 +8845,10 @@ function renderChartAvanceSedes(data) {
 }
 
 /**
- * Renderiza el Gráfico Independiente 2: Avance de ACCIONES Técnicas vs Meta (1.000)
+ * Renderiza el Gráfico Independiente 2: Avance de Visitas Efectivas (CV) vs Meta Contractual (1.000)
  */
 function renderChartAvanceAcciones(data) {
-  const canvas = document.getElementById('chartAvanceAcciones');
+  const canvas = document.getElementById('chartAvanceVisitas') || document.getElementById('chartAvanceAcciones');
   if (!canvas || !window.Chart) return;
 
   const ctx = canvas.getContext('2d');
@@ -8828,27 +8857,27 @@ function renderChartAvanceAcciones(data) {
   }
 
   const labels = CICLO_MESES_ANUAL.map(m => m.label);
-  const accionesRealesMes = CICLO_MESES_ANUAL.map(m => (data.timelineAccionesMes && data.timelineAccionesMes[m.key]) || 0);
-  const metaMensualAcciones = new Array(12).fill(Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12)); // ~83
+  const cvRealesMes = CICLO_MESES_ANUAL.map(m => (data.timelineVisitasMes && data.timelineVisitasMes[m.key]) || 0);
+  const metaMensualVisitas = new Array(12).fill(Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12)); // ~83
 
   const ahora = new Date();
   let mesesTranscurridos = (ahora.getFullYear() - 2026) * 12 + (ahora.getMonth() + 1) - 8;
   if (mesesTranscurridos < 1) mesesTranscurridos = 1;
   if (mesesTranscurridos > 12) mesesTranscurridos = 12;
 
-  const accionesAcum = [];
-  const metaAcumAcciones = [];
-  let sumAcc = 0;
-  let sumMetaAcc = 0;
+  const cvAcum = [];
+  const metaAcumVisitas = [];
+  let sumCv = 0;
+  let sumMeta = 0;
 
   for (let i = 0; i < 12; i++) {
-    sumMetaAcc += Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12);
-    metaAcumAcciones.push(i === 11 ? 1000 : sumMetaAcc);
+    sumMeta += Math.round(PLAN_HYS_CONFIG.META_VISITAS_ANUAL / 12);
+    metaAcumVisitas.push(i === 11 ? 1000 : sumMeta);
     if (i < mesesTranscurridos) {
-      sumAcc += accionesRealesMes[i];
-      accionesAcum.push(sumAcc);
+      sumCv += cvRealesMes[i];
+      cvAcum.push(sumCv);
     } else {
-      accionesAcum.push(null);
+      cvAcum.push(null);
     }
   }
 
@@ -8856,15 +8885,15 @@ function renderChartAvanceAcciones(data) {
   if (modoChartAcciones === 'mensual') {
     datasets = [
       {
-        label: 'Acciones Técnicas Realizadas en el Mes',
-        data: accionesRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
-        backgroundColor: '#2563EB',
+        label: 'Constancias de Visita (CV) en el Mes',
+        data: cvRealesMes.map((val, idx) => idx < mesesTranscurridos ? val : (val > 0 ? val : null)),
+        backgroundColor: '#0284c7',
         borderRadius: 2,
         barPercentage: 0.55
       },
       {
-        label: 'Meta Mensual (~83 acciones/mes)',
-        data: metaMensualAcciones,
+        label: 'Meta Mensual (~83 visitas/mes)',
+        data: metaMensualVisitas,
         type: 'line',
         borderColor: '#D97706',
         borderWidth: 2,
@@ -8877,20 +8906,20 @@ function renderChartAvanceAcciones(data) {
   } else {
     datasets = [
       {
-        label: 'Acciones Técnicas Acumuladas',
-        data: accionesAcum,
+        label: 'Visitas Efectivas (CV) Acumuladas',
+        data: cvAcum,
         type: 'line',
-        borderColor: '#2563EB',
-        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+        borderColor: '#0284c7',
+        backgroundColor: 'rgba(2, 132, 199, 0.12)',
         fill: true,
         borderWidth: 3,
         pointRadius: 4,
-        pointBackgroundColor: '#2563EB',
+        pointBackgroundColor: '#0284c7',
         tension: 0.2
       },
       {
-        label: 'Meta Acumulada Anual (1.000 Acciones)',
-        data: metaAcumAcciones,
+        label: 'Meta Acumulada Anual (1.000 Visitas)',
+        data: metaAcumVisitas,
         type: 'line',
         borderColor: '#D97706',
         borderWidth: 2,
@@ -8916,7 +8945,7 @@ function renderChartAvanceAcciones(data) {
         tooltip: {
           callbacks: {
             label: function(c) {
-              return ` ${c.dataset.label}: ${c.parsed.y} acciones`;
+              return ` ${c.dataset.label}: ${c.parsed.y} visitas`;
             }
           }
         }
@@ -8935,12 +8964,12 @@ function renderChartAvanceAcciones(data) {
     }
   });
 
-  const lblTot = document.getElementById('lblResumenAccionesTotal');
-  if (lblTot) lblTot.textContent = `${data.totalAccionesCiclo} acciones`;
-  const lblRes = document.getElementById('lblResumenAccionesResidual');
-  if (lblRes) lblRes.textContent = `${Math.max(0, 1000 - data.totalAccionesCiclo)} disponibles`;
-  const lblProm = document.getElementById('lblResumenAccionesPromedio');
-  if (lblProm) lblProm.textContent = (data.stockSedesConsumido > 0 ? (data.totalAccionesCiclo / data.stockSedesConsumido).toFixed(1) : '0.0');
+  const lblTot = document.getElementById('lblResumenVisitasTotal') || document.getElementById('lblResumenAccionesTotal');
+  if (lblTot) lblTot.textContent = `${data.stockVisitasConsumido} CV`;
+  const lblRes = document.getElementById('lblResumenVisitasResidual') || document.getElementById('lblResumenAccionesResidual');
+  if (lblRes) lblRes.textContent = `${data.stockVisitasResidual} visitas`;
+  const lblProm = document.getElementById('lblResumenVisitasPromedio') || document.getElementById('lblResumenAccionesPromedio');
+  if (lblProm) lblProm.textContent = `${data.promedioVisitas} CV/sede`;
 }
 window.renderChartAvanceAcciones = renderChartAvanceAcciones;
 
@@ -8953,7 +8982,7 @@ window.renderChartAvanceVisitas = renderChartAvanceVisitas;
  * Renderiza el Gráfico de Barras con Cantidades por Tipo de Acción
  */
 function renderChartAccionesPorTipoBarras(data) {
-  const canvas = document.getElementById('chartAccionesPorTipoBarras');
+  const canvas = document.getElementById('chartAccionesPorTipoBarras') || document.getElementById('chartAccionesBarras');
   if (!canvas || !window.Chart) return;
 
   const ctx = canvas.getContext('2d');
@@ -9142,17 +9171,37 @@ function renderTablaResumenMensualHyS(data) {
  */
 function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const data = calcularMetricasPlanAnual(periodoKey);
+  const esMesEsp = (periodoKey !== 'ciclo' && periodoKey !== 'todos' && periodoKey !== '2026_completo');
 
-  // 1. NIVEL 1: Macrométricas & Stocks
+  const metaSedesRef = esMesEsp ? 30 : PLAN_HYS_CONFIG.META_SEDES_ANUAL;
+  const metaVisitasRef = esMesEsp ? 83 : PLAN_HYS_CONFIG.META_VISITAS_ANUAL;
+
+  const sedesVal = esMesEsp ? data.ritmoMes : data.stockSedesConsumido;
+  const sedesRes = Math.max(0, metaSedesRef - sedesVal);
+  const sedesPct = ((sedesVal / metaSedesRef) * 100).toFixed(1);
+
+  const visVal = esMesEsp ? data.totalCvPeriodo : data.stockVisitasConsumido;
+  const visRes = Math.max(0, metaVisitasRef - visVal);
+  const visPct = ((visVal / metaVisitasRef) * 100).toFixed(1);
+
+  data.esMesEsp = esMesEsp;
+  data.displaySedes = sedesVal;
+  data.residualSedes = sedesRes;
+  data.pctSedes = sedesPct;
+  data.displayVisitas = visVal;
+  data.residualVisitas = visRes;
+  data.pctVisitas = visPct;
+
+  // 1. NIVEL 1: Macrométricas & Stocks (se adaptan si es mes específico o ciclo anual)
   const elSedesCons = document.getElementById('kpi-sedes-consumidas');
   const elSedesMeta = document.getElementById('kpi-sedes-meta');
   const elSedesConsBadge = document.getElementById('kpi-sedes-consumidas-badge');
   const elSedesResBadge = document.getElementById('kpi-sedes-residual-badge');
 
-  if (elSedesCons) elSedesCons.textContent = data.stockSedesConsumido;
-  if (elSedesMeta) elSedesMeta.textContent = PLAN_HYS_CONFIG.META_SEDES_ANUAL;
-  if (elSedesConsBadge) elSedesConsBadge.textContent = `${data.stockSedesConsumido} (${data.pctSedesAvance}%)`;
-  if (elSedesResBadge) elSedesResBadge.textContent = `${data.stockSedesResidual} sedes`;
+  if (elSedesCons) elSedesCons.textContent = sedesVal;
+  if (elSedesMeta) elSedesMeta.textContent = metaSedesRef;
+  if (elSedesConsBadge) elSedesConsBadge.textContent = `${sedesVal} (${sedesPct}%)`;
+  if (elSedesResBadge) elSedesResBadge.textContent = `${sedesRes} sedes`;
 
   const elVisCons = document.getElementById('kpi-visitas-consumidas');
   const elVisMeta = document.getElementById('kpi-visitas-meta');
@@ -9160,11 +9209,11 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const elVisResBadge = document.getElementById('kpi-visitas-residual-badge');
   const elVisProm = document.getElementById('kpi-visitas-promedio');
 
-  if (elVisCons) elVisCons.textContent = data.stockVisitasConsumido;
-  if (elVisMeta) elVisMeta.textContent = (PLAN_HYS_CONFIG.META_VISITAS_ANUAL).toLocaleString();
-  if (elVisConsBadge) elVisConsBadge.textContent = `${data.stockVisitasConsumido} (${data.pctVisitasAvance}%)`;
-  if (elVisResBadge) elVisResBadge.textContent = `${data.stockVisitasResidual} visitas`;
-  if (elVisProm) elVisProm.textContent = data.promedioVisitas;
+  if (elVisCons) elVisCons.textContent = visVal;
+  if (elVisMeta) elVisMeta.textContent = metaVisitasRef.toLocaleString();
+  if (elVisConsBadge) elVisConsBadge.textContent = `${visVal} (${visPct}%)`;
+  if (elVisResBadge) elVisResBadge.textContent = `${visRes} visitas`;
+  if (elVisProm) elVisProm.textContent = esMesEsp ? (sedesVal > 0 ? (visVal / sedesVal).toFixed(1) : '0') : data.promedioVisitas;
 
   // Renderizar Gráficos de Anillo de Avance
   renderChartDonutAvanceSedes(data);

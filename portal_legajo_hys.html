@@ -1538,27 +1538,28 @@
         </div>
       </div>
 
-      <!-- FILA 3: GRÁFICO INDEPENDIENTE 2: AVANCE DE ACCIONES TÉCNICAS VS META -->
+      <!-- FILA 3: GRÁFICO INDEPENDIENTE 2: AVANCE DE VISITAS EFECTIVAS (CV) VS META 1.000 -->
       <div class="chart-panel">
         <div class="chart-header">
           <div>
-            <div class="chart-title" id="lblTituloChartAcciones">Avance de Acciones Técnicas vs Meta Programada (Ciclo Sep 2026 – Ago 2027)</div>
-            <div class="chart-subtitle" id="lblSubtituloChartAcciones">Monitoreo exclusivo de prestaciones y tareas técnicas ejecutadas mes a mes respecto a la bolsa anual de 1.000 acciones (~83 acciones/mes)</div>
+            <div class="chart-title" id="lblTituloChartVisitas">Avance de Visitas Efectivas (CV) vs Meta Contractual (1.000 Visitas)</div>
+            <div class="chart-subtitle" id="lblSubtituloChartVisitas">Monitoreo exclusivo de Constancias de Visita (CV) oficiales subidas mes a mes respecto al cupo anual de 1.000 visitas (~83 visitas/mes)</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" class="chip on" id="btnToggleChartAccionesMensual" onclick="toggleModoChartAcciones('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
-            <button type="button" class="chip" id="btnToggleChartAccionesAcumulado" onclick="toggleModoChartAcciones('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
+            <button type="button" class="chip on" id="btnToggleChartVisitasMensual" onclick="toggleModoChartVisitas('mensual')" style="min-height:32px; font-size:12px; padding:2px 10px;">Visión Mensual</button>
+            <button type="button" class="chip" id="btnToggleChartVisitasAcumulado" onclick="toggleModoChartVisitas('acumulado')" style="min-height:32px; font-size:12px; padding:2px 10px;">Curva Acumulada</button>
           </div>
         </div>
 
-        <div class="chart-canvas-box" id="boxChartAvanceAcciones" style="height:280px;">
-          <canvas id="chartAvanceAcciones"></canvas>
+        <div class="chart-canvas-box" id="boxChartAvanceVisitas" style="height:280px;">
+          <canvas id="chartAvanceVisitas"></canvas>
+          <canvas id="chartAvanceAcciones" style="display:none;"></canvas>
         </div>
 
         <div style="display:flex; gap:24px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-table); flex-wrap:wrap; font-size:12px; color:var(--text-muted);">
-          <div>Total acciones técnicas ejecutadas: <strong style="color:#2563EB;" id="lblResumenAccionesTotal">0</strong></div>
-          <div>Saldo de acciones disponibles: <strong style="color:var(--primary);" id="lblResumenAccionesResidual">1.000</strong></div>
-          <div>Promedio por sede: <strong id="lblResumenAccionesPromedio">0.0</strong> acciones/sede</div>
+          <div>Total CV subidas: <strong style="color:#0284c7;" id="lblResumenVisitasTotal">0</strong></div>
+          <div>Saldo de visitas disponibles: <strong style="color:var(--primary);" id="lblResumenVisitasResidual">1.000</strong></div>
+          <div>Promedio de intensidad: <strong id="lblResumenVisitasPromedio">0.0</strong> CV/sede</div>
         </div>
       </div>
 
@@ -1586,7 +1587,7 @@
             </div>
             
             <div class="chart-canvas-box" id="boxChartAccionesBarras" style="height:340px; position:relative;">
-              <canvas id="chartAccionesBarras"></canvas>
+              <canvas id="chartAccionesPorTipoBarras"></canvas>
             </div>
           </div>
 
@@ -2290,7 +2291,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261026_kpis_v3"></script>
+<script src="portal_app_v2.js?v=20261028_fix_kpis"></script>
 
 <script>
   // Control responsivo de menú móvil
