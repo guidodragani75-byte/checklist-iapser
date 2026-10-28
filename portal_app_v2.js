@@ -8850,6 +8850,9 @@ function renderChartAvanceSedes(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { top: 18 }
+      },
       plugins: {
         legend: {
           position: 'top',
@@ -8874,7 +8877,27 @@ function renderChartAvanceSedes(data) {
           ticks: { font: { family: 'IBM Plex Sans', size: 11 } }
         }
       }
-    }
+    },
+    plugins: [{
+      id: 'sedesValuesTop',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta) return;
+        meta.data.forEach((element, index) => {
+          const val = chart.data.datasets[0].data[index];
+          if (val !== null && val !== undefined && val > 0) {
+            ctx.save();
+            ctx.fillStyle = '#0F4C5C';
+            ctx.font = 'bold 11px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(String(val), element.x, element.y - 4);
+            ctx.restore();
+          }
+        });
+      }
+    }]
   });
 
   const lblUnicas = document.getElementById('lblSedesUnicasChart');
@@ -8974,6 +8997,9 @@ function renderChartAvanceAcciones(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { top: 18 }
+      },
       plugins: {
         legend: {
           position: 'top',
@@ -8998,7 +9024,27 @@ function renderChartAvanceAcciones(data) {
           ticks: { font: { family: 'IBM Plex Sans', size: 11 } }
         }
       }
-    }
+    },
+    plugins: [{
+      id: 'visitasValuesTop',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta) return;
+        meta.data.forEach((element, index) => {
+          const val = chart.data.datasets[0].data[index];
+          if (val !== null && val !== undefined && val > 0) {
+            ctx.save();
+            ctx.fillStyle = '#0284c7';
+            ctx.font = 'bold 11px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(String(val), element.x, element.y - 4);
+            ctx.restore();
+          }
+        });
+      }
+    }]
   });
 
   const lblTot = document.getElementById('lblResumenVisitasTotal') || document.getElementById('lblResumenAccionesTotal');
@@ -9048,6 +9094,9 @@ function renderChartAccionesPorTipoBarras(data) {
       indexAxis: 'y', // Barras horizontales
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { right: 35, top: 4 }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -9066,10 +9115,30 @@ function renderChartAccionesPorTipoBarras(data) {
         },
         y: {
           grid: { display: false },
-          ticks: { font: { family: 'IBM Plex Sans', size: 10 } }
+          ticks: { font: { family: 'IBM Plex Sans', size: 10, weight: 600 } }
         }
       }
-    }
+    },
+    plugins: [{
+      id: 'horizontalBarLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta) return;
+        meta.data.forEach((bar, index) => {
+          const val = chart.data.datasets[0].data[index];
+          if (val !== null && val !== undefined && val > 0) {
+            ctx.save();
+            ctx.fillStyle = '#0F172A';
+            ctx.font = 'bold 11.5px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(val), bar.x + 6, bar.y);
+            ctx.restore();
+          }
+        });
+      }
+    }]
   });
 }
 window.renderChartAccionesPorTipoBarras = renderChartAccionesPorTipoBarras;
@@ -9084,9 +9153,12 @@ function renderChartServiciosDonut(data) {
   const ctx = canvas.getContext('2d');
   if (chartServiciosDonutInstance) chartServiciosDonutInstance.destroy();
 
-  const labels = data.rankingTareas.map(t => t.nombre);
-  const values = data.rankingTareas.map(t => t.count);
-  const colors = data.rankingTareas.map(t => t.color || '#0F4C5C');
+  const tareasConDatos = data.rankingTareas.filter(t => t.count > 0);
+  const tareasRef = tareasConDatos.length > 0 ? tareasConDatos : data.rankingTareas.slice(0, 5);
+
+  const labels = tareasRef.map(t => t.nombre);
+  const values = tareasRef.map(t => t.count);
+  const colors = tareasRef.map(t => t.color || '#0F4C5C');
 
   chartServiciosDonutInstance = new Chart(ctx, {
     type: 'doughnut',
@@ -9095,7 +9167,7 @@ function renderChartServiciosDonut(data) {
       datasets: [{
         data: values,
         backgroundColor: colors,
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: '#fff'
       }]
     },
@@ -9105,7 +9177,27 @@ function renderChartServiciosDonut(data) {
       plugins: {
         legend: {
           position: 'right',
-          labels: { font: { family: 'IBM Plex Sans', size: 11 }, boxWidth: 12 }
+          labels: {
+            font: { family: 'IBM Plex Sans', size: 11 },
+            boxWidth: 12,
+            generateLabels: function(chart) {
+              const d = chart.data;
+              if (d.labels.length && d.datasets.length) {
+                const total = d.datasets[0].data.reduce((a, b) => a + b, 0);
+                return d.labels.map((lbl, i) => {
+                  const val = d.datasets[0].data[i];
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0';
+                  return {
+                    text: `${lbl}: ${val} (${pct}%)`,
+                    fillStyle: d.datasets[0].backgroundColor[i],
+                    hidden: false,
+                    index: i
+                  };
+                });
+              }
+              return [];
+            }
+          }
         },
         tooltip: {
           callbacks: {
@@ -9119,7 +9211,36 @@ function renderChartServiciosDonut(data) {
         }
       },
       cutout: '58%'
-    }
+    },
+    plugins: [{
+      id: 'donutSliceLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          const total = dataset.data.reduce((a, b) => a + b, 0);
+          if (total <= 0) return;
+          meta.data.forEach((element, index) => {
+            const val = dataset.data[index];
+            if (val > 0) {
+              const pct = (val / total) * 100;
+              if (pct >= 6) {
+                const pos = element.tooltipPosition();
+                ctx.save();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 11px "IBM Plex Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 3;
+                ctx.fillText(`${pct.toFixed(0)}%`, pos.x, pos.y);
+                ctx.restore();
+              }
+            }
+          });
+        });
+      }
+    }]
   });
 }
 
