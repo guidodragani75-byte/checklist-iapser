@@ -773,56 +773,77 @@ function normalizarTipoActividad(str) {
   if (!str) return '';
   const s = String(str).toLowerCase().trim();
 
-  // 1. RAR (Evaluar antes de RGRL para no confundir por Res. 463)
-  if (s === 'rar' || s === 'confeccion_rar' || /\b(?:confeccion_)?rar\b/i.test(s) || s.includes('agentes de riesgo') || s.includes('expuestos') || s.includes('relevamiento de agentes')) {
+  // 1. Constancia de Visita (CV oficial firmado in situ)
+  if (s === 'cv' || s === 'constancia_visita' || s.includes('_cv_') || s.startsWith('cv_') || /\bcv\b/.test(s) || (s.includes('constancia') && s.includes('visita')) || (s.includes('acta') && s.includes('visita')) || (s.includes('visita') && !s.includes('informe') && !s.includes('fotogr'))) {
+    return 'constancia_visita';
+  }
+
+  // 2. RAR (Relevamiento de Agentes de Riesgo)
+  if (s === 'rar' || s === 'confeccion_rar' || s.includes('_rar_') || /\b(?:confeccion_)?rar\b/i.test(s) || s.includes('agentes de riesgo') || s.includes('expuestos') || s.includes('relevamiento de agentes')) {
     return 'confeccion_rar';
   }
-  // 2. RGRL
-  if (s === 'rgrl' || s === 'confeccion_rgrl' || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general')) {
+
+  // 3. RGRL (Relevamiento General de Riesgos Laborales)
+  if (s === 'rgrl' || s === 'confeccion_rgrl' || s.includes('_rgrl_') || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general') || s.includes('anexo i')) {
     return 'confeccion_rgrl';
   }
-  // 3. Iluminación (evaluar antes de informe técnico para que "Informe de Iluminación" sea reconocido como Iluminación)
-  if (s === 'medicion_iluminacion' || s === 'ilum' || s === 'iluminacion' || s === 'iluminación' || s.includes('iluminaci') || s.includes('iluminac') || s.includes('lux') || s.includes('84/12')) {
+
+  // 4. Informe Fotográfico / Relevamiento Inicial (Evaluar antes de palabras sueltas como 'iluminación' para no capturar fotos de luces o desvíos edilicios)
+  if (s === 'informe_fotografico' || s === 'informe_tecnico' || s.includes('informe fotografico') || s.includes('informe fotográfico') || s.includes('relevamiento fotografico') || s.includes('relevamiento fotográfico') || s.includes('reporte fotografico') || s.includes('reporte fotográfico') || s.includes('anexo fotografico') || s.includes('anexo fotográfico') || s.includes('relevamiento_inicial') || s.includes('relevamiento inicial') || s.includes('_foto_') || s.includes('registro fotografico') || s.includes('registro fotográfico')) {
+    // Si explícitamente tiene código de medición técnica, no es informe fotográfico
+    if (s.includes('_ilum_') || s.includes('protocolo de medicion de iluminacion') || s.includes('protocolo de medición de iluminación')) {
+      return 'medicion_iluminacion';
+    }
+    return 'informe_tecnico';
+  }
+
+  // 5. Medición de Iluminación (Protocolo Res. 84/12)
+  if (s === 'medicion_iluminacion' || s === 'ilum' || s.includes('_ilum_') || s.includes('protocolo de iluminaci') || s.includes('protocolo de medición de iluminación') || s.includes('protocolo de medicion de iluminacion') || (s.includes('84/12') && !s.includes('visita')) || s.includes('luxometro') || s.includes('luxómetro') || s === 'iluminacion' || s === 'iluminación') {
     return 'medicion_iluminacion';
   }
-  // 4. Ruido (evaluar antes de informe técnico)
-  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('ruido') || s.includes('sonoro') || s.includes('85/12') || s.includes('decibel') || s.includes('dosimetr')) {
+
+  // 6. Ruido (Protocolo Res. 85/12)
+  if (s === 'medicion_ruido' || s === 'ruido' || s.includes('_ruido_') || s.includes('protocolo de ruido') || s.includes('85/12') || s.includes('sonometro') || s.includes('sonómetro') || s.includes('dosimetr')) {
     return 'medicion_ruido';
   }
-  // 5. Puesta a Tierra (PAT)
-  if (s === 'medicion_pat' || s === 'pat' || s.includes('puesta a tierra') || s.includes('telurimetr') || s.includes('telurímetr') || s.includes('900/15') || /\bpat\b/i.test(s)) {
+
+  // 7. Puesta a Tierra (PAT - Protocolo Res. 900/15)
+  if (s === 'medicion_pat' || s === 'pat' || s.includes('_pat_') || s.includes('puesta a tierra') || s.includes('telurimetr') || s.includes('telurímetr') || s.includes('900/15') || /\bpat\b/i.test(s)) {
     return 'medicion_pat';
   }
-  // 6. Muestra de Agua (Toma)
-  if (s === 'muestra_agua' || s === 'agua_toma' || s === 'toma_muestra' || (s.includes('agua') && (s.includes('toma') || s.includes('muestra')))) {
+
+  // 8. Muestra de Agua (Toma in situ)
+  if (s === 'muestra_agua' || s === 'agua_toma' || s === 'toma_muestra' || s.includes('_agua_toma_') || s.includes('_toma_agua_') || (s.includes('agua') && (s.includes('toma') || s.includes('muestra') || s.includes('cadena de custodia')))) {
     return 'muestra_agua';
   }
-  // 7. Análisis de Agua (Protocolo)
-  if (s === 'analisis_agua' || s === 'agua_protocolo' || s === 'agua_lab' || s === 'protocolo_lab' || (s.includes('agua') && (s.includes('protocolo') || s.includes('analisis') || s.includes('laboratorio')))) {
+
+  // 9. Análisis de Agua (Protocolo Lab)
+  if (s === 'analisis_agua' || s === 'agua_protocolo' || s === 'agua_lab' || s.includes('_agua_protocolo_') || s.includes('liaquim') || (s.includes('agua') && (s.includes('protocolo') || s.includes('analisis') || s.includes('análisis') || s.includes('laboratorio') || s.includes('bacteriol')))) {
     return 'analisis_agua';
   }
-  // 8. Ergonomía
+
+  // 10. Ergonomía
   if (s === 'res_886' || s === 'ergonomia' || s.includes('886') || s.includes('ergonom')) {
     return 'res_886';
   }
-  // 9. Capacitaciones
+
+  // 11. Capacitaciones
   if (s === 'capacitaciones' || s === 'capacitacion' || s.includes('capacita')) {
     return 'capacitaciones';
   }
-  // 10. Carga de Fuego y Extintores
-  if (s === 'carga_fuego' || s.includes('fuego') || s.includes('extintor') || s.includes('incendio')) {
+
+  // 12. Carga de Fuego y Extintores
+  if (s === 'carga_fuego' || s.includes('carga_fuego') || s.includes('carga de fuego') || s.includes('extintor') || s.includes('potencial extintor')) {
     return 'carga_fuego';
   }
-  // 11. Simulacro de Evacuación
-  if (s === 'simulacro' || s.includes('evacuacion') || s.includes('simulacro')) {
+
+  // 13. Simulacro de Evacuación
+  if (s === 'simulacro' || s.includes('evacuacion') || s.includes('evacuación') || s.includes('simulacro')) {
     return 'simulacro';
   }
-  // 12. Constancia de Visita (CV oficial firmado in situ)
-  if (s === 'cv' || s === 'constancia_visita' || (s.includes('constancia') && s.includes('visita')) || (s.includes('visita') && !s.includes('informe') && !s.includes('fotogr'))) {
-    return 'constancia_visita';
-  }
-  // 13. Informe Fotográfico / Técnico (solo cuando es informe general o fotográfico y no una medición técnica específica)
-  if (s === 'informe' || s === 'informe_tecnico' || s === 'informe_fotografico' || s === 'inf' || s.includes('informe') || s.includes('fotograf') || s.includes('fotogr')) {
+
+  // 14. Informe general (cuando no encajó en ninguna categoría técnica específica)
+  if (s === 'informe' || s === 'informe_tecnico' || s === 'inf' || s.includes('informe') || s.includes('fotograf') || s.includes('fotogr')) {
     return 'informe_tecnico';
   }
 
@@ -4376,7 +4397,7 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
             fechaEncontrada = f;
             origenOcr = 'interior del PDF (texto digital)';
           }
-          const t = detectarTipoActividadDeTexto(extractedText);
+          const t = detectarTipoActividadDeTexto(extractedText, file ? file.name : '');
           if (t) {
             tipoEncontrado = t;
           }
@@ -4413,7 +4434,7 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
               }
             }
             if (!tipoEncontrado) {
-              const tOcr = detectarTipoActividadDeTexto(ocrResult.data.text);
+              const tOcr = detectarTipoActividadDeTexto(ocrResult.data.text, file ? file.name : '');
               if (tOcr) tipoEncontrado = tOcr;
             }
           }
@@ -4442,14 +4463,14 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
           fechaEncontrada = fImg;
           origenOcr = 'OCR en imagen';
         }
-        const tImg = detectarTipoActividadDeTexto(ocrResult.data.text);
+        const tImg = detectarTipoActividadDeTexto(ocrResult.data.text, file ? file.name : '');
         if (tImg) tipoEncontrado = tImg;
       }
     }
 
     // D. Si aún no encontramos el tipo en el texto interior, evaluar nombre del archivo
-    if (!tipoEncontrado) {
-      tipoEncontrado = detectarTipoActividadDeTexto(file.name);
+    if (!tipoEncontrado && file && file.name) {
+      tipoEncontrado = detectarTipoActividadDeTexto('', file.name);
     }
   } catch (errGlobal) {
     console.warn('Aviso en proceso OCR:', errGlobal);
@@ -4461,15 +4482,9 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
   }
 
   // 1. Si identificamos el formulario por OCR, actualizar desplegable y UI
-  // Pero NUNCA degradar una actividad técnica específica (iluminación, ruido, pat, etc.) a informe_tecnico genérico
   if (tipoEncontrado) {
-    const esActividadEspecificaPrevia = currentActividadModal && currentActividadModal !== 'informe_tecnico' && currentActividadModal !== 'constancia_visita';
-    if (esActividadEspecificaPrevia && tipoEncontrado.id === 'informe_tecnico') {
-      console.log('Se preserva la actividad técnica seleccionada por el usuario:', currentActividadModal);
-    } else {
-      cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
-      mostrarToast(`✨ Formulario detectado por OCR: ${tipoEncontrado.nombre}`);
-    }
+    cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
+    mostrarToast(`✨ Clasificación OCR precisa: ${tipoEncontrado.nombre}`);
   }
 
   // 2. Si encontramos la fecha en el interior del documento, actualizar UI
@@ -4759,94 +4774,258 @@ function animarProgreso(bar, label, targetPercent, text) {
 
 // ==================== SUBIDA RÁPIDA GENERAL POR ESTABLECIMIENTO ====================
 
-function detectarTipoActividadDeTexto(texto) {
-  if (!texto) return null;
-  const t = texto.toLowerCase();
+/**
+ * Clasificador inteligente y robusto de documentos y OCR para HyS.
+ * Resuelve con alta precisión la distinción entre:
+ * 1) INFORME FOTOGRÁFICO vs MEDICIÓN DE ILUMINACIÓN (evita que fotos o desvíos con palabras "iluminación/luces" se confundan con Res. 84/12)
+ * 2) CONSTANCIA DE VISITA (CV oficial SRT) vs INFORME TÉCNICO / FOTOGRÁFICO (evita que un informe con fecha de visita se tome como CV o que un CV con "motivo de visita: informe" se degrade a informe).
+ */
+function detectarTipoActividadDeTexto(texto, nombreArchivo = '') {
+  const t = String(texto || '').toLowerCase();
+  const fn = String(nombreArchivo || '').toLowerCase();
+  if (!t && !fn) return null;
 
-  // 1. Iluminación (Res. 84/12) - Prioridad alta para que "Informe de Iluminación" sea clasificado como Iluminación
-  if (t.includes('iluminaci') || t.includes('iluminación') || t.includes('iluminacion') || t.includes('lux') || t.includes('84/12') || t.includes('luxometro') || t.includes('luxómetro') || t.includes('ilum')) {
-    return { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación', icono: '💡', codigo: 'ILUM' };
+  // Extraer el encabezado del documento (primeros 1500 caracteres, donde reside el título formal)
+  const headerText = t.substring(0, 1500);
+
+  const scores = {
+    medicion_iluminacion: 0,
+    medicion_ruido: 0,
+    medicion_pat: 0,
+    analisis_agua: 0,
+    muestra_agua: 0,
+    confeccion_rar: 0,
+    confeccion_rgrl: 0,
+    res_886: 0,
+    capacitaciones: 0,
+    carga_fuego: 0,
+    simulacro: 0,
+    constancia_visita: 0,
+    informe_tecnico: 0
+  };
+
+  // ================= 1. EVALUACIÓN POR PATRONES EN NOMBRE DE ARCHIVO =================
+  if (fn) {
+    // Constancia de Visita
+    if (/\b(?:cv|constancia_visita|constancia_de_visita)\b/i.test(fn) || fn.includes('_cv_') || fn.includes('cv_') || fn.includes('-cv-') || fn.includes('_cv.') || fn.includes('acta_de_visita')) {
+      scores.constancia_visita += 110;
+    }
+    // Medición de Iluminación
+    if (fn.includes('_ilum_') || fn.includes('_iluminacion_') || fn.includes('iluminacion.pdf') || fn.includes('ilum.pdf') || fn.includes('res_84_12') || fn.includes('84_12')) {
+      scores.medicion_iluminacion += 110;
+    }
+    // Informe Fotográfico / Relevamiento Inicial
+    if (fn.includes('_informe_') || fn.includes('_inf_') || fn.includes('_foto_') || fn.includes('informe_fotografico') || fn.includes('relevamiento_inicial') || fn.includes('relevamiento_fotografico') || fn.includes('reporte_fotografico')) {
+      scores.informe_tecnico += 110;
+    }
+    // Ruido
+    if (fn.includes('_ruido_') || fn.includes('_sonoro_') || fn.includes('ruido.pdf') || fn.includes('res_85_12')) {
+      scores.medicion_ruido += 110;
+    }
+    // Puesta a Tierra
+    if (fn.includes('_pat_') || fn.includes('_puesta_a_tierra_') || fn.includes('pat.pdf') || fn.includes('res_900_15')) {
+      scores.medicion_pat += 110;
+    }
+    // Análisis de Agua
+    if (fn.includes('_agua_protocolo_') || fn.includes('agua_protocolo') || fn.includes('_lab_') || fn.includes('liaquim') || fn.includes('analisis_agua')) {
+      scores.analisis_agua += 110;
+    }
+    // Toma de muestra de Agua
+    if (fn.includes('_agua_toma_') || fn.includes('_toma_agua_') || fn.includes('toma_de_muestra') || fn.includes('cadena_custodia')) {
+      scores.muestra_agua += 110;
+    }
+    // RAR
+    if (/\b(?:confeccion_)?rar\b/i.test(fn) || fn.includes('_rar_') || fn.includes('rar.pdf')) {
+      scores.confeccion_rar += 110;
+    }
+    // RGRL
+    if (/\b(?:confeccion_)?rgrl\b/i.test(fn) || fn.includes('_rgrl_') || fn.includes('rgrl.pdf')) {
+      scores.confeccion_rgrl += 110;
+    }
+    // Carga de Fuego
+    if (fn.includes('_carga_fuego_') || fn.includes('carga_de_fuego') || fn.includes('carga_fuego')) {
+      scores.carga_fuego += 110;
+    }
+    // Capacitaciones
+    if (fn.includes('_capacitacion_') || fn.includes('capacitaciones') || fn.includes('capacitacion')) {
+      scores.capacitaciones += 110;
+    }
+    // Simulacro
+    if (fn.includes('_simulacro_') || fn.includes('simulacro')) {
+      scores.simulacro += 110;
+    }
+    // Ergonomía
+    if (fn.includes('_res_886_') || fn.includes('_ergo_') || fn.includes('ergonomia') || fn.includes('886_15')) {
+      scores.res_886 += 110;
+    }
   }
 
-  // 2. Ruido (Res. 85/12) - Prioridad alta
-  if (t.includes('nivel sonoro') || t.includes('85/12') || t.includes('decibeles') || t.includes('db(a)') || t.includes('dosimetr') || t.includes('sonomet') || t.includes('ruido')) {
-    return { id: 'medicion_ruido', nombre: 'Medición de Ruido', icono: '🔊', codigo: 'RUIDO' };
+  // ================= 2. EVALUACIÓN POR ENCABEZADO / TÍTULO PRINCIPAL (PAGE 1) =================
+  if (headerText) {
+    // A. Constancia de Visita Oficial
+    if (headerText.includes('constancia de visita') || headerText.includes('constancia de visitas') || headerText.includes('formulario de visita') || headerText.includes('acta de visita') || headerText.includes('hoja de visita') || (headerText.includes('constancia') && headerText.includes('visita'))) {
+      scores.constancia_visita += 140;
+    }
+    // B. Informe Fotográfico / Técnico
+    if (headerText.includes('informe fotográfico') || headerText.includes('informe fotografico') || headerText.includes('relevamiento fotográfico') || headerText.includes('relevamiento fotografico') || headerText.includes('registro fotográfico') || headerText.includes('registro fotografico') || headerText.includes('reporte fotográfico') || headerText.includes('reporte fotografico') || headerText.includes('anexo fotográfico') || headerText.includes('anexo fotografico') || headerText.includes('relevamiento inicial') || headerText.includes('informe de visita técnica') || headerText.includes('informe de relevamiento')) {
+      scores.informe_tecnico += 140;
+    }
+    // C. Protocolos Técnicos Específicos
+    if (headerText.includes('protocolo para la medición del nivel de iluminación') || headerText.includes('protocolo de medición de iluminación') || headerText.includes('protocolo de medicion de iluminacion') || headerText.includes('protocolo de iluminaci')) {
+      scores.medicion_iluminacion += 150;
+    }
+    if (headerText.includes('protocolo para la medición del nivel sonoro') || headerText.includes('protocolo de medición de ruido') || headerText.includes('protocolo de medicion de ruido') || headerText.includes('protocolo de ruido')) {
+      scores.medicion_ruido += 150;
+    }
+    if (headerText.includes('protocolo para la medición de la puesta a tierra') || headerText.includes('protocolo de puesta a tierra') || headerText.includes('protocolo de continuidad de las masas')) {
+      scores.medicion_pat += 150;
+    }
+    if (headerText.includes('protocolo de análisis de agua') || headerText.includes('informe de ensayo de agua') || headerText.includes('certificado de análisis bromatológico') || headerText.includes('análisis fisicoquímico y bacteriológico')) {
+      scores.analisis_agua += 140;
+    }
   }
 
-  // 3. Puesta a tierra (PAT - Res. 900/15) - Prioridad alta
-  if (t.includes('puesta a tierra') || t.includes('900/15') || t.includes('jabalina') || t.includes('telurimetro') || t.includes('telurímetro') || t.includes('continuidad de masas') || t.includes('resistencia de puesta a tierra') || /\bpat\b/i.test(texto)) {
-    return { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT)', icono: '⚡', codigo: 'PAT' };
+  // ================= 3. ANÁLISIS DE ESTRUCTURA Y VOCABULARIO TÉCNICO INTERNO =================
+  if (t) {
+    // --- ILUMINACIÓN (Res. 84/12) ---
+    const tieneNormaIlum = (t.includes('84/12') || t.includes('84/2012')) && (t.includes('resolución') || t.includes('resolucion') || t.includes('res.') || t.includes('srt') || t.includes('protocolo'));
+    const tieneLuxometro = t.includes('luxómetro') || t.includes('luxometro') || t.includes('luxometría') || t.includes('luxometria');
+    const tieneTablaLux = (t.includes('lux') || t.includes('iluminancia') || t.includes('e media') || t.includes('em (lux)')) && (t.includes('valor medido') || t.includes('nivel exigido') || t.includes('puntos de medición') || t.includes('punto de medicion'));
+
+    if (tieneNormaIlum) scores.medicion_iluminacion += 90;
+    if (tieneLuxometro) scores.medicion_iluminacion += 80;
+    if (tieneTablaLux) scores.medicion_iluminacion += 70;
+
+    // DESAMBIGUACIÓN FUNDAMENTAL:
+    // Si el texto menciona "iluminación" pero se refiere a lámparas, artefactos, luminarias, iluminación de emergencia o falta de iluminación edilicia:
+    const esObservacionEdiliciaIlum = t.includes('iluminación de emergencia') || t.includes('iluminacion de emergencia') || t.includes('luces de emergencia') || t.includes('luminaria') || t.includes('luminarias') || t.includes('tubos fluorescentes') || t.includes('artefactos de iluminación') || t.includes('artefactos de iluminacion') || t.includes('falta de iluminación') || t.includes('falta de iluminacion') || t.includes('iluminación deficiente') || t.includes('iluminacion deficiente');
+    if (esObservacionEdiliciaIlum) {
+      scores.informe_tecnico += 50; // Es típicamente un desvío fotografiado en un informe
+      // Si NO tiene protocolo formal, ni luxómetro, ni tabla de lux, PENALIZAR fuertemente para que no usurpe medicion_iluminacion
+      if (!tieneLuxometro && !tieneTablaLux && !headerText.includes('protocolo')) {
+        scores.medicion_iluminacion -= 100;
+      }
+    }
+
+    // --- CONSTANCIA DE VISITA (CV) ---
+    const tieneFirmaCV = t.includes('firma del empleador') || t.includes('firma del responsable') || t.includes('firma del profesional') || t.includes('firma del preventor') || t.includes('firma y aclaración') || t.includes('firma y aclaracion') || t.includes('aclaración de firma');
+    const tieneNotifCV = t.includes('se deja constancia') || t.includes('notificado del servicio') || t.includes('en el día de la fecha') || t.includes('motivo de la visita') || t.includes('carácter de la visita') || t.includes('caracter de la visita');
+    const tieneSrtHeader = t.includes('superintendencia de riesgos del trabajo') || (t.includes('srt') && (t.includes('visita') || t.includes('constancia')));
+
+    if (tieneFirmaCV) scores.constancia_visita += 60;
+    if (tieneNotifCV) scores.constancia_visita += 60;
+    if (tieneSrtHeader) scores.constancia_visita += 40;
+
+    // --- INFORME FOTOGRÁFICO / TÉCNICO ---
+    const tieneMarcadoresFoto = t.includes('foto 1') || t.includes('foto 2') || t.includes('foto 3') || t.includes('fotografía 1') || t.includes('fotografia 1') || t.includes('imagen 1') || t.includes('figura 1') || t.includes('registro fotográfico') || t.includes('registro fotografico') || t.includes('evidencia fotográfica');
+    const tieneDesvios = t.includes('desvíos detectados') || t.includes('desvios detectados') || t.includes('condición insegura') || t.includes('condiciones inseguras') || t.includes('medidas correctivas recomendadas') || t.includes('recomendaciones de seguridad') || t.includes('observaciones técnicas') || t.includes('matriz de desvíos');
+    
+    if (tieneMarcadoresFoto) scores.informe_tecnico += 70;
+    if (tieneDesvios) scores.informe_tecnico += 50;
+    if (t.includes('informe técnico') || t.includes('informe tecnico')) scores.informe_tecnico += 50;
+
+    // --- RUIDO (Res. 85/12) ---
+    if ((t.includes('85/12') || t.includes('85/2012')) && (t.includes('resolución') || t.includes('res.') || t.includes('srt') || t.includes('protocolo'))) scores.medicion_ruido += 90;
+    if (t.includes('sonómetro') || t.includes('sonometro') || t.includes('dosímetro') || t.includes('dosimetro')) scores.medicion_ruido += 80;
+    if (t.includes('db(a)') || t.includes('nivel sonoro continuo equivalente') || t.includes('laeq') || t.includes('dosis de ruido')) scores.medicion_ruido += 60;
+
+    // --- PUESTA A TIERRA (Res. 900/15) ---
+    if ((t.includes('900/15') || t.includes('900/2015')) && (t.includes('resolución') || t.includes('res.') || t.includes('srt') || t.includes('protocolo'))) scores.medicion_pat += 90;
+    if (t.includes('telurímetro') || t.includes('telurimetro') || t.includes('resistencia de puesta a tierra') || t.includes('continuidad de las masas')) scores.medicion_pat += 80;
+    if (t.includes('jabalina') || t.includes('electrodo de dispersión') || /\bpat\b/i.test(t)) scores.medicion_pat += 40;
+
+    // --- ANÁLISIS DE AGUA vs TOMA DE MUESTRA ---
+    if (t.includes('bacteriol') || t.includes('aerobios mesófilos') || t.includes('aerobios mesofilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || t.includes('código alimentario argentino')) scores.analisis_agua += 100;
+    if (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remisión de muestra') || t.includes('remito de muestra')) scores.muestra_agua += 100;
+
+    // --- RAR ---
+    if (t.includes('relevamiento de agentes de riesgo') || t.includes('nómina de trabajadores expuestos') || t.includes('nomina de trabajadores expuestos') || t.includes('personal expuesto') || t.includes('código esop') || t.includes('codigos esop') || t.includes('formulario rar')) scores.confeccion_rar += 120;
+
+    // --- RGRL ---
+    if (t.includes('relevamiento general de riesgos laborales') || t.includes('relevamiento general de riesgos') || (t.includes('decreto 351') && t.includes('anexo i')) || (t.includes('463/09') && t.includes('anexo i')) || t.includes('formulario rgrl')) scores.confeccion_rgrl += 120;
+
+    // --- ERGONOMÍA (Res. 886/15) ---
+    if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual de cargas') || t.includes('trastornos musculoesqueléticos') || t.includes('nam')) scores.res_886 += 110;
+
+    // --- CARGA DE FUEGO ---
+    if (t.includes('carga de fuego') || t.includes('potencial extintor') || t.includes('poder calorífico') || t.includes('poder calorifico') || t.includes('carga térmica') || t.includes('carga termica')) scores.carga_fuego += 120;
+
+    // --- CAPACITACIONES ---
+    if (t.includes('registro de capacitación') || t.includes('registro de capacitacion') || t.includes('asistencia a capacitación') || t.includes('temario de capacitación') || t.includes('personal capacitado')) scores.capacitaciones += 120;
+
+    // --- SIMULACRO ---
+    if (t.includes('simulacro de evacuación') || t.includes('simulacro de evacuacion') || t.includes('rol de evacuación') || t.includes('tiempo de evacuación')) scores.simulacro += 120;
+
+    // ================= 4. REGLAS DE PENALIZACIÓN CRUZADA (DESAMBIGUACIÓN FINAL) =================
+    // Si el encabezado o nombre dice claramente "Informe Fotográfico" / "Relevamiento":
+    if (headerText.includes('informe fotográfico') || headerText.includes('informe fotografico') || headerText.includes('relevamiento fotográfico') || headerText.includes('relevamiento inicial') || fn.includes('_informe_') || fn.includes('informe_fotografico')) {
+      scores.constancia_visita -= 120;
+      if (!tieneLuxometro && !tieneTablaLux) scores.medicion_iluminacion -= 140;
+    }
+
+    // Si el encabezado o nombre dice claramente "Constancia de Visita":
+    if (headerText.includes('constancia de visita') || headerText.includes('constancia de visitas') || headerText.includes('acta de visita') || fn.includes('_cv_') || fn.includes('cv_')) {
+      scores.informe_tecnico -= 100;
+      if (!tieneLuxometro && !tieneTablaLux) scores.medicion_iluminacion -= 120;
+    }
+
+    // Si es un protocolo formal de iluminación:
+    if (headerText.includes('protocolo') && (headerText.includes('iluminaci') || tieneNormaIlum) && (tieneLuxometro || tieneTablaLux)) {
+      scores.informe_tecnico -= 140;
+      scores.constancia_visita -= 140;
+    }
   }
 
-  // 4. Agua Bacteriológico o Fisicoquímico / Protocolo de Laboratorio
-  if (t.includes('bacteriol') || t.includes('aerobios mesofilos') || t.includes('aerobios mesófilos') || t.includes('escherichia coli') || t.includes('pseudomonas') || t.includes('turbiedad') || t.includes('cloro residual') || (t.includes('agua') && (t.includes('protocolo') || t.includes('analisis') || t.includes('análisis') || t.includes('laboratorio'))) || t.includes('bromatolog') || t.includes('bromatológ')) {
-    return { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo)', icono: '🔬', codigo: 'AGUA_PROTOCOLO' };
+  // Encontrar la categoría con mayor puntuación
+  let maxScore = 0;
+  let ganadorId = null;
+
+  for (const [catId, score] of Object.entries(scores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      ganadorId = catId;
+    }
   }
 
-  // 5. Muestra de agua (Toma in situ)
-  if ((t.includes('agua') || t.includes('muestreo')) && (t.includes('toma de muestra') || t.includes('cadena de custodia') || t.includes('remision') || t.includes('remisión') || t.includes('remito de muestra'))) {
-    return { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)', icono: '💧', codigo: 'AGUA_TOMA' };
+  // Umbral mínimo de confianza (35 puntos)
+  if (!ganadorId || maxScore < 35) {
+    if (fn) {
+      if (fn.includes('_cv') || fn.includes('cv_')) ganadorId = 'constancia_visita';
+      else if (fn.includes('_ilum')) ganadorId = 'medicion_iluminacion';
+      else if (fn.includes('_informe') || fn.includes('_foto')) ganadorId = 'informe_tecnico';
+      else if (fn.includes('_ruido')) ganadorId = 'medicion_ruido';
+      else if (fn.includes('_pat')) ganadorId = 'medicion_pat';
+      else if (fn.includes('_rar')) ganadorId = 'confeccion_rar';
+      else if (fn.includes('_rgrl')) ganadorId = 'confeccion_rgrl';
+      else if (fn.includes('_carga_fuego')) ganadorId = 'carga_fuego';
+      else if (fn.includes('_capacitacion')) ganadorId = 'capacitaciones';
+    }
   }
 
-  // 6. RAR (Relevamiento de Agentes de Riesgo)
-  if (/\b(?:confeccion_)?rar\b/i.test(texto) ||
-      t.includes('relevamiento de agentes de riesgo') ||
-      t.includes('agentes de riesgo') ||
-      t.includes('nómina de expuestos') ||
-      t.includes('nomina de expuestos') ||
-      t.includes('planilla de expuestos') ||
-      t.includes('personal expuesto') ||
-      t.includes('formulario rar') ||
-      t.includes('relevamiento rar')) {
-    return { id: 'confeccion_rar', nombre: 'Confección de RAR', icono: '👥', codigo: 'RAR' };
-  }
+  if (!ganadorId) return null;
 
-  // 7. RGRL (Relevamiento General de Riesgos Laborales)
-  if (/\b(?:confeccion_)?rgrl\b/i.test(texto) ||
-      t.includes('relevamiento general de riesgos') ||
-      t.includes('relevamiento general') ||
-      (t.includes('decreto 351') && t.includes('anexo i')) ||
-      (t.includes('463') && (t.includes('general') || t.includes('anexo i'))) ||
-      t.includes('formulario rgrl')) {
-    return { id: 'confeccion_rgrl', nombre: 'Confección de RGRL', icono: '📋', codigo: 'RGRL' };
-  }
+  const catalog = {
+    constancia_visita: { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' },
+    informe_tecnico: { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' },
+    medicion_iluminacion: { id: 'medicion_iluminacion', nombre: 'Medición de Iluminación (Res. 84/12)', icono: '💡', codigo: 'ILUM' },
+    medicion_ruido: { id: 'medicion_ruido', nombre: 'Medición de Ruido (Res. 85/12)', icono: '🔊', codigo: 'RUIDO' },
+    medicion_pat: { id: 'medicion_pat', nombre: 'Puesta a Tierra (PAT - Res. 900/15)', icono: '⚡', codigo: 'PAT' },
+    analisis_agua: { id: 'analisis_agua', nombre: 'Análisis de Agua (Protocolo Lab)', icono: '🔬', codigo: 'AGUA_PROTOCOLO' },
+    muestra_agua: { id: 'muestra_agua', nombre: 'Muestra de Agua (Toma in situ)', icono: '💧', codigo: 'AGUA_TOMA' },
+    confeccion_rar: { id: 'confeccion_rar', nombre: 'Confección de RAR (Agentes de Riesgo)', icono: '👥', codigo: 'RAR' },
+    confeccion_rgrl: { id: 'confeccion_rgrl', nombre: 'Confección de RGRL (Dec. 351/79)', icono: '📋', codigo: 'RGRL' },
+    res_886: { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT', icono: '🪑', codigo: 'RES886' },
+    capacitaciones: { id: 'capacitaciones', nombre: 'Capacitaciones HyS', icono: '🎓', codigo: 'CAPACITACION' },
+    carga_fuego: { id: 'carga_fuego', nombre: 'Evaluación de Carga de Fuego', icono: '🔥', codigo: 'CARGA_FUEGO' },
+    simulacro: { id: 'simulacro', nombre: 'Simulacro de Evacuación', icono: '🚨', codigo: 'SIMULACRO' }
+  };
 
-  // 8. Ergonomía (Res. 886/15)
-  if (t.includes('886/15') || t.includes('ergonom') || t.includes('levantamiento manual') || t.includes('trastornos musculoesqueleticos') || t.includes('trastornos musculoesqueléticos')) {
-    return { id: 'res_886', nombre: 'Ergonomía Res. 886/15 SRT', icono: '🪑', codigo: 'RES886' };
-  }
-
-  // 9. Capacitaciones HyS
-  if (t.includes('capacita') || t.includes('temario') || (t.includes('asistentes') && t.includes('firma')) || t.includes('entrenamiento preventivo') || t.includes('registro de capacitacion') || t.includes('registro de capacitación')) {
-    return { id: 'capacitaciones', nombre: 'Capacitaciones HyS', icono: '🎓', codigo: 'CAPACITACION' };
-  }
-
-  // 10. Carga de Fuego
-  if (t.includes('carga de fuego') || t.includes('potencial extintor') || t.includes('carga termica') || t.includes('carga térmica') || t.includes('poder calorifico') || t.includes('poder calorífico')) {
-    return { id: 'carga_fuego', nombre: 'Evaluación de Carga de Fuego', icono: '🔥', codigo: 'CARGA_FUEGO' };
-  }
-
-  // 11. Simulacro de Evacuación
-  if (t.includes('simulacro') || t.includes('rol de evacuacion') || t.includes('rol de evacuación') || t.includes('plan de evacuacion') || t.includes('plan de evacuación') || t.includes('tiempo de evacuacion') || t.includes('tiempo de evacuación')) {
-    return { id: 'simulacro', nombre: 'Simulacro de Evacuación', icono: '🚨', codigo: 'SIMULACRO' };
-  }
-
-  // 12. Constancia de Visita (CV oficial SRT firmado in situ)
-  if (t.includes('constancia de visita') || t.includes('formulario de visita') || t.includes('acta de visita') || t.includes('hoja de visita') || (t.includes('constancia') && t.includes('visita')) || (t.includes('visita') && !t.includes('informe') && !t.includes('fotogr') && (t.includes('servicio') || t.includes('informacion del servicio') || t.includes('notificado')))) {
-    return { id: 'constancia_visita', nombre: 'Constancia de Visita (CV)', icono: '📝', codigo: 'CV' };
-  }
-
-  // 13. Informe Fotográfico / Técnico (solo cuando no coincide con ninguna medición técnica específica)
-  if (t.includes('informe fotografico') || t.includes('informe fotográfico') || t.includes('registro fotografico') || t.includes('registro fotográfico') || t.includes('relevamiento fotografico') || t.includes('relevamiento fotográfico') || t.includes('reporte fotografico') || t.includes('anexo fotografico') || t.includes('anexo fotográfico') || t.includes('informe de visita') || t.includes('informe tecnico') || t.includes('informe técnico') || t.includes('desvios detectados') || t.includes('desvíos detectados') || t.includes('informe de relevamiento') || t.includes('dictamen tecnico') || t.includes('dictamen técnico') || t.includes('informe pericial') || t.includes('informe') || t.includes('fotogr') || t.includes('foto') || t.includes('dictamen')) {
-    return { id: 'informe_tecnico', nombre: 'Informe Fotográfico', icono: '📷', codigo: 'INFORME' };
-  }
-
-  return null;
+  return catalog[ganadorId] || null;
 }
 window.detectarTipoActividadDeTexto = detectarTipoActividadDeTexto;
 
-function determinarTipoDocumentoTexto(texto) {
-  const detectado = detectarTipoActividadDeTexto(texto);
+function determinarTipoDocumentoTexto(texto, nombreArchivo = '') {
+  const detectado = detectarTipoActividadDeTexto(texto, nombreArchivo);
   return detectado ? detectado.id : 'informe_tecnico';
 }
 window.determinarTipoDocumentoTexto = determinarTipoDocumentoTexto;
@@ -5051,7 +5230,7 @@ async function manejarArchivosSubidaRapida(files) {
     const fechaDdmmaaa = formatearFechaDdmmaaa(fechaIso);
 
     // Intento preliminar de tipo en nombre
-    const tipoPreliminar = detectarTipoActividadDeTexto(file.name);
+    const tipoPreliminar = detectarTipoActividadDeTexto('', file.name);
 
     const item = {
       id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
@@ -5166,9 +5345,8 @@ async function procesarOcrItemLote(item) {
         item.origenFecha = origenFecha;
       }
 
-      // Analizar tipo de actividad por texto interior o por nombre
-      const textoAnalisis = (extractedText && extractedText.trim().length > 10) ? extractedText : item.originalName;
-      const detectada = detectarTipoActividadDeTexto(textoAnalisis);
+      // Analizar tipo de actividad por texto interior y por nombre
+      const detectada = detectarTipoActividadDeTexto(extractedText, item.originalName);
       if (detectada) {
         item.actTipo = detectada.id;
         item.actDetectada = detectada.nombre;
@@ -8051,20 +8229,8 @@ function manejarArchivosDropzoneLateral(files) {
         const fDetectada = buscarFechasEnTexto(ocrTexto) || (extraerFechaDeArchivo(file, base64Data)?.fecha);
         fechaDetectada = fDetectada ? formatearFechaDdmmaaa(fDetectada) : (extraerFechaTexto(ocrTexto) || formatearFechaDdmmaaa(new Date()));
 
-        // 2. Determinar tipo de documento
-        tipoDetectado = determinarTipoDocumentoTexto(file.name + ' ' + ocrTexto);
-        if (!tipoDetectado || tipoDetectado === 'otro') {
-          const lower = file.name.toLowerCase();
-          if (lower.includes('ilum') || lower.includes('luz') || lower.includes('84/12')) tipoDetectado = 'medicion_iluminacion';
-          else if (lower.includes('ruido') || lower.includes('85/12')) tipoDetectado = 'medicion_ruido';
-          else if (lower.includes('pat') || lower.includes('tierra') || lower.includes('900/15')) tipoDetectado = 'medicion_pat';
-          else if (lower.includes('agua')) tipoDetectado = 'analisis_agua';
-          else if (lower.includes('cv') || lower.includes('visita') || lower.includes('constancia')) tipoDetectado = 'constancia_visita';
-          else if (lower.includes('rgrl')) tipoDetectado = 'confeccion_rgrl';
-          else if (lower.includes('rar')) tipoDetectado = 'confeccion_rar';
-          else if (lower.includes('informe') || lower.includes('fotogr') || lower.includes('foto')) tipoDetectado = 'informe_tecnico';
-          else tipoDetectado = 'informe_tecnico';
-        }
+        // 2. Determinar tipo de documento con el clasificador inteligente OCR
+        tipoDetectado = determinarTipoDocumentoTexto(ocrTexto, file.name);
 
         archivosDetectadosLateral.push({
           file: file,
