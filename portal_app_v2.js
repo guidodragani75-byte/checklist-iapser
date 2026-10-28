@@ -895,7 +895,14 @@ function obtenerActividadesDeSede(e) {
     });
   });
 
-  return Array.from(mapUnique.values());
+  const listaActs = Array.from(mapUnique.values());
+  listaActs.sort((a, b) => {
+    const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
+    const isoB = convertirDdmmaaaAIso(b.fechaActividad || b.fecha || '') || '1970-01-01';
+    if (isoA !== isoB) return isoA.localeCompare(isoB);
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+  return listaActs;
 }
 window.obtenerActividadesDeSede = obtenerActividadesDeSede;
 
@@ -1449,6 +1456,14 @@ function renderGrillaActividades(est, actsEst, container) {
       return actNorm === cat.id || a.tipoActividad === cat.id;
     });
 
+    // Ordenar de más antiguo a más reciente (el último elemento siempre será el de FECHA MÁS NUEVA)
+    registros.sort((a, b) => {
+      const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
+      const isoB = convertirDdmmaaaAIso(b.fechaActividad || b.fecha || '') || '1970-01-01';
+      if (isoA !== isoB) return isoA.localeCompare(isoB);
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
     const tieneRegistros = registros.length > 0;
     const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
     const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
@@ -1566,6 +1581,15 @@ function crearTarjetaActividad(cat, est, actsEst) {
     const actNorm = normalizarTipoActividad(a.tipoActividad);
     return actNorm === cat.id || a.tipoActividad === cat.id;
   });
+
+  // Ordenar de más antiguo a más reciente (el último elemento siempre será el de FECHA MÁS NUEVA)
+  registros.sort((a, b) => {
+    const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
+    const isoB = convertirDdmmaaaAIso(b.fechaActividad || b.fecha || '') || '1970-01-01';
+    if (isoA !== isoB) return isoA.localeCompare(isoB);
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+
   const tieneRegistros = registros.length > 0;
   const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
   const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
@@ -1766,9 +1790,14 @@ function abrirModalDocumentosActividad(catId) {
       </div>
     `;
   } else {
-    // Mostrar del más reciente al más antiguo
-    const reversed = [...acts].reverse();
-    reversed.forEach((act) => {
+    // Mostrar estrictamente del más reciente al más antiguo
+    const sortedActsDesc = [...acts].sort((a, b) => {
+      const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
+      const isoB = convertirDdmmaaaAIso(b.fechaActividad || b.fecha || '') || '1970-01-01';
+      if (isoA !== isoB) return isoB.localeCompare(isoA); // Más nuevo primero
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+    sortedActsDesc.forEach((act) => {
       const fAct = act.fechaActividad || 'S/F';
       const mInfo = parsearAnioMesCliente(fAct);
       const mFUrl = act.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
@@ -7421,6 +7450,14 @@ function actualizarFichaLateralMaqueta(est) {
       const catNorm = normalizarTipoActividad(cat.id);
       const registros = acts.filter(a => {
         return normalizarTipoActividad(a.tipoActividad) === catNorm || a.tipoActividad === cat.id;
+      });
+
+      // Ordenar de más antiguo a más reciente (el último elemento siempre será el de FECHA MÁS NUEVA)
+      registros.sort((a, b) => {
+        const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
+        const isoB = convertirDdmmaaaAIso(b.fechaActividad || b.fecha || '') || '1970-01-01';
+        if (isoA !== isoB) return isoA.localeCompare(isoB);
+        return String(a.id || '').localeCompare(String(b.id || ''));
       });
 
       const tieneRegistros = registros.length > 0;
