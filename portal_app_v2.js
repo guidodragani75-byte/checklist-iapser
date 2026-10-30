@@ -575,10 +575,20 @@ function cargarLegajoLocal() {
     const raw = localStorage.getItem(STORAGE_KEYS.LEGAJO_DB);
     if (raw) {
       AppState.actividadesRegistradas = JSON.parse(raw);
-      // Auto-sanear y normalizar fechas invertidas (YYYY-DD-MM) en memoria local
-      Object.values(AppState.actividadesRegistradas).forEach(list => {
-        if (Array.isArray(list)) {
-          list.forEach(a => {
+      // Auto-sanear: eliminar registros ficticios previos sin archivo real en Drive (p. ej. ACT_PRE_ sin URL)
+      // y normalizar fechas invertidas (YYYY-DD-MM) en memoria local
+      Object.keys(AppState.actividadesRegistradas).forEach(k => {
+        if (Array.isArray(AppState.actividadesRegistradas[k])) {
+          AppState.actividadesRegistradas[k] = AppState.actividadesRegistradas[k].filter(a => {
+            if (!a) return false;
+            // Purgar registros mock autogenerados sin archivo en Drive
+            if (a.id && String(a.id).startsWith('ACT_PRE_') && (!a.fileUrl || !String(a.fileUrl).trim().startsWith('http'))) {
+              return false;
+            }
+            return true;
+          });
+
+          AppState.actividadesRegistradas[k].forEach(a => {
             if (a) {
               const fullDesc = `${a.tipoActividad || ''} ${a.fileName || ''} ${a.detalle || ''} ${a.observaciones || ''}`.toLowerCase();
               if (fullDesc.includes('iluminaci') || fullDesc.includes('ilum') || fullDesc.includes('lux') || fullDesc.includes('84/12')) {
@@ -599,63 +609,16 @@ function cargarLegajoLocal() {
           });
         }
       });
+      // Guardar saneamiento en localStorage
+      try {
+        localStorage.setItem(STORAGE_KEYS.LEGAJO_DB, JSON.stringify(AppState.actividadesRegistradas));
+      } catch(eSave) {}
     } else {
       AppState.actividadesRegistradas = {};
     }
   } catch (e) {
     console.error('Error cargando legajo local:', e);
     AppState.actividadesRegistradas = {};
-  }
-
-  // Pre-cargar actividades técnicas desde PRELOADED_SURVEYS si no existen aún en el legajo
-  if (typeof PRELOADED_SURVEYS !== 'undefined') {
-    Object.keys(PRELOADED_SURVEYS).forEach(estKey => {
-      const surv = PRELOADED_SURVEYS[estKey];
-      if (!surv) return;
-
-      if (!AppState.actividadesRegistradas[estKey]) {
-        AppState.actividadesRegistradas[estKey] = [];
-      }
-
-      const fechaIso = surv.fecha ? (convertirDdmmaaaAIso(surv.fecha) || '2026-05-15') : '2026-05-15';
-      const prevNom = (surv.data && surv.data.profesionales && surv.data.profesionales.hysNombre) || (surv.relevadoPor || 'Lic. Milva Trossero Luzzi');
-      const orgAbbr = obtenerAbreviaturaOrganismo(surv.organismo || 'POL');
-      const nroE = (surv.nroEstab || '0').toString().padStart(3, '0');
-
-      // 1. Informe Técnico precargado
-      const yaTieneInforme = AppState.actividadesRegistradas[estKey].some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico');
-      if (!yaTieneInforme) {
-        AppState.actividadesRegistradas[estKey].push({
-          id: 'ACT_PRE_' + estKey + '_INF',
-          tipoActividad: 'informe_tecnico',
-          fechaActividad: fechaIso,
-          estadoActividad: 'Completado',
-          detalle: 'Relevamiento Inicial HyS (Informe Técnico)',
-          preventor: prevNom,
-          observaciones: 'Relevamiento técnico inicial de condiciones edilicias, riesgos y mejoras.',
-          fileName: `${orgAbbr}_${nroE}_INFORME_20260515_Informe.pdf`,
-          fileUrl: '',
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // 2. RGRL precargado
-      const yaTieneRgrl = AppState.actividadesRegistradas[estKey].some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl');
-      if (!yaTieneRgrl) {
-        AppState.actividadesRegistradas[estKey].push({
-          id: 'ACT_PRE_' + estKey + '_RGRL',
-          tipoActividad: 'confeccion_rgrl',
-          fechaActividad: fechaIso,
-          estadoActividad: 'Completado',
-          detalle: 'RGRL Inicial Dec. 351/79',
-          preventor: prevNom,
-          observaciones: 'Relevamiento General de Riesgos Laborales inicial.',
-          fileName: `${orgAbbr}_${nroE}_RGRL_20260515_Informe.pdf`,
-          fileUrl: '',
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
   }
 
   try {
@@ -1509,53 +1472,100 @@ function renderGrillaActividades(est, actsEst, container) {
       return String(a.id || '').localeCompare(String(b.id || ''));
     });
 
+    const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+    const esFiltroMes = (AppState.filtroMes && AppState.filtroMes !== 'todos');
+    const mesFiltroNum = esFiltroMes ? parseInt(AppState.filtroMes, 10) : null;
+    const mesFiltroLabel = (esFiltroMes && mesFiltroNum >= 1 && mesFiltroNum <= 12) ? MESES_NOMBRES[mesFiltroNum - 1] : '';
+
+    const registrosEnMes = esFiltroMes ? registros.filter(a => {
+      if (!a || !a.fechaActividad) return false;
+      if (anioFiltro !== 'todos') {
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        if (aAnio && aAnio !== anioFiltro) return false;
+      }
+      const mInfo = parsearAnioMesCliente(a.fechaActividad);
+      return mInfo && mInfo.mes === mesFiltroNum;
+    }) : registros;
+
     const tieneRegistros = registros.length > 0;
-    const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
-    const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
-    const fileUrlFinal = ultimoRegistro ? (ultimoRegistro.fileUrl || ultimoRegistro.monthFolderUrl || '') : '';
+    const tieneEnMes = registrosEnMes.length > 0;
+    const ultimoRegistro = esFiltroMes 
+      ? (tieneEnMes ? registrosEnMes[registrosEnMes.length - 1] : (tieneRegistros ? registros[registros.length - 1] : null))
+      : (tieneRegistros ? registros[registros.length - 1] : null);
+
+    const tieneArchivoReal = Boolean(ultimoRegistro && ultimoRegistro.fileUrl && String(ultimoRegistro.fileUrl).trim().startsWith('http'));
+    const fileUrlFinal = (tieneArchivoReal && (!esFiltroMes || tieneEnMes)) ? String(ultimoRegistro.fileUrl).trim() : '';
 
     let estadoTexto = 'Pendiente';
     let estadoBadgeHtml = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200"><i class="fa-regular fa-clock"></i> Pendiente</span>';
 
-    if (tieneRegistros) {
-      if (cat.id === 'muestra_agua') {
-        const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
-        if (tieneAnalisis) {
-          estadoTexto = 'Muestra + Lab. Completo';
-          estadoBadgeHtml = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> Completo</span>';
+    if (esFiltroMes) {
+      if (tieneEnMes) {
+        if (cat.id === 'muestra_agua') {
+          const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+          estadoTexto = tieneAnalisis ? 'Completo en mes' : 'En Análisis';
+          estadoBadgeHtml = tieneAnalisis 
+            ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> Completo (mes)</span>'
+            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300"><i class="fa-solid fa-hourglass-half"></i> En Análisis</span>';
+        } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
+          estadoTexto = ultimoRegistro.estadoActividad;
+          estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(estadoTexto)}</span>`;
         } else {
-          estadoTexto = 'Muestra tomada (Espera Lab.)';
-          estadoBadgeHtml = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300"><i class="fa-solid fa-hourglass-half"></i> En Análisis</span>';
+          estadoTexto = ultimoRegistro.estadoActividad || 'Completado en mes';
+          estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> ${escapeHtml(estadoTexto)}</span>`;
         }
-      } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
-        estadoTexto = ultimoRegistro.estadoActividad;
-        estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(estadoTexto)}</span>`;
       } else {
-        estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
-        estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> ${escapeHtml(estadoTexto)}</span>`;
+        estadoTexto = `Sin reg. en ${mesFiltroLabel || 'mes'}`;
+        estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200"><i class="fa-regular fa-circle-xmark"></i> Sin reg. en mes</span>`;
+      }
+    } else {
+      if (tieneRegistros) {
+        if (cat.id === 'muestra_agua') {
+          const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+          if (tieneAnalisis) {
+            estadoTexto = 'Muestra + Lab. Completo';
+            estadoBadgeHtml = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> Completo</span>';
+          } else {
+            estadoTexto = 'Muestra tomada (Espera Lab.)';
+            estadoBadgeHtml = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300"><i class="fa-solid fa-hourglass-half"></i> En Análisis</span>';
+          }
+        } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
+          estadoTexto = ultimoRegistro.estadoActividad;
+          estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(estadoTexto)}</span>`;
+        } else {
+          estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
+          estadoBadgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-circle-check"></i> ${escapeHtml(estadoTexto)}</span>`;
+        }
       }
     }
 
-    const fechaFmt = (ultimoRegistro && ultimoRegistro.fechaActividad) ? formatearFechaDdmmaaa(ultimoRegistro.fechaActividad) : '<span class="text-slate-400 italic">Sin fecha</span>';
+    let fechaFmt = '<span class="text-slate-400 italic">Sin fecha</span>';
+    if (esFiltroMes) {
+      if (tieneEnMes && ultimoRegistro && ultimoRegistro.fechaActividad) {
+        fechaFmt = `<span class="text-emerald-900 font-bold">${formatearFechaDdmmaaa(ultimoRegistro.fechaActividad)}</span>`;
+      } else if (tieneRegistros && ultimoRegistro && ultimoRegistro.fechaActividad) {
+        fechaFmt = `<span class="text-slate-400 text-[10.5px]" title="Histórico archivado fuera del mes consultado"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Histórico: ${formatearFechaDdmmaaa(ultimoRegistro.fechaActividad)}</span>`;
+      }
+    } else if (ultimoRegistro && ultimoRegistro.fechaActividad) {
+      fechaFmt = formatearFechaDdmmaaa(ultimoRegistro.fechaActividad);
+    }
 
     let archivoHtml = '<span class="text-xs text-slate-400 flex items-center gap-1"><i class="fa-regular fa-file"></i> Sin archivo</span>';
-    if (tieneArchivo) {
+    if (tieneArchivoReal && (!esFiltroMes || tieneEnMes)) {
       const nomArchivo = ultimoRegistro.fileName || 'documento.pdf';
-      if (fileUrlFinal) {
-        archivoHtml = `
-          <a href="${fileUrlFinal}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition max-w-[220px] truncate" title="Abrir en Google Drive: ${escapeHtml(nomArchivo)}">
-            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            <span class="truncate">${escapeHtml(nomArchivo)}</span>
-          </a>
-        `;
-      } else {
-        archivoHtml = `
-          <span class="inline-flex items-center gap-1 text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 max-w-[200px] truncate" title="${escapeHtml(nomArchivo)}">
-            <i class="fa-regular fa-file-pdf text-red-500"></i>
-            <span class="truncate">${escapeHtml(nomArchivo)}</span>
-          </span>
-        `;
-      }
+      archivoHtml = `
+        <a href="${fileUrlFinal}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition max-w-[220px] truncate" title="Abrir y ver archivo PDF en Google Drive: ${escapeHtml(nomArchivo)}">
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          <span class="truncate">${escapeHtml(nomArchivo)}</span>
+        </a>
+      `;
+    } else if (ultimoRegistro && ultimoRegistro.fileName) {
+      archivoHtml = `
+        <span class="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 max-w-[200px] truncate" title="Registro archivado sin enlace directo al PDF">
+          <i class="fa-regular fa-file-pdf text-slate-400"></i>
+          <span class="truncate">${escapeHtml(ultimoRegistro.fileName)}</span>
+        </span>
+      `;
     }
 
     tbodyRowsHtml += `
@@ -1622,6 +1632,14 @@ function renderGrillaActividades(est, actsEst, container) {
 }
 
 function crearTarjetaActividad(cat, est, actsEst) {
+  const filtroMesActual = AppState.filtroMes || 'todos';
+  const esFiltroMes = filtroMesActual !== 'todos';
+  let descMesFiltro = '';
+  if (esFiltroMes) {
+    const fObj = AppState.mesesDisponibles ? AppState.mesesDisponibles.find(m => m.key === filtroMesActual) : null;
+    descMesFiltro = fObj ? fObj.label : `Mes ${filtroMesActual}`;
+  }
+
   const registros = actsEst.filter(a => {
     const actNorm = normalizarTipoActividad(a.tipoActividad);
     return actNorm === cat.id || a.tipoActividad === cat.id;
@@ -1635,30 +1653,64 @@ function crearTarjetaActividad(cat, est, actsEst) {
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 
+  const registrosEnMes = esFiltroMes ? registros.filter(a => {
+    const fInfo = extraerInfoFecha(a.fechaActividad || a.fecha);
+    if (!fInfo) return false;
+    if (filtroMesActual.includes('-')) {
+      return fInfo.periodoKey === filtroMesActual;
+    }
+    return fInfo.codMes === filtroMesActual && fInfo.año === 2026;
+  }) : registros;
+
+  const tieneEnMes = registrosEnMes.length > 0;
   const tieneRegistros = registros.length > 0;
-  const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
-  const tieneArchivo = Boolean(ultimoRegistro && (ultimoRegistro.fileUrl || ultimoRegistro.fileName));
-  const fileUrlFinal = ultimoRegistro ? (ultimoRegistro.fileUrl || ultimoRegistro.monthFolderUrl || '') : '';
+  // El registro a destacar: si se filtra mes y hay registros en el mes, usar el último de ese mes; si no, el último histórico
+  const ultimoRegistro = (esFiltroMes && tieneEnMes) ? registrosEnMes[registrosEnMes.length - 1] : (tieneRegistros ? registros[registros.length - 1] : null);
+  const fileUrlValida = Boolean(ultimoRegistro && ultimoRegistro.fileUrl && String(ultimoRegistro.fileUrl).trim().startsWith('http'));
+  const fileUrlFinal = fileUrlValida ? String(ultimoRegistro.fileUrl).trim() : '';
+  const tieneArchivo = Boolean(fileUrlFinal || (ultimoRegistro && ultimoRegistro.fileName));
 
   let estadoTexto = 'Pendiente';
   let estadoClase = 'badge-pendiente';
 
-  if (tieneRegistros) {
-    if (cat.id === 'muestra_agua') {
-      const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
-      if (tieneAnalisis) {
-        estadoTexto = 'Muestra + Lab. Completo';
-        estadoClase = 'badge-completo';
+  if (esFiltroMes) {
+    if (tieneEnMes) {
+      if (cat.id === 'muestra_agua') {
+        const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+        estadoTexto = tieneAnalisis ? 'Muestra + Lab. Completo' : 'Muestra tomada (Espera Lab.)';
+        estadoClase = tieneAnalisis ? 'badge-completo' : 'badge-proceso';
+      } else if (ultimoRegistro && (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido')) {
+        estadoTexto = ultimoRegistro.estadoActividad;
+        estadoClase = 'badge-alerta';
       } else {
-        estadoTexto = 'Muestra tomada (Espera Lab.)';
-        estadoClase = 'badge-proceso';
+        estadoTexto = (ultimoRegistro && ultimoRegistro.estadoActividad) || 'Completado';
+        estadoClase = 'badge-completo';
       }
-    } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
-      estadoTexto = ultimoRegistro.estadoActividad;
-      estadoClase = 'badge-alerta';
+    } else if (tieneRegistros) {
+      estadoTexto = `Sin reg. en ${descMesFiltro || 'mes'}`;
+      estadoClase = 'badge-pendiente';
     } else {
-      estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
-      estadoClase = 'badge-completo';
+      estadoTexto = 'Sin actividad';
+      estadoClase = 'badge-pendiente';
+    }
+  } else {
+    if (tieneRegistros) {
+      if (cat.id === 'muestra_agua') {
+        const tieneAnalisis = actsEst.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+        if (tieneAnalisis) {
+          estadoTexto = 'Muestra + Lab. Completo';
+          estadoClase = 'badge-completo';
+        } else {
+          estadoTexto = 'Muestra tomada (Espera Lab.)';
+          estadoClase = 'badge-proceso';
+        }
+      } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
+        estadoTexto = ultimoRegistro.estadoActividad;
+        estadoClase = 'badge-alerta';
+      } else {
+        estadoTexto = ultimoRegistro.estadoActividad || 'Completado';
+        estadoClase = 'badge-completo';
+      }
     }
   }
 
@@ -1689,8 +1741,8 @@ function crearTarjetaActividad(cat, est, actsEst) {
       ${tieneRegistros ? `
         <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 text-xs text-slate-700 space-y-1 mb-3">
           <div class="flex justify-between items-center text-[11px]">
-            <span class="text-slate-500"><i class="fa-regular fa-calendar mr-1"></i>Última fecha:</span>
-            <strong class="text-slate-900">${formatearFechaDdmmaaa(ultimoRegistro.fechaActividad)}</strong>
+            <span class="text-slate-500"><i class="fa-regular fa-calendar mr-1"></i>${esFiltroMes && !tieneEnMes ? 'Fecha histórica:' : 'Última fecha:'}</span>
+            <strong class="${esFiltroMes && !tieneEnMes ? 'text-slate-500 font-normal italic' : 'text-slate-900'}">${formatearFechaDdmmaaa(ultimoRegistro.fechaActividad)}${esFiltroMes && !tieneEnMes ? ' (Fuera de mes)' : ''}</strong>
           </div>
           ${ultimoRegistro.detalle ? `
             <div class="text-[11px] text-slate-600 truncate" title="${escapeHtml(ultimoRegistro.detalle)}">
@@ -1713,18 +1765,26 @@ function crearTarjetaActividad(cat, est, actsEst) {
                   ${fileUrlFinal ? `
                     <a href="${fileUrlFinal}" target="_blank" onclick="event.stopPropagation()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 transition shadow-2xs" title="Abrir y ver documento en Google Drive">
                       <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                      <span>Abrir</span>
+                      <span>Ver Archivo</span>
                     </a>
                   ` : `
+                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-semibold text-[9.5px] border border-slate-200" title="Registro archivado sin enlace directo al PDF">
+                      <i class="fa-solid fa-file-circle-xmark text-slate-400"></i> Sin archivo
+                    </span>
                     <button onclick="event.stopPropagation(); abrirModalSubirArchivoParaRegistro('${ultimoRegistro.id}', '${est.id}', '${cat.id}')" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] flex items-center gap-1 shrink-0 transition shadow-2xs" title="Subir archivo a Google Drive">
                       <i class="fa-solid fa-cloud-arrow-up text-[9px]"></i>
-                      <span>Subir a Drive</span>
-                    </button>
-                    <button onclick="event.stopPropagation(); abrirModalDocumentosActividad('${cat.id}')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 shrink-0 transition" title="Ver detalles del documento">
-                      <i class="fa-solid fa-circle-info text-[9px]"></i>
-                      <span>Ver</span>
+                      <span>Subir</span>
                     </button>
                   `}
+                  ${ultimoRegistro && ultimoRegistro.monthFolderUrl && String(ultimoRegistro.monthFolderUrl).trim().startsWith('http') ? `
+                    <a href="${String(ultimoRegistro.monthFolderUrl).trim()}" target="_blank" onclick="event.stopPropagation()" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 shrink-0 transition border border-slate-200" title="Abrir carpeta mensual de Drive">
+                      <i class="fa-solid fa-folder-open text-[9px] text-amber-500"></i>
+                    </a>
+                  ` : ''}
+                  <button onclick="event.stopPropagation(); abrirModalDocumentosActividad('${cat.id}')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 shrink-0 transition" title="Ver detalles del documento">
+                    <i class="fa-solid fa-circle-info text-[9px]"></i>
+                    <span>Ver</span>
+                  </button>
                   <button onclick="event.stopPropagation(); eliminarDocumentoActividad('${ultimoRegistro.id}', '${est.id}')" class="p-1 px-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 text-[10px] transition shrink-0" title="Eliminar documento y limpiar registro">
                     <i class="fa-solid fa-trash-can"></i>
                   </button>
@@ -1828,6 +1888,11 @@ function abrirModalDocumentosActividad(catId) {
   if (!container) return;
   container.innerHTML = '';
 
+  const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+  const esFiltroMes = (AppState.filtroMes && AppState.filtroMes !== 'todos');
+  const mesFiltroNum = esFiltroMes ? parseInt(AppState.filtroMes, 10) : null;
+  const mesFiltroLabel = (esFiltroMes && mesFiltroNum >= 1 && mesFiltroNum <= 12) ? MESES_NOMBRES[mesFiltroNum - 1] : '';
+
   if (acts.length === 0) {
     container.innerHTML = `
       <div class="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
@@ -1835,6 +1900,29 @@ function abrirModalDocumentosActividad(catId) {
       </div>
     `;
   } else {
+    // Si hay un mes activo consultado, mostrar aviso si los documentos pertenecen a otras fechas
+    if (esFiltroMes) {
+      const tieneEnMesConsultado = acts.some(a => {
+        if (!a || !a.fechaActividad) return false;
+        const aAnio = extraerAnioDeFecha(a.fechaActividad);
+        const aInfo = parsearAnioMesCliente(a.fechaActividad);
+        return (anioFiltro === 'todos' || aAnio === anioFiltro) && (aInfo && aInfo.mes === mesFiltroNum);
+      });
+      if (!tieneEnMesConsultado) {
+        const infoBanner = document.createElement('div');
+        infoBanner.style.cssText = 'padding:10px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid #F59E0B;border-radius:2px;font-size:11.5px;color:#334155;margin-bottom:10px;line-height:1.4;';
+        infoBanner.innerHTML = `
+          <div style="font-weight:700;color:#B45309;display:flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-circle-info"></i> Sin actuaciones en el mes consultado (${mesFiltroLabel} ${anioFiltro})
+          </div>
+          <div style="margin-top:2px;font-size:11px;">
+            Los registros a continuación corresponden a relevamientos históricos previos archivados en el legajo de la sede.
+          </div>
+        `;
+        container.appendChild(infoBanner);
+      }
+    }
+
     // Mostrar estrictamente del más reciente al más antiguo
     const sortedActsDesc = [...acts].sort((a, b) => {
       const isoA = convertirDdmmaaaAIso(a.fechaActividad || a.fecha || '') || '1970-01-01';
@@ -1846,17 +1934,30 @@ function abrirModalDocumentosActividad(catId) {
       const fAct = act.fechaActividad || 'S/F';
       const mInfo = parsearAnioMesCliente(fAct);
       const mFUrl = act.monthFolderUrl || (AppState.carpetasMensuales[mInfo.key] ? AppState.carpetasMensuales[mInfo.key].url : '');
-      const fileUrl = act.fileUrl || mFUrl || '';
+      const fileUrl = (act.fileUrl && String(act.fileUrl).trim().startsWith('http')) ? String(act.fileUrl).trim() : '';
+
+      let badgePeriodoHtml = '';
+      if (esFiltroMes && act.fechaActividad) {
+        const aAnio = extraerAnioDeFecha(act.fechaActividad);
+        const aInfo = parsearAnioMesCliente(act.fechaActividad);
+        const coincideMes = (anioFiltro === 'todos' || aAnio === anioFiltro) && (aInfo && aInfo.mes === mesFiltroNum);
+        if (coincideMes) {
+          badgePeriodoHtml = `<span style="font-size:9.5px;font-weight:700;background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;padding:1px 6px;border-radius:2px;"><i class="fa-solid fa-check"></i> Mes Consultado</span>`;
+        } else {
+          badgePeriodoHtml = `<span style="font-size:9.5px;font-weight:600;background:#F8FAFC;color:#64748B;border:1px solid #E2E8F0;padding:1px 6px;border-radius:2px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</span>`;
+        }
+      }
 
       const card = document.createElement('div');
       card.className = 'bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3';
-      card.style.cssText = 'background:#fff;border:1px solid var(--border-table, #D5D8D3);padding:12px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+      card.style.cssText = 'background:#fff;border:1px solid var(--border-table, #D5D8D3);padding:12px 14px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;';
       card.innerHTML = `
         <div class="space-y-1 flex-1 min-w-0" style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;">
-          <div class="flex items-center gap-2" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          <div class="flex items-center gap-2" style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
             <span style="font-size:10px;font-weight:700;background:var(--primary-light, #E3EDEF);color:var(--primary, #0F4C5C);padding:2px 6px;border-radius:2px;">
               ${escapeHtml(act.estadoActividad || 'Completado')}
             </span>
+            ${badgePeriodoHtml}
             <span style="font-weight:600;font-family:var(--font-mono, monospace);">
               <i class="fa-regular fa-calendar" style="color:var(--text-muted);margin-right:4px;"></i>${formatearFechaDdmmaaa(fAct)}
             </span>
@@ -1883,19 +1984,19 @@ function abrirModalDocumentosActividad(catId) {
 
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           ${fileUrl ? `
-            <a href="${fileUrl}" target="_blank" style="background:var(--primary, #0F4C5C);color:#fff;font-weight:600;font-size:11px;padding:5px 10px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir en Google Drive">
+            <a href="${fileUrl}" target="_blank" style="background:var(--primary, #0F4C5C);color:#fff;font-weight:600;font-size:11px;padding:5px 10px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir y ver archivo PDF en Google Drive">
               <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px;"></i>
-              <span>Ver en Drive</span>
+              <span>Ver Archivo</span>
             </a>
           ` : `
-            <span style="background:var(--alert-bg, #FBEFE6);color:var(--alert, #A8470A);border:1px solid #EED4C2;font-size:11px;padding:3px 8px;border-radius:2px;font-weight:500;">
-              <i class="fa-solid fa-clock" style="margin-right:3px;"></i>Guardado Local
+            <span style="background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1;font-size:11px;padding:4px 8px;border-radius:2px;font-weight:500;" title="No se cargó un enlace directo a archivo PDF para este registro">
+              <i class="fa-solid fa-file-circle-xmark" style="margin-right:3px;"></i>Sin archivo digital
             </span>
           `}
           ${mFUrl ? `
             <a href="${mFUrl}" target="_blank" style="background:#fff;border:1px solid var(--border-control, #B9BEB8);color:var(--text-main);font-size:11px;padding:5px 8px;border-radius:2px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir carpeta mensual de Drive">
               <i class="fa-solid fa-folder-open" style="color:var(--primary, #0F4C5C);"></i>
-              <span>Mes</span>
+              <span>Carpeta Mes</span>
             </a>
           ` : ''}
           <button type="button" onclick="eliminarDocumentoActividad('${act.id}', '${est.id}')" style="background:#fff;border:1px solid #F87171;color:#DC2626;font-size:11px;padding:5px 8px;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Eliminar este documento y registro">
@@ -7727,6 +7828,10 @@ function actualizarFichaLateralMaqueta(est) {
   if (contTareas) {
     contTareas.innerHTML = '';
     const acts = obtenerActividadesDeSede(est);
+    const anioFiltro = (document.getElementById('filtro-anio-global')?.value || AppState.matrizAnio || '2026').trim();
+    const esFiltroMes = (AppState.filtroMes && AppState.filtroMes !== 'todos');
+    const mesFiltroNum = esFiltroMes ? parseInt(AppState.filtroMes, 10) : null;
+    const mesFiltroLabel = (esFiltroMes && mesFiltroNum >= 1 && mesFiltroNum <= 12) ? MESES_NOMBRES[mesFiltroNum - 1] : '';
 
     const categorias = [
       ...Object.values(CATALOGO_ACTIVIDADES),
@@ -7758,45 +7863,101 @@ function actualizarFichaLateralMaqueta(est) {
       });
 
       const tieneRegistros = registros.length > 0;
-      const ultimoRegistro = tieneRegistros ? registros[registros.length - 1] : null;
-      const docUrl = ultimoRegistro ? (ultimoRegistro.fileUrl || ultimoRegistro.monthFolderUrl || '') : '';
+      const ultimoHistorico = tieneRegistros ? registros[registros.length - 1] : null;
+
+      // Evaluar registros específicos del mes filtrado si hay un filtro de mes activo
+      const registrosEnMes = esFiltroMes ? registros.filter(a => {
+        if (!a || !a.fechaActividad) return false;
+        if (anioFiltro !== 'todos') {
+          const aAnio = extraerAnioDeFecha(a.fechaActividad);
+          if (aAnio && aAnio !== anioFiltro) return false;
+        }
+        const mInfo = parsearAnioMesCliente(a.fechaActividad);
+        return mInfo && mInfo.mes === mesFiltroNum;
+      }) : registros;
+
+      const tieneEnMes = registrosEnMes.length > 0;
+      const ultimoEnMes = tieneEnMes ? registrosEnMes[registrosEnMes.length - 1] : null;
+
+      // Registro representativo a mostrar
+      const registroMostrar = esFiltroMes ? (tieneEnMes ? ultimoEnMes : ultimoHistorico) : ultimoHistorico;
+
+      // URL de archivo DIRECTO y REAL (NUNCA carpeta mensual)
+      const tieneArchivoReal = Boolean(registroMostrar && registroMostrar.fileUrl && String(registroMostrar.fileUrl).trim().startsWith('http'));
+      const docUrl = tieneArchivoReal ? String(registroMostrar.fileUrl).trim() : '';
 
       let estadoTexto = 'Pendiente';
       let estadoBadgeStyle = 'background:#F0F1EE;color:#5B6670;border:1px solid #D5D8D3;';
       let estadoIcon = '<i class="fa-regular fa-clock"></i>';
       let cardBorderLeft = '3px solid #B9BEB8';
 
-      if (tieneRegistros) {
-        completadasCount++;
-        cardBorderLeft = '3px solid #0F4C5C';
-        if (cat.id === 'muestra_agua') {
-          const tieneAnalisis = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
-          if (tieneAnalisis) {
-            estadoTexto = 'Completo';
+      if (esFiltroMes) {
+        if (tieneEnMes) {
+          completadasCount++;
+          cardBorderLeft = '3px solid #0F4C5C';
+          if (cat.id === 'muestra_agua') {
+            const tieneAnalisis = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+            if (tieneAnalisis) {
+              estadoTexto = 'Completo (en mes)';
+              estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+              estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+              estadoTexto = 'En Análisis';
+              estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+              estadoIcon = '<i class="fa-solid fa-hourglass-half"></i>';
+              cardBorderLeft = '3px solid #A8470A';
+            }
+          } else if (ultimoEnMes.estadoActividad === 'No Apto' || ultimoEnMes.estadoActividad === 'Vencido') {
+            estadoTexto = ultimoEnMes.estadoActividad;
+            estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+            estadoIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            cardBorderLeft = '3px solid #A8470A';
+          } else {
+            estadoTexto = ultimoEnMes.estadoActividad || 'Realizado en mes';
             estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
             estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
-          } else {
-            estadoTexto = 'En Análisis';
-            estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
-            estadoIcon = '<i class="fa-solid fa-hourglass-half"></i>';
-            cardBorderLeft = '3px solid #A8470A';
           }
-        } else if (ultimoRegistro.estadoActividad === 'No Apto' || ultimoRegistro.estadoActividad === 'Vencido') {
-          estadoTexto = ultimoRegistro.estadoActividad;
-          estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
-          estadoIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
-          cardBorderLeft = '3px solid #A8470A';
         } else {
-          estadoTexto = ultimoRegistro.estadoActividad || 'Realizado';
+          // No se realizó en el mes filtrado
+          estadoTexto = `Sin reg. en ${mesFiltroLabel || 'mes'}`;
+          estadoBadgeStyle = 'background:#F8FAFC;color:#64748B;border:1px solid #CBD5E1;';
+          estadoIcon = '<i class="fa-regular fa-circle-xmark"></i>';
+          cardBorderLeft = '3px solid #CBD5E1';
+        }
+      } else {
+        // Todo el año / sin filtro de mes
+        if (tieneRegistros) {
+          completadasCount++;
+          cardBorderLeft = '3px solid #0F4C5C';
+          if (cat.id === 'muestra_agua') {
+            const tieneAnalisis = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'analisis_agua');
+            if (tieneAnalisis) {
+              estadoTexto = 'Completo';
+              estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+              estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+              estadoTexto = 'En Análisis';
+              estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+              estadoIcon = '<i class="fa-solid fa-hourglass-half"></i>';
+              cardBorderLeft = '3px solid #A8470A';
+            }
+          } else if (ultimoHistorico.estadoActividad === 'No Apto' || ultimoHistorico.estadoActividad === 'Vencido') {
+            estadoTexto = ultimoHistorico.estadoActividad;
+            estadoBadgeStyle = 'background:#FBEFE6;color:#A8470A;border:1px solid #EED4C2;';
+            estadoIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            cardBorderLeft = '3px solid #A8470A';
+          } else {
+            estadoTexto = ultimoHistorico.estadoActividad || 'Realizado';
+            estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
+            estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+          }
+        } else if (cat.id === 'confeccion_rgrl' && est.data) {
+          completadasCount++;
+          estadoTexto = 'Cargado';
           estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
           estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
+          cardBorderLeft = '3px solid #0F4C5C';
         }
-      } else if (cat.id === 'confeccion_rgrl' && est.data) {
-        completadasCount++;
-        estadoTexto = 'Cargado';
-        estadoBadgeStyle = 'background:#E3EDEF;color:#0F4C5C;border:1px solid #C9D6DA;';
-        estadoIcon = '<i class="fa-solid fa-circle-check"></i>';
-        cardBorderLeft = '3px solid #0F4C5C';
       }
 
       const card = document.createElement('div');
@@ -7817,28 +7978,45 @@ function actualizarFichaLateralMaqueta(est) {
       card.appendChild(headerDiv);
 
       // Metadatos: Fecha, preventor y archivo
-      if (tieneRegistros && ultimoRegistro) {
+      if (registroMostrar) {
         const metaDiv = document.createElement('div');
         metaDiv.style.cssText = 'font-size:11px;color:var(--text-muted);display:flex;flex-direction:column;gap:2px;';
 
-        const fechaFmt = ultimoRegistro.fechaActividad ? formatearFechaDdmmaaa(ultimoRegistro.fechaActividad) : 'S/F';
-        const prevTxt = ultimoRegistro.preventor ? ` · <span title="${escapeHtml(ultimoRegistro.preventor)}">${escapeHtml(ultimoRegistro.preventor)}</span>` : '';
+        const fechaFmt = registroMostrar.fechaActividad ? formatearFechaDdmmaaa(registroMostrar.fechaActividad) : 'S/F';
+        const prevTxt = registroMostrar.preventor ? ` · <span title="${escapeHtml(registroMostrar.preventor)}">${escapeHtml(registroMostrar.preventor)}</span>` : '';
+
+        let fechaPrefijo = '';
+        if (esFiltroMes) {
+          if (tieneEnMes) {
+            fechaPrefijo = '<span style="color:#0F4C5C;font-weight:700;"><i class="fa-solid fa-calendar-check" style="margin-right:3px;"></i>En mes:</span> ';
+          } else {
+            fechaPrefijo = '<span style="color:#64748B;"><i class="fa-solid fa-clock-rotate-left" style="margin-right:3px;"></i>Histórico archivado:</span> ';
+          }
+        } else {
+          fechaPrefijo = '<i class="fa-regular fa-calendar" style="margin-right:3px;"></i>';
+        }
 
         let fileLine = '';
-        if (ultimoRegistro.fileName) {
-          const fileClickAction = docUrl ? `href="${docUrl}" target="_blank"` : `href="#" onclick="abrirModalDocumentosActividad('${cat.id}'); return false;"`;
+        if (registroMostrar.fileName) {
+          const fileClickAction = tieneArchivoReal 
+            ? `href="${docUrl}" target="_blank"` 
+            : `href="javascript:void(0)" onclick="abrirModalDocumentosActividad('${cat.id}'); return false;"`;
+          const fileIconColor = tieneArchivoReal ? 'var(--alert)' : '#94A3B8';
+          const fileHelpTitle = tieneArchivoReal ? 'Ver documento en Google Drive' : 'Sin enlace directo a archivo PDF';
+
           fileLine = `
             <div style="margin-top:2px;">
-              <a ${fileClickAction} class="m" style="font-size:11px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(ultimoRegistro.fileName)}">
-                <i class="fa-solid fa-file-pdf" style="color:var(--alert);flex-shrink:0;"></i>
-                <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(ultimoRegistro.fileName)}</span>
+              <a ${fileClickAction} class="m" style="font-size:11px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(registroMostrar.fileName)} (${fileHelpTitle})">
+                <i class="fa-solid fa-file-pdf" style="color:${fileIconColor};flex-shrink:0;"></i>
+                <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(registroMostrar.fileName)}</span>
+                ${!tieneArchivoReal ? '<span style="font-size:9.5px;color:#94A3B8;font-style:italic;">(sin archivo)</span>' : ''}
               </a>
             </div>
           `;
         }
 
         metaDiv.innerHTML = `
-          <div><i class="fa-regular fa-calendar" style="margin-right:3px;"></i><strong class="m">${fechaFmt}</strong>${prevTxt}</div>
+          <div>${fechaPrefijo}<strong class="m">${fechaFmt}</strong>${prevTxt}</div>
           ${fileLine}
         `;
         card.appendChild(metaDiv);
@@ -7849,7 +8027,7 @@ function actualizarFichaLateralMaqueta(est) {
       actionsDiv.style.cssText = 'display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap;';
 
       let btnsHtml = '';
-      if (docUrl) {
+      if (tieneArchivoReal && (!esFiltroMes || tieneEnMes)) {
         btnsHtml += `
           <a href="${docUrl}" target="_blank" class="btn-side-doc" style="background:#0F4C5C;color:#fff;padding:3px 8px;border-radius:2px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Abrir documento en Google Drive">
             <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px;"></i> Abrir ↗
@@ -8623,6 +8801,10 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   let totErgoFuegoCiclo = 0;
   let totAguaRgrlCiclo = 0;
 
+  let totMedicionesPeriodo = 0;
+  let totErgoFuegoPeriodo = 0;
+  let totAguaRgrlPeriodo = 0;
+
   const orgAgregado = {};
 
   allEsts.forEach(est => {
@@ -8722,13 +8904,18 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       } else if (periodoKey === 'todos' || periodoKey === '2026_completo') {
         coincidePeriodo = (fInfo.anio === 2026);
       } else if (periodoKey.includes('-')) {
-        coincidePeriodo = (fInfo.key === periodoKey);
+        const parts = periodoKey.split('-');
+        const tAnio = parseInt(parts[0], 10);
+        const tMes = parseInt(parts[1], 10);
+        coincidePeriodo = (fInfo.anio === tAnio && fInfo.mes === tMes);
       } else {
         const mCiclo = CICLO_MESES_ANUAL.find(m => m.cod === periodoKey);
         if (mCiclo) {
-          coincidePeriodo = (fInfo.key === mCiclo.key);
+          coincidePeriodo = (fInfo.anio === mCiclo.anio && fInfo.mes === mCiclo.mes);
         } else {
-          coincidePeriodo = (fInfo.codMes === periodoKey);
+          const tMes = parseInt(periodoKey, 10);
+          const tAnio = parseInt(anioEvaluado, 10) || 2026;
+          coincidePeriodo = (fInfo.anio === tAnio && fInfo.mes === tMes);
         }
       }
 
@@ -8736,6 +8923,14 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
         sedesPeriodo.add(est.id);
         totalAccionesPeriodo++;
         if (isCv) totalCvPeriodo++;
+
+        if (tNorm === 'medicion_pat' || tNorm === 'medicion_ruido' || tNorm === 'medicion_iluminacion') {
+          totMedicionesPeriodo++;
+        } else if (tNorm === 'res_886' || tNorm === 'carga_fuego') {
+          totErgoFuegoPeriodo++;
+        } else if (tNorm === 'muestra_agua' || tNorm === 'analisis_agua' || tNorm === 'confeccion_rgrl' || tNorm === 'confeccion_rar') {
+          totAguaRgrlPeriodo++;
+        }
 
         conteoTareasPeriodo[tNorm] = (conteoTareasPeriodo[tNorm] || 0) + 1;
         if (!sedesPorTareaPeriodo[tNorm]) sedesPorTareaPeriodo[tNorm] = new Set();
@@ -8753,9 +8948,15 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
       const fInfo = extraerMesAnioActividad(a);
       if (periodoKey === 'ciclo') return (fInfo.anio === 2026 && fInfo.mes >= 9) || (fInfo.anio === 2027 && fInfo.mes <= 8);
       if (periodoKey === 'todos' || periodoKey === '2026_completo') return (fInfo.anio === 2026);
-      if (periodoKey.includes('-')) return (fInfo.key === periodoKey);
+      if (periodoKey.includes('-')) {
+        const parts = periodoKey.split('-');
+        return (fInfo.anio === parseInt(parts[0], 10) && fInfo.mes === parseInt(parts[1], 10));
+      }
       const mCiclo = CICLO_MESES_ANUAL.find(m => m.cod === periodoKey);
-      return mCiclo ? (fInfo.key === mCiclo.key) : (fInfo.codMes === periodoKey);
+      if (mCiclo) return (fInfo.anio === mCiclo.anio && fInfo.mes === mCiclo.mes);
+      const tMes = parseInt(periodoKey, 10);
+      const tAnio = parseInt(anioEvaluado, 10) || 2026;
+      return (fInfo.anio === tAnio && fInfo.mes === tMes);
     });
 
     if (sedeEnPeriodo) {
@@ -8850,6 +9051,9 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     totMedicionesCiclo,
     totErgoFuegoCiclo,
     totAguaRgrlCiclo,
+    totMedicionesPeriodo,
+    totErgoFuegoPeriodo,
+    totAguaRgrlPeriodo,
     detallesMes,
     sedesPeriodo,
     conteoTareasPeriodo,
@@ -9813,10 +10017,16 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   const elTotErgo = document.getElementById('lblTotErgoFuego');
   const elTotAgua = document.getElementById('lblTotAguaRgrl');
   const elTotCv = document.getElementById('lblTotCvAcciones');
-  if (elTotMed) elTotMed.textContent = `${data.totMedicionesCiclo} mediciones`;
-  if (elTotErgo) elTotErgo.textContent = `${data.totErgoFuegoCiclo} tareas`;
-  if (elTotAgua) elTotAgua.textContent = `${data.totAguaRgrlCiclo} tareas`;
-  if (elTotCv) elTotCv.textContent = `${data.totalCvCiclo} CV`;
+
+  const medDisplay = esMesEsp ? data.totMedicionesPeriodo : data.totMedicionesCiclo;
+  const ergoDisplay = esMesEsp ? data.totErgoFuegoPeriodo : data.totErgoFuegoCiclo;
+  const aguaDisplay = esMesEsp ? data.totAguaRgrlPeriodo : data.totAguaRgrlCiclo;
+  const cvDisplay = esMesEsp ? data.totalCvPeriodo : data.totalCvCiclo;
+
+  if (elTotMed) elTotMed.textContent = `${medDisplay} mediciones`;
+  if (elTotErgo) elTotErgo.textContent = `${ergoDisplay} tareas`;
+  if (elTotAgua) elTotAgua.textContent = `${aguaDisplay} tareas`;
+  if (elTotCv) elTotCv.textContent = `${cvDisplay} CV`;
 
   // 5. Segmentación por m²
   const elGrandesCon = document.getElementById('card-sup-grandes-con');
