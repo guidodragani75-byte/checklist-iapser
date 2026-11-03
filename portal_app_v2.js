@@ -145,6 +145,15 @@ const CATALOGO_ACTIVIDADES = {
     icono: '🚨',
     color: '#be123c',
     permiteMultiples: true
+  },
+  vigilancia_svcc: {
+    id: 'vigilancia_svcc',
+    codigo: 'SVCC',
+    nombre: 'Vigilancia Cancerígenos (SVCC)',
+    subtitulo: 'Sistema de Vigilancia y Control de Cancerígenos (Res. SRT 81/19)',
+    icono: '☣️',
+    color: '#7c3aed',
+    permiteMultiples: false
   }
 };
 
@@ -749,6 +758,11 @@ function normalizarTipoActividad(str) {
   // 3. RGRL (Relevamiento General de Riesgos Laborales)
   if (s === 'rgrl' || s === 'confeccion_rgrl' || s.includes('_rgrl_') || /\b(?:confeccion_)?rgrl\b/i.test(s) || s.includes('relevamiento general') || s.includes('anexo i')) {
     return 'confeccion_rgrl';
+  }
+
+  // 3b. SVCC (Sistema de Vigilancia y Control de Cancerígenos - Res. SRT 81/19)
+  if (s === 'svcc' || s === 'vigilancia_svcc' || s.includes('_svcc_') || s.startsWith('svcc_') || /\bsvcc\b/i.test(s) || s.includes('cancerig') || s.includes('cancerígen') || s.includes('res. 81/19') || s.includes('res 81/19')) {
+    return 'vigilancia_svcc';
   }
 
   // 4. Informe Fotográfico / Relevamiento Inicial (Evaluar antes de palabras sueltas como 'iluminación' para no capturar fotos de luces o desvíos edilicios)
@@ -8128,6 +8142,10 @@ function actualizarKPIsPlanMaqueta() {
   let chartDonutSedesPrinInstance = null;
   let chartDonutVisitasPrinInstance = null;
 
+  let sedesConRgrl = 0;
+  let sedesConRar = 0;
+  let sedesConSvcc = 0;
+
   allEsts.forEach(est => {
     const acts = obtenerActividadesDeSede(est);
     // Filtrar actividades por año evaluado
@@ -8148,6 +8166,15 @@ function actualizarKPIsPlanMaqueta() {
         totalCvSubidas++;
       }
     });
+
+    // Relevamientos Normativos SRT (RGRL, RAR sin expuestos, SVCC)
+    const hasRgrl = actsAnio.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl') || (est.rgrl && String(est.rgrl).toUpperCase() !== 'NO') || !!est.checklistRealizado;
+    const hasRar = actsAnio.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rar') || (est.rar && String(est.rar).toUpperCase() !== 'NO');
+    const hasSvcc = actsAnio.some(a => normalizarTipoActividad(a.tipoActividad) === 'vigilancia_svcc') || (est.svcc && String(est.svcc).toUpperCase() !== 'NO') || (est.cancerigenos && String(est.cancerigenos).toUpperCase() !== 'NO');
+
+    if (hasRgrl) sedesConRgrl++;
+    if (hasRar) sedesConRar++;
+    if (hasSvcc) sedesConSvcc++;
 
     // Sedes intervenidas en el mes evaluado (mes y año estricto)
     const visitsInMonth = actsAnio.filter(a => {
@@ -8285,6 +8312,43 @@ function actualizarKPIsPlanMaqueta() {
     const elDispP = document.getElementById('lbl-donut-prin-cv-disp');
     if (elDispP) elDispP.textContent = residualVisitas;
   }
+
+  // 5. CARD 5: CUMPLIMIENTO RGRL (SRT)
+  const elMainRgrlNum = document.getElementById('kpi-main-rgrl-num');
+  const elMainRgrlTot = document.getElementById('kpi-main-rgrl-tot');
+  const elMainRgrlPct = document.getElementById('kpi-main-rgrl-pct');
+  const elMainRgrlBar = document.getElementById('kpi-main-rgrl-bar');
+  const elMainRgrlRes = document.getElementById('kpi-main-rgrl-res');
+
+  const pctMainRgrl = ((sedesConRgrl / metaSedesDisplay) * 100).toFixed(1);
+  const resMainRgrl = Math.max(0, metaSedesDisplay - sedesConRgrl);
+  if (elMainRgrlNum) elMainRgrlNum.textContent = sedesConRgrl;
+  if (elMainRgrlTot) elMainRgrlTot.textContent = metaSedesDisplay;
+  if (elMainRgrlPct) elMainRgrlPct.textContent = `${pctMainRgrl}%`;
+  if (elMainRgrlBar) elMainRgrlBar.style.width = `${Math.min(100, pctMainRgrl)}%`;
+  if (elMainRgrlRes) elMainRgrlRes.textContent = `${resMainRgrl} sedes`;
+
+  // 6. CARD 6: RELEVAMIENTO RAR (SIN EXPUESTOS)
+  const elMainRarNum = document.getElementById('kpi-main-rar-num');
+  const elMainRarTot = document.getElementById('kpi-main-rar-tot');
+  const elMainRarPct = document.getElementById('kpi-main-rar-pct');
+  const elMainRarBar = document.getElementById('kpi-main-rar-bar');
+
+  const pctMainRar = ((sedesConRar / metaSedesDisplay) * 100).toFixed(1);
+  if (elMainRarNum) elMainRarNum.textContent = sedesConRar;
+  if (elMainRarTot) elMainRarTot.textContent = metaSedesDisplay;
+  if (elMainRarPct) elMainRarPct.textContent = `${pctMainRar}%`;
+  if (elMainRarBar) elMainRarBar.style.width = `${Math.min(100, pctMainRar)}%`;
+
+  // 7. CARD 7: VIGILANCIA CANCERÍGENOS SVCC
+  const elMainSvccNum = document.getElementById('kpi-main-svcc-num');
+  const elMainSvccPct = document.getElementById('kpi-main-svcc-pct');
+  const elMainSvccBar = document.getElementById('kpi-main-svcc-bar');
+
+  const pctMainSvcc = ((sedesConSvcc / metaSedesDisplay) * 100).toFixed(1);
+  if (elMainSvccNum) elMainSvccNum.textContent = sedesConSvcc;
+  if (elMainSvccPct) elMainSvccPct.textContent = `${pctMainSvcc}%`;
+  if (elMainSvccBar) elMainSvccBar.style.width = `${Math.min(100, pctMainSvcc)}%`;
 
   actualizarChipSedesConGestion();
 }
@@ -8792,6 +8856,13 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   const sedesPorTareaPeriodo = {};
   const sedesPorOrgPeriodo = {};
 
+  const sedesRgrlCiclo = new Set();
+  const sedesRarCiclo = new Set();
+  const sedesSvccCiclo = new Set();
+  const sedesRgrlPeriodo = new Set();
+  const sedesRarPeriodo = new Set();
+  const sedesSvccPeriodo = new Set();
+
   let totalSup1000 = 0;
   let conMedSup1000 = 0;
   let sedesMenoresTotal = 0;
@@ -8826,10 +8897,28 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
 
     const orgNombre = (est.organismo || est.razonSocial || 'Otros Organismos').trim();
     if (!orgAgregado[orgNombre]) {
-      orgAgregado[orgNombre] = { totalSedes: 0, sedesVisitadas: 0, totalVisitas: 0 };
+      orgAgregado[orgNombre] = { totalSedes: 0, sedesVisitadas: 0, totalVisitas: 0, sedesRgrl: 0, sedesRar: 0, sedesSvcc: 0 };
     }
     orgAgregado[orgNombre].totalSedes++;
     if (tieneActividadCiclo) orgAgregado[orgNombre].sedesVisitadas++;
+
+    // Relevamientos Normativos SRT (RGRL, RAR sin expuestos, SVCC)
+    const hasRgrlEst = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl') || (est.rgrl && String(est.rgrl).toUpperCase() !== 'NO') || !!est.checklistRealizado;
+    const hasRarEst = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rar') || (est.rar && String(est.rar).toUpperCase() !== 'NO');
+    const hasSvccEst = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'vigilancia_svcc') || (est.svcc && String(est.svcc).toUpperCase() !== 'NO') || (est.cancerigenos && String(est.cancerigenos).toUpperCase() !== 'NO');
+
+    if (hasRgrlEst) {
+      sedesRgrlCiclo.add(est.id);
+      orgAgregado[orgNombre].sedesRgrl++;
+    }
+    if (hasRarEst) {
+      sedesRarCiclo.add(est.id);
+      orgAgregado[orgNombre].sedesRar++;
+    }
+    if (hasSvccEst) {
+      sedesSvccCiclo.add(est.id);
+      orgAgregado[orgNombre].sedesSvcc++;
+    }
 
     const numSup = Number(est.superficie);
     const esGranSup = numSup >= 1000;
@@ -8936,6 +9025,10 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
         if (!sedesPorTareaPeriodo[tNorm]) sedesPorTareaPeriodo[tNorm] = new Set();
         sedesPorTareaPeriodo[tNorm].add(est.id);
 
+        if (tNorm === 'confeccion_rgrl') sedesRgrlPeriodo.add(est.id);
+        if (tNorm === 'confeccion_rar') sedesRarPeriodo.add(est.id);
+        if (tNorm === 'vigilancia_svcc') sedesSvccPeriodo.add(est.id);
+
         const orgKey = obtenerAbreviaturaOrganismo(orgNombre);
         if (!sedesPorOrgPeriodo[orgKey]) {
           sedesPorOrgPeriodo[orgKey] = { nombre: orgNombre, count: 0 };
@@ -9018,14 +9111,30 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
   // Resumen por organismo consolidado
   const resumenOrganismos = Object.entries(orgAgregado).map(([nombre, datos]) => {
     const coberturaPct = datos.totalSedes > 0 ? Math.round((datos.sedesVisitadas / datos.totalSedes) * 100) : 0;
+    const rgrlPct = datos.totalSedes > 0 ? Math.round(((datos.sedesRgrl || 0) / datos.totalSedes) * 100) : 0;
+    const rarPct = datos.totalSedes > 0 ? Math.round(((datos.sedesRar || 0) / datos.totalSedes) * 100) : 0;
     return {
       organismo: nombre,
       totalSedes: datos.totalSedes,
       sedesVisitadas: datos.sedesVisitadas,
       coberturaPct,
+      rgrlPct,
+      rarPct,
+      sedesRgrl: datos.sedesRgrl || 0,
+      sedesRar: datos.sedesRar || 0,
+      sedesSvcc: datos.sedesSvcc || 0,
       totalVisitas: datos.totalVisitas
     };
   }).sort((a, b) => b.totalSedes - a.totalSedes);
+
+  const sedesRgrlVal = esPeriodoFiltro ? sedesRgrlPeriodo.size : sedesRgrlCiclo.size;
+  const sedesRarVal = esPeriodoFiltro ? sedesRarPeriodo.size : sedesRarCiclo.size;
+  const sedesSvccVal = esPeriodoFiltro ? sedesSvccPeriodo.size : sedesSvccCiclo.size;
+  const metaRefNorm = esPeriodoFiltro ? 30 : PLAN_HYS_CONFIG.META_SEDES_ANUAL;
+
+  const pctRgrlAvance = ((sedesRgrlVal / metaRefNorm) * 100).toFixed(1);
+  const pctRarAvance = ((sedesRarVal / metaRefNorm) * 100).toFixed(1);
+  const pctSvccAvance = ((sedesSvccVal / metaRefNorm) * 100).toFixed(1);
 
   return {
     stockSedesConsumido,
@@ -9035,6 +9144,12 @@ function calcularMetricasPlanAnual(periodoKey = 'ciclo') {
     stockVisitasResidual,
     pctVisitasAvance,
     promedioVisitas,
+    totalSedesRgrl: sedesRgrlVal,
+    pctRgrlAvance,
+    totalSedesRar: sedesRarVal,
+    pctRarAvance,
+    totalSedesSvcc: sedesSvccVal,
+    pctSvccAvance,
     ritmoMes: sedesPeriodo.size,
     totalCvCiclo,
     totalCvPeriodo,
@@ -9862,6 +9977,39 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   if (elVisResBadge) elVisResBadge.textContent = `${visRes} visitas`;
   if (elVisProm) elVisProm.textContent = esMesEsp ? (sedesVal > 0 ? (visVal / sedesVal).toFixed(1) : '0') : data.promedioVisitas;
 
+  // Actualización de KPIs Normativos SRT (RGRL, RAR sin expuestos, SVCC)
+  const elRgrlNum = document.getElementById('kpi-rgrl-num');
+  const elRgrlTot = document.getElementById('kpi-rgrl-tot');
+  const elRgrlPct = document.getElementById('kpi-rgrl-pct');
+  const elRgrlBar = document.getElementById('kpi-rgrl-bar');
+  const elRgrlRes = document.getElementById('kpi-rgrl-residual');
+
+  if (elRgrlNum) elRgrlNum.textContent = data.totalSedesRgrl;
+  if (elRgrlTot) elRgrlTot.textContent = metaSedesRef;
+  if (elRgrlPct) elRgrlPct.textContent = `${data.pctRgrlAvance}%`;
+  if (elRgrlBar) elRgrlBar.style.width = `${Math.min(100, data.pctRgrlAvance)}%`;
+  if (elRgrlRes) elRgrlRes.textContent = `${Math.max(0, metaSedesRef - data.totalSedesRgrl)} sedes`;
+
+  const elRarNum = document.getElementById('kpi-rar-num');
+  const elRarTot = document.getElementById('kpi-rar-tot');
+  const elRarPct = document.getElementById('kpi-rar-pct');
+  const elRarBar = document.getElementById('kpi-rar-bar');
+  const elRarRes = document.getElementById('kpi-rar-residual');
+
+  if (elRarNum) elRarNum.textContent = data.totalSedesRar;
+  if (elRarTot) elRarTot.textContent = metaSedesRef;
+  if (elRarPct) elRarPct.textContent = `${data.pctRarAvance}%`;
+  if (elRarBar) elRarBar.style.width = `${Math.min(100, data.pctRarAvance)}%`;
+  if (elRarRes) elRarRes.textContent = `${Math.max(0, metaSedesRef - data.totalSedesRar)} sedes`;
+
+  const elSvccNum = document.getElementById('kpi-svcc-num');
+  const elSvccPct = document.getElementById('kpi-svcc-pct');
+  const elSvccBar = document.getElementById('kpi-svcc-bar');
+
+  if (elSvccNum) elSvccNum.textContent = data.totalSedesSvcc;
+  if (elSvccPct) elSvccPct.textContent = `${data.pctSvccAvance}%`;
+  if (elSvccBar) elSvccBar.style.width = `${Math.min(100, data.pctSvccAvance)}%`;
+
   // Renderizar Gráficos de Anillo de Avance
   renderChartDonutAvanceSedes(data);
   renderChartDonutAvanceVisitas(data);
@@ -10042,7 +10190,7 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
   // Distribución Consolidada por Organismo
   const elOrgsCont = document.getElementById('contenedor-distribucion-organismos');
   if (elOrgsCont) {
-    elOrgsCont.innerHTML = data.resumenOrganismos.slice(0, 8).map(o => {
+    elOrgsCont.innerHTML = data.resumenOrganismos.slice(0, 12).map(o => {
       let icon = '🏛️';
       if (o.organismo.includes('EDUCACION') || o.organismo.includes('CGE')) icon = '🎓';
       else if (o.organismo.includes('POLICIA')) icon = '👮';
@@ -10050,20 +10198,24 @@ function actualizarVistaMetricas(periodoKey = 'ciclo') {
       else if (o.organismo.includes('VIALIDAD')) icon = '🚜';
 
       return `
-        <div class="org-card-exec">
+        <div class="org-card-exec" style="background:#fff;border:1px solid #E2E8F0;border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;color:var(--text-main);">
               <span>${icon}</span>
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;" title="${escapeHtml(o.organismo)}">${escapeHtml(o.organismo)}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;" title="${escapeHtml(o.organismo)}">${escapeHtml(o.organismo)}</span>
             </div>
             <span class="badge-stock ${o.coberturaPct >= 50 ? 'badge-stock-success' : 'badge-stock-meta'}">${o.coberturaPct}%</span>
           </div>
           <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:5px;overflow:hidden;">
             <div style="width:${o.coberturaPct}%;background:var(--primary);height:100%;border-radius:9999px;"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);">
-            <span><b>${o.sedesVisitadas}</b> de ${o.totalSedes}</span>
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);border-bottom:1px dashed #E2E8F0;padding-bottom:4px;">
+            <span>Visitas: <b>${o.sedesVisitadas}</b> / ${o.totalSedes}</span>
             <span><b>${o.totalVisitas}</b> acc.</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);padding-top:2px;">
+            <span>RGRL: <b style="color:#1e40af;">${o.rgrlPct}%</b> (${o.sedesRgrl || 0})</span>
+            <span>RAR: <b style="color:#0284c7;">${o.rarPct}%</b> (${o.sedesRar || 0})</span>
           </div>
         </div>
       `;
@@ -10114,6 +10266,9 @@ function exportarMetricasConsolidadas() {
   csv += "INDICADOR;VALOR;META;RESIDUAL;PORCENTAJE\n";
   csv += `Stock Sedes Objetivo;${metricas.stockSedesConsumido};${PLAN_HYS_CONFIG.META_SEDES_ANUAL};${metricas.stockSedesResidual};${metricas.pctSedesAvance}%\n`;
   csv += `Stock Acciones HyS;${metricas.stockVisitasConsumido};${PLAN_HYS_CONFIG.META_VISITAS_ANUAL};${metricas.stockVisitasResidual};${metricas.pctVisitasAvance}%\n`;
+  csv += `Cumplimiento RGRL (SRT);${metricas.totalSedesRgrl};${PLAN_HYS_CONFIG.META_SEDES_ANUAL};${Math.max(0, PLAN_HYS_CONFIG.META_SEDES_ANUAL - metricas.totalSedesRgrl)};${metricas.pctRgrlAvance}%\n`;
+  csv += `Relevamiento RAR;${metricas.totalSedesRar};${PLAN_HYS_CONFIG.META_SEDES_ANUAL};${Math.max(0, PLAN_HYS_CONFIG.META_SEDES_ANUAL - metricas.totalSedesRar)};${metricas.pctRarAvance}%\n`;
+  csv += `Vigilancia Cancerígenos (SVCC);${metricas.totalSedesSvcc};-;-;${metricas.pctSvccAvance}%\n`;
   csv += `Ritmo Mensual;${metricas.ritmoMes};${PLAN_HYS_CONFIG.META_SEDES_MENSUAL};-;-\n\n`;
 
   csv += "TAREA TECNICA;CODIGO;CANTIDAD;PARTICIPACION;SEDES CUBIERTAS\n";
@@ -10121,9 +10276,9 @@ function exportarMetricasConsolidadas() {
     csv += `"${t.nombre}";${t.codigo};${t.count};${t.sharePct}%;${t.sedesRecibieron}\n`;
   });
 
-  csv += "\nORGANISMO;SEDES TOTALES;SEDES VISITADAS;COBERTURA;TOTAL ACCIONES\n";
+  csv += "\nORGANISMO;SEDES TOTALES;SEDES VISITADAS;COBERTURA;SEDES RGRL;% RGRL;SEDES RAR;% RAR;TOTAL ACCIONES\n";
   metricas.resumenOrganismos.forEach(o => {
-    csv += `"${o.organismo}";${o.totalSedes};${o.sedesVisitadas};${o.coberturaPct}%;${o.totalVisitas}\n`;
+    csv += `"${o.organismo}";${o.totalSedes};${o.sedesVisitadas};${o.coberturaPct}%;${o.sedesRgrl};${o.rgrlPct}%;${o.sedesRar};${o.rarPct}%;${o.totalVisitas}\n`;
   });
 
   const encodedUri = encodeURI(csv);

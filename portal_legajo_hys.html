@@ -1068,6 +1068,66 @@
           </div>
         </div>
 
+        <!-- Card 5: Cumplimiento RGRL (SRT) -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="kpi-label" style="display:flex; justify-content:space-between;">
+              <span>CUMPLIMIENTO RGRL</span>
+              <span style="color:#1e40af; font-weight:600;">Res. 463/09</span>
+            </div>
+            <div class="kpi-val">
+              <span id="kpi-main-rgrl-num">0</span>
+              <span class="kpi-sub">/ <span id="kpi-main-rgrl-tot">370</span> (<span id="kpi-main-rgrl-pct">0.0%</span>)</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" id="kpi-main-rgrl-bar" style="width: 0%; background: #1e40af;"></div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+            Pendientes de carga: <strong id="kpi-main-rgrl-res">370 sedes</strong>
+          </div>
+        </div>
+
+        <!-- Card 6: Relevamiento RAR (Sin expuestos) -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="kpi-label" style="display:flex; justify-content:space-between;">
+              <span>RELEVAMIENTO RAR</span>
+              <span style="color:#0284c7; font-weight:600;">Res. 37/10</span>
+            </div>
+            <div class="kpi-val">
+              <span id="kpi-main-rar-num">0</span>
+              <span class="kpi-sub">/ <span id="kpi-main-rar-tot">370</span> (<span id="kpi-main-rar-pct">0.0%</span>)</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" id="kpi-main-rar-bar" style="width: 0%; background: #0284c7;"></div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+            Sedes relevadas s/expuestos
+          </div>
+        </div>
+
+        <!-- Card 7: Vigilancia Cancerígenos SVCC -->
+        <div class="kpi-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="kpi-label" style="display:flex; justify-content:space-between;">
+              <span>VIGILANCIA SVCC</span>
+              <span style="color:#7c3aed; font-weight:600;">Res. 81/19</span>
+            </div>
+            <div class="kpi-val">
+              <span id="kpi-main-svcc-num">0</span>
+              <span class="kpi-sub">sedes (<span id="kpi-main-svcc-pct">0.0%</span>)</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" id="kpi-main-svcc-bar" style="width: 0%; background: #7c3aed;"></div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+            Monitoreo sustancias cancerígenas
+          </div>
+        </div>
+
       </section>
 
       <!-- Distribución en 2 Columnas: Tabla Maestra y Ficha Lateral -->
@@ -1508,6 +1568,83 @@
           <div style="display:flex; justify-content:space-between; width:100%; font-size:11px; color:#5B6670; margin-top:8px; border-top:1px solid #EEF2F6; padding-top:6px;">
             <span><i class="fa-solid fa-circle" style="color:#0284c7; font-size:8px; margin-right:4px;"></i>CV Subidas: <b id="lbl-donut-cv-sub">0</b></span>
             <span><i class="fa-solid fa-circle" style="color:#E2E8F0; font-size:8px; margin-right:4px;"></i>Disponibles: <b id="lbl-donut-cv-disp">1.000</b></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FILA NORMATIVAS SRT: CUMPLIMIENTO RGRL, RAR (SIN EXPUESTOS) Y SVCC -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:24px;">
+        
+        <!-- Stat Normativo 1: Cumplimiento RGRL (Res. 463/09) -->
+        <div class="stat-card" style="display:flex; flex-direction:column; justify-content:space-between; border-left:4px solid #1e40af;">
+          <div>
+            <div class="stat-header">
+              <span class="stat-title">Cumplimiento RGRL (SRT)</span>
+              <span class="badge" style="background:#DBEAFE; color:#1e40af; border:1px solid #BFDBFE; font-size:11px; font-weight:600;">Res. 463/09</span>
+            </div>
+            <div class="stat-number">
+              <span id="kpi-rgrl-num">0</span>
+              <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-rgrl-tot">370</span></span>
+            </div>
+            <div class="stat-callout ok">
+              <i class="fa-solid fa-file-shield" style="margin-right:6px; color:#1e40af;"></i>
+              Relevamientos Presentados: <span id="kpi-rgrl-pct">0.0%</span>
+            </div>
+          </div>
+          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:5px;overflow:hidden;margin-top:10px;">
+            <div id="kpi-rgrl-bar" style="width:0%;background:#1e40af;height:100%;border-radius:9999px;transition:width 0.4s ease;"></div>
+          </div>
+          <div class="stat-meta" style="margin-top:10px;">
+            Saldo pendiente de RGRL: <strong id="kpi-rgrl-residual">370 sedes</strong>
+          </div>
+        </div>
+
+        <!-- Stat Normativo 2: Relevamiento RAR (Res. 37/10) - Sin Expuestos -->
+        <div class="stat-card" style="display:flex; flex-direction:column; justify-content:space-between; border-left:4px solid #0284c7;">
+          <div>
+            <div class="stat-header">
+              <span class="stat-title">Relevamiento RAR (Riesgos)</span>
+              <span class="badge" style="background:#E0F2FE; color:#0284c7; border:1px solid #BAE6FD; font-size:11px; font-weight:600;">Res. 37/10</span>
+            </div>
+            <div class="stat-number">
+              <span id="kpi-rar-num">0</span>
+              <span style="font-size:18px; font-weight:400; color:#5B6670;">/ <span id="kpi-rar-tot">370</span></span>
+            </div>
+            <div class="stat-callout ok">
+              <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px; color:#0284c7;"></i>
+              Sedes Relevadas (s/expuestos): <span id="kpi-rar-pct">0.0%</span>
+            </div>
+          </div>
+          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:5px;overflow:hidden;margin-top:10px;">
+            <div id="kpi-rar-bar" style="width:0%;background:#0284c7;height:100%;border-radius:9999px;transition:width 0.4s ease;"></div>
+          </div>
+          <div class="stat-meta" style="margin-top:10px;">
+            Saldo pendiente de RAR: <strong id="kpi-rar-residual">370 sedes</strong>
+          </div>
+        </div>
+
+        <!-- Stat Normativo 3: Vigilancia Cancerígenos SVCC (Res. 81/19) -->
+        <div class="stat-card" style="display:flex; flex-direction:column; justify-content:space-between; border-left:4px solid #7c3aed;">
+          <div>
+            <div class="stat-header">
+              <span class="stat-title">Vigilancia Cancerígenos (SVCC)</span>
+              <span class="badge" style="background:#F3E8FF; color:#7c3aed; border:1px solid #DDD6FE; font-size:11px; font-weight:600;">Res. 81/19</span>
+            </div>
+            <div class="stat-number">
+              <span id="kpi-svcc-num">0</span>
+              <span style="font-size:18px; font-weight:400; color:#5B6670;">sedes</span>
+            </div>
+            <div class="stat-callout ok">
+              <i class="fa-solid fa-biohazard" style="margin-right:6px; color:#7c3aed;"></i>
+              Monitoreo Activo: <span id="kpi-svcc-pct">0.0%</span>
+            </div>
+          </div>
+          <div style="width:100%;background:#E2E8F0;border-radius:9999px;height:5px;overflow:hidden;margin-top:10px;">
+            <div id="kpi-svcc-bar" style="width:0%;background:#7c3aed;height:100%;border-radius:9999px;transition:width 0.4s ease;"></div>
+          </div>
+          <div class="stat-meta" style="margin-top:10px;">
+            Establecimientos con vigilancia de sustancias cancerígenas
           </div>
         </div>
 
