@@ -376,12 +376,17 @@ function doGet(e) {
         var match = false;
         if (isGlobal) {
           match = true;
-        } else if (targetNro && rNro && targetNro === rNro) {
-          match = true;
-        } else if (targetNom && rNom && (rNom.includes(targetNom) || targetNom.includes(rNom))) {
-          match = true;
-        } else if (!targetNro && !targetNom && targetOrg && rOrg.includes(targetOrg)) {
-          match = true;
+        } else {
+          var orgCoincide = (!targetOrg) || (rOrg && (rOrg.includes(targetOrg) || targetOrg.includes(rOrg) || obtenerNombreOrganismoCanonico(rOrg) === obtenerNombreOrganismoCanonico(targetOrg)));
+          if (orgCoincide) {
+            if (targetNro && rNro && targetNro === rNro) {
+              match = true;
+            } else if (targetNom && rNom && (rNom.includes(targetNom) || targetNom.includes(rNom))) {
+              match = true;
+            } else if (!targetNro && !targetNom && targetOrg) {
+              match = true;
+            }
+          }
         }
 
         if (match) {
@@ -713,6 +718,13 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+
+    // 3m. Eliminar actuaciones, archivos y carpetas de Octubre 2026
+    if (action === "eliminar_octubre_2026") {
+      var resDel = eliminarOctubre2026Completo();
+      return ContentService.createTextOutput(JSON.stringify(resDel))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     // 4. Por defecto: Listado maestro de Establecimientos
     var sheet = ss.getSheetByName("Establecimientos");
@@ -2760,4 +2772,260 @@ function generarZipSedeDrive(estId, nroEstab, organismo, nombreEstab) {
     cantArchivos: blobs.length,
     tamanoMb: (zipBlob.getBytes().length / (1024 * 1024)).toFixed(2)
   };
+}
+
+// ========================================================
+// PURGA TOTAL DE OCTUBRE 2026 (CARPETAS MENSUALES, ARCHIVOS POR ORGANISMO Y HOJAS)
+// ========================================================
+
+function eliminarOctubre2026Completo() {
+  var ss = getSpreadsheet();
+  var log = [];
+  var result = {
+    status: "success",
+    carpetasMensualesBorradas: [],
+    archivosOrganismoBorrados: 0,
+    filasLegajoBorradas: 0,
+    celdasMatrizActualizadas: 0,
+    filasDatosBorradas: 0,
+    filasExtintoresBorradas: 0,
+    actuacionesEliminadas: [],
+    log: []
+  };
+
+  // 1. Eliminar carpeta mensual '2026-10_OCTUBRE' (y variantes de Octubre 2026) en Carpetas_Mensuales
+  try {
+    var rootFolder = getOrCreateRootFolder();
+    var monthlyParent = getOrCreateSubfolder(rootFolder, "Carpetas_Mensuales");
+    var subFolders = monthlyParent.getFolders();
+    while (subFolders.hasNext()) {
+      var sf = subFolders.next();
+      try {
+        if (!sf.isTrashed()) {
+          var sfNom = sf.getName().trim().toUpperCase();
+          if (sfNom.indexOf("2026-10") !== -1 || sfNom.indexOf("202610") !== -1 || sfNom === "OCTUBRE 2026" || sfNom === "2026_10") {
+            result.carpetasMensualesBorradas.push({ name: sf.getName(), id: sf.getId() });
+            sf.setTrashed(true);
+            log.push("Carpeta mensual movida a papelera: " + sfNom + " (" + sf.getId() + ")");
+          }
+        }
+      } catch(eSf) {
+        log.push("Aviso al borrar carpeta mensual: " + eSf.toString());
+      }
+    }
+  } catch(eDriveRoot) {
+    log.push("Error al acceder a Carpetas_Mensuales: " + eDriveRoot.toString());
+  }
+
+  // 2. Procesar hoja 'Legajo_Actividades_Archivos'
+  var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
+  var registrosOctubre = [];
+  var filasAEliminar = [];
+
+  var colFecha = 2;       // Col C (0-indexed)
+  var colOrg = 3;         // Col D
+  var colNro = 4;         // Col E
+  var colNom = 5;         // Col F
+  var colTipo = 7;        // Col H
+  var colNomArchivo = 10; // Col K
+  var colDriveId = 12;    // Col M
+
+  if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
+    var dataLeg = sheetLegajo.getDataRange().getValues();
+
+    for (var i = 1; i < dataLeg.length; i++) {
+      var row = dataLeg[i];
+      var rFecha = row[colFecha];
+      var sFecha = "";
+      if (rFecha instanceof Date) {
+        try {
+          sFecha = Utilities.formatDate(rFecha, Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd");
+        } catch(eD) {
+          sFecha = rFecha.toISOString().substring(0, 10);
+        }
+      } else {
+        sFecha = String(rFecha || "").trim();
+      }
+
+      var esOct2026 = false;
+      if (sFecha.indexOf("2026-10") !== -1 || sFecha.indexOf("2026/10") !== -1 || sFecha.indexOf("10/2026") !== -1) {
+        esOct2026 = true;
+      } else {
+        var mInfo = parsearAnioMes(sFecha);
+        if (mInfo && mInfo.key === "202610") {
+          esOct2026 = true;
+        }
+      }
+
+      if (esOct2026) {
+        registrosOctubre.push({
+          rowIndex: i + 1,
+          idReg: row[0],
+          fecha: sFecha,
+          organismo: row[colOrg],
+          nroEstab: row[colNro],
+          nombreEstab: row[colNom],
+          tipoAct: row[colTipo],
+          fileName: row[colNomArchivo],
+          fileId: row[colDriveId]
+        });
+        filasAEliminar.push(i + 1);
+      }
+    }
+
+    result.actuacionesEliminadas = registrosOctubre.map(function(r) {
+      return {
+        idReg: r.idReg,
+        fecha: r.fecha,
+        organismo: r.organismo,
+        nroEstab: r.nroEstab,
+        nombreEstab: r.nombreEstab,
+        tipoAct: r.tipoAct,
+        fileName: r.fileName
+      };
+    });
+
+    // 2.a. Eliminar los archivos físicos en las carpetas de los organismos (ID Drive)
+    var fileIdsBorrados = {};
+    for (var rIdx = 0; rIdx < registrosOctubre.length; rIdx++) {
+      var item = registrosOctubre[rIdx];
+      var fId = String(item.fileId || "").trim();
+      if (fId && !fileIdsBorrados[fId]) {
+        try {
+          var f = DriveApp.getFileById(fId);
+          f.setTrashed(true);
+          result.archivosOrganismoBorrados++;
+          fileIdsBorrados[fId] = true;
+        } catch(eFile) {
+          log.push("Aviso al mover a papelera archivo ID " + fId + " (" + item.fileName + "): " + eFile.toString());
+        }
+      }
+    }
+
+    // 2.b. Eliminar las filas físicas en Legajo_Actividades_Archivos de abajo hacia arriba
+    filasAEliminar.sort(function(a, b) { return b - a; });
+    for (var delIdx = 0; delIdx < filasAEliminar.length; delIdx++) {
+      sheetLegajo.deleteRow(filasAEliminar[delIdx]);
+      result.filasLegajoBorradas++;
+    }
+
+    // 2.c. Actualizar Matriz_Control_Gestion para restablecer las celdas afectadas
+    var colNameMap = {
+      "constancia_visita": "CONSTANCIA_VISITA",
+      "cv": "CONSTANCIA_VISITA",
+      "visita": "CONSTANCIA_VISITA",
+      "informe_tecnico": "INFORME_TECNICO",
+      "informe": "INFORME_TECNICO",
+      "informe_fotografico": "INFORME_TECNICO",
+      "confeccion_rgrl": "RGRL",
+      "rgrl": "RGRL",
+      "confeccion_rar": "RAR",
+      "rar": "RAR",
+      "capacitaciones": "CAPACITACION_EN_OCASION_DE_VISITA",
+      "medicion_ruido": "MEDICION_DE_RUIDO",
+      "mediciones_ruido": "MEDICION_DE_RUIDO",
+      "ruido": "MEDICION_DE_RUIDO",
+      "medicion_iluminacion": "MEDICION_DE_ILUMINACION",
+      "mediciones_iluminacion": "MEDICION_DE_ILUMINACION",
+      "iluminacion": "MEDICION_DE_ILUMINACION",
+      "ilum": "MEDICION_DE_ILUMINACION",
+      "medicion_pat": "MEDICION_PUESTA_A_TIERRA",
+      "mediciones_puesta_a_tierra": "MEDICION_PUESTA_A_TIERRA",
+      "puesta_a_tierra": "MEDICION_PUESTA_A_TIERRA",
+      "pat": "MEDICION_PUESTA_A_TIERRA",
+      "muestra_agua": "ANALISIS_DE_AGUA",
+      "analisis_agua": "ANALISIS_DE_AGUA",
+      "res_886": "RES_886",
+      "carga_fuego": "ESTUDIO_CARGA_DE_FUEGO",
+      "simulacro": "SIMULACRO_EVACUACION",
+      "control_extintores": "CONTROL_DE_EXTINTORES"
+    };
+
+    var freshData = (sheetLegajo.getLastRow() > 1) ? sheetLegajo.getDataRange().getValues() : [];
+
+    var combinaciones = {};
+    for (var cIdx = 0; cIdx < registrosOctubre.length; cIdx++) {
+      var actItem = registrosOctubre[cIdx];
+      var keyComb = (actItem.nombreEstab || "") + "___" + (actItem.nroEstab || "") + "___" + (actItem.tipoAct || "");
+      if (!combinaciones[keyComb]) {
+        combinaciones[keyComb] = {
+          nombreEstab: actItem.nombreEstab,
+          nroEstab: actItem.nroEstab,
+          tipoAct: actItem.tipoAct,
+          organismo: actItem.organismo
+        };
+      }
+    }
+
+    Object.keys(combinaciones).forEach(function(kComb) {
+      var target = combinaciones[kComb];
+      var colTarget = colNameMap[(target.tipoAct || "").toLowerCase()] || 
+                      colNameMap[normalizarCodigoActividad(target.tipoAct || "").toLowerCase()];
+      if (colTarget) {
+        var remainingValue = "";
+        for (var f = freshData.length - 1; f >= 1; f--) {
+          var fEstab = String(freshData[f][colNom] || "").toLowerCase().trim();
+          var fNro = String(freshData[f][colNro] || "").toLowerCase().trim();
+          var fTipo = String(freshData[f][colTipo] || "").toLowerCase().trim();
+          
+          var estabMatch = false;
+          if (target.nroEstab && fNro && String(target.nroEstab).trim().toLowerCase() === fNro) {
+            estabMatch = true;
+          } else if (fEstab && target.nombreEstab && (fEstab.includes(target.nombreEstab.toLowerCase()) || target.nombreEstab.toLowerCase().includes(fEstab))) {
+            estabMatch = true;
+          }
+
+          if (estabMatch) {
+            if (fTipo === (target.tipoAct || "").toLowerCase() || normalizarCodigoActividad(fTipo) === normalizarCodigoActividad(target.tipoAct || "")) {
+              var fEstado = freshData[f][8] || "Completado";
+              var fFecha = freshData[f][2] ? String(freshData[f][2]).split("T")[0] : "";
+              remainingValue = fEstado + (fFecha ? " (" + fFecha + ")" : "");
+              break;
+            }
+          }
+        }
+        actualizarColumnaMatriz(ss, target.organismo, target.nombreEstab, target.nroEstab, colTarget, remainingValue);
+        result.celdasMatrizActualizadas++;
+      }
+    });
+  }
+
+  // 3. Limpiar hoja 'Datos' si existieran filas con relevamientos fechados en Octubre 2026
+  var sheetDatos = ss.getSheetByName("Datos");
+  if (sheetDatos && sheetDatos.getLastRow() > 1) {
+    var dataDatos = sheetDatos.getDataRange().getValues();
+    var filasDatosBorrar = [];
+    for (var dI = 1; dI < dataDatos.length; dI++) {
+      var dFec = String(dataDatos[dI][1] || "");
+      if (dFec.indexOf("2026-10") !== -1 || dFec.indexOf("2026/10") !== -1 || dFec.indexOf("10/2026") !== -1) {
+        filasDatosBorrar.push(dI + 1);
+      }
+    }
+    filasDatosBorrar.sort(function(a, b) { return b - a; });
+    for (var bD = 0; bD < filasDatosBorrar.length; bD++) {
+      sheetDatos.deleteRow(filasDatosBorrar[bD]);
+      result.filasDatosBorradas++;
+    }
+  }
+
+  // 4. Limpiar hoja 'Extintores_Detalle' si existieran filas fechadas en Octubre 2026
+  var sheetExt = ss.getSheetByName("Extintores_Detalle");
+  if (sheetExt && sheetExt.getLastRow() > 1) {
+    var dataExt = sheetExt.getDataRange().getValues();
+    var filasExtBorrar = [];
+    for (var eI = 1; eI < dataExt.length; eI++) {
+      var eFec = String(dataExt[eI][1] || "");
+      if (eFec.indexOf("2026-10") !== -1 || eFec.indexOf("2026/10") !== -1 || eFec.indexOf("10/2026") !== -1) {
+        filasExtBorrar.push(eI + 1);
+      }
+    }
+    filasExtBorrar.sort(function(a, b) { return b - a; });
+    for (var bE = 0; bE < filasExtBorrar.length; bE++) {
+      sheetExt.deleteRow(filasExtBorrar[bE]);
+      result.filasExtintoresBorradas++;
+    }
+  }
+
+  result.log = log;
+  return result;
 }

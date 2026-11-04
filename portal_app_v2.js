@@ -357,6 +357,9 @@ function cargarCarpetasMensualesLocal() {
             return; // Descartar meses futuros (ej: 2028) o anteriores a 2020
           }
           const canonKey = `${y}-${mon < 10 ? '0' : ''}${mon}`;
+          if (canonKey === '2026-10' || canonKey === '202610') {
+            return; // Descartar carpeta purgada de octubre 2026
+          }
           cleaned[canonKey] = {
             ...item,
             key: canonKey
@@ -455,6 +458,18 @@ function initStorage() {
   if (!current || !current.startsWith('https://script.google.com/macros/s/') || !current.includes('/exec')) {
     localStorage.setItem(STORAGE_KEYS.WEBHOOK_URL, DEFAULT_SHEETS_WEBHOOK_URL);
   }
+
+  // Purga obligatoria de caché local de Octubre 2026
+  try {
+    const purgeKey = 'iapser_purge_octubre_2026_v1';
+    if (!localStorage.getItem(purgeKey)) {
+      localStorage.removeItem(STORAGE_KEYS.LEGAJO_DB);
+      localStorage.removeItem(STORAGE_KEYS.CARPETAS_MENSUALES);
+      localStorage.removeItem(STORAGE_KEYS.CARPETAS_ESTABLECIMIENTOS);
+      localStorage.setItem(purgeKey, 'done');
+      console.log('Caché local de Octubre 2026 purgado exitosamente.');
+    }
+  } catch(e) {}
 }
 
 function getWebhookUrl() {
@@ -588,10 +603,32 @@ function cargarLegajoLocal() {
       // y normalizar fechas invertidas (YYYY-DD-MM) en memoria local
       Object.keys(AppState.actividadesRegistradas).forEach(k => {
         if (Array.isArray(AppState.actividadesRegistradas[k])) {
+          const estObj = AppState.establecimientos[k];
           AppState.actividadesRegistradas[k] = AppState.actividadesRegistradas[k].filter(a => {
             if (!a) return false;
+            // Purgar registro de prueba CGE y registros desvinculados
+            if (a.id === 'ACT_1793334882948' || (a.organismo && a.organismo.toString().toUpperCase() === 'CGE')) {
+              return false;
+            }
+            // Purgar actividades asignadas erróneamente a sedes de organismos distintos
+            if (estObj && a.organismo) {
+              const estOrg = estObj.organismo || estObj.razonSocial || '';
+              if (estOrg && !sonOrganismosCoincidentes(estOrg, a.organismo)) {
+                return false;
+              }
+            }
             // Purgar registros mock autogenerados sin archivo en Drive
             if (a.id && String(a.id).startsWith('ACT_PRE_') && (!a.fileUrl || !String(a.fileUrl).trim().startsWith('http'))) {
+              return false;
+            }
+            // Purgar actuaciones eliminadas de Octubre 2026
+            if (a.fechaActividad && (String(a.fechaActividad).startsWith('2026-10') || String(a.fechaActividad).includes('/10/2026') || String(a.fechaActividad).includes('2026/10'))) {
+              return false;
+            }
+            if (a.monthKey === '202610' || a.monthKey === '2026-10') {
+              return false;
+            }
+            if (a.fileName && a.fileName.includes('_202610')) {
               return false;
             }
             return true;
@@ -883,11 +920,18 @@ function obtenerActividadesDeSede(e) {
   const sNro = (e.nroEstab || '').toString().trim();
   const sNom = (e.nombreEstablecimiento || '').trim();
 
-  // 1. Por ID directo de la sede (solo si coincide con esta sede)
+  // 1. Por ID directo de la sede (solo si coincide con esta sede y organismo)
   if (sId && AppState.actividadesRegistradas[sId]) {
     const actsDirect = AppState.actividadesRegistradas[sId];
     if (Array.isArray(actsDirect)) {
-      actsDirect.forEach(agregarActividad);
+      actsDirect.forEach(a => {
+        if (!a) return;
+        const aOrg = (a.organismo || (a.establecimiento && a.establecimiento.organismo) || '').trim();
+        if (aOrg && sOrg && !sonOrganismosCoincidentes(sOrg, aOrg)) {
+          return; // Prevenir arrastre de actividades cruzadas de otro organismo
+        }
+        agregarActividad(a);
+      });
     }
   }
 
@@ -6012,37 +6056,48 @@ function encontrarEstablecimiento(nro, nom, org) {
   const sNom = nom ? String(nom).trim().toLowerCase() : '';
   const sOrg = org ? String(org).trim().toLowerCase() : '';
 
-  // 1. Filtrar primero por coincidencia de organismo si fue provisto
-  let pool = allEsts;
+  // 1. Si se proveyó organismo, restringir estrictamente a dicho organismo
   if (sOrg) {
     const orgPool = allEsts.filter(e => sonOrganismosCoincidentes(e.organismo || e.razonSocial || '', sOrg));
-    if (orgPool.length > 0) {
-      pool = orgPool;
+    if (orgPool.length === 0) {
+      // El organismo no forma parte de las sedes administradas (p. ej. CGE u organismo externo)
+      return null;
     }
+
+    // Coincidencia por N° dentro del organismo
+    if (sNro) {
+      const foundByNro = orgPool.find(e => e.nroEstab && String(e.nroEstab).trim().toLowerCase() === sNro);
+      if (foundByNro) return foundByNro;
+    }
+
+    // Coincidencia por nombre dentro del organismo
+    if (sNom) {
+      const foundByNom = orgPool.find(e => {
+        const eNom = String(e.nombreEstablecimiento || '').trim().toLowerCase();
+        return eNom === sNom || (sNom.length > 5 && (eNom.includes(sNom) || sNom.includes(eNom)));
+      });
+      if (foundByNom) return foundByNom;
+    }
+
+    // Coincidencia por domicilio dentro del organismo
+    if (sNom) {
+      const foundByDom = orgPool.find(e => {
+        const eDom = String(e.domicilio || '').trim().toLowerCase();
+        return eDom && (eDom === sNom || (sNom.length > 5 && (eDom.includes(sNom) || sNom.includes(eDom))));
+      });
+      if (foundByDom) return foundByDom;
+    }
+
+    return null;
   }
 
-  // 2. Coincidencia por N° de establecimiento dentro del organismo
-  if (sNro) {
-    const foundByNro = pool.find(e => e.nroEstab && String(e.nroEstab).trim().toLowerCase() === sNro);
-    if (foundByNro) return foundByNro;
-  }
-
-  // 3. Coincidencia por nombre dentro del organismo
-  if (sNom) {
-    const foundByNom = pool.find(e => {
+  // 2. Si NO se proveyó organismo, NUNCA buscar solo por N° de establecimiento porque se repite en cada organismo
+  if (sNom && sNom.length >= 6) {
+    const foundByNom = allEsts.find(e => {
       const eNom = String(e.nombreEstablecimiento || '').trim().toLowerCase();
-      return eNom === sNom || (sNom.length > 5 && (eNom.includes(sNom) || sNom.includes(eNom)));
+      return eNom === sNom;
     });
     if (foundByNom) return foundByNom;
-  }
-
-  // 4. Coincidencia por domicilio dentro del organismo
-  if (sNom) {
-    const foundByDom = pool.find(e => {
-      const eDom = String(e.domicilio || '').trim().toLowerCase();
-      return eDom && (eDom === sNom || (sNom.length > 5 && (eDom.includes(sNom) || sNom.includes(eDom))));
-    });
-    if (foundByDom) return foundByDom;
   }
 
   return null;
@@ -6089,50 +6144,60 @@ async function sincronizarConSheets(forceGlobal = false) {
       if (json.actividades.length > 0) {
         if (isGlobal) {
           let totalMapped = 0;
+          const freshMap = {};
           json.actividades.forEach(row => {
             const mappedItem = mapearFilaActividad(row);
             if (!mappedItem) return;
-            totalMapped++;
 
             const targetEst = encontrarEstablecimiento(
               row['N° Estab'] || row['Nro Estab'],
               row['Nombre Establecimiento'],
               row['Organismo']
             );
-            const estKey = targetEst ? targetEst.id : ('est_' + (row['N° Estab'] || 'gen'));
-
-            mappedItem.estId = estKey;
-            mappedItem.establecimiento = targetEst || {
-              id: estKey,
-              nroEstab: row['N° Estab'] || row['Nro Estab'] || '',
-              nombreEstablecimiento: row['Nombre Establecimiento'] || '',
-              organismo: row['Organismo'] || '',
-              localidad: row['Localidad'] || ''
-            };
-            mappedItem.nroEstab = row['N° Estab'] || row['Nro Estab'] || (targetEst ? targetEst.nroEstab : '');
-            mappedItem.nombreEstablecimiento = row['Nombre Establecimiento'] || (targetEst ? targetEst.nombreEstablecimiento : '');
-            mappedItem.organismo = row['Organismo'] || (targetEst ? targetEst.organismo : '');
-            mappedItem.localidad = row['Localidad'] || (targetEst ? targetEst.localidad : '');
-
-            if (!AppState.actividadesRegistradas[estKey]) {
-              AppState.actividadesRegistradas[estKey] = [];
+            if (!targetEst) {
+              // Si no pertenece al universo de sedes gestionadas (p. ej. CGE u organismo externo), ignorar
+              return;
             }
 
-            const idx = AppState.actividadesRegistradas[estKey].findIndex(a => 
-              a.id === mappedItem.id || 
-              (a.fileName && mappedItem.fileName && a.fileName === mappedItem.fileName)
-            );
-            if (idx >= 0) {
-              AppState.actividadesRegistradas[estKey][idx] = mappedItem;
-            } else {
-              AppState.actividadesRegistradas[estKey].push(mappedItem);
+            totalMapped++;
+            const estKey = targetEst.id;
+
+            mappedItem.estId = estKey;
+            mappedItem.establecimiento = targetEst;
+            mappedItem.nroEstab = targetEst.nroEstab || '';
+            mappedItem.nombreEstablecimiento = targetEst.nombreEstablecimiento || '';
+            mappedItem.organismo = targetEst.organismo || '';
+            mappedItem.localidad = targetEst.localidad || '';
+
+            if (!freshMap[estKey]) {
+              freshMap[estKey] = [];
+            }
+            freshMap[estKey].push(mappedItem);
+          });
+
+          // Conservar actividades subidas localmente que aún no hayan impactado en Sheets (ACT_LOCAL_)
+          Object.entries(AppState.actividadesRegistradas || {}).forEach(([k, list]) => {
+            if (Array.isArray(list)) {
+              list.forEach(localAct => {
+                if (localAct && String(localAct.id || '').startsWith('ACT_LOCAL_')) {
+                  if (!freshMap[k]) freshMap[k] = [];
+                  freshMap[k].push(localAct);
+                }
+              });
             }
           });
 
+          AppState.actividadesRegistradas = freshMap;
+
           guardarCarpetasMensualesLocal();
           guardarLegajoLocal();
-          renderRepositorioGlobal(true);
+          if (AppState.establecimientoSeleccionado) {
+            renderFichaEstablecimiento(AppState.establecimientoSeleccionado);
+            renderPanelActividades(AppState.establecimientoSeleccionado);
+          }
+          actualizarSelectorMesesSedes();
           actualizarSelectorMesesMatriz();
+          renderRepositorioGlobal(true);
           renderMatrizAnual();
           renderDashboard();
           mostrarToast(`✅ Sincronizados ${totalMapped} registros globales desde Google Sheets.`);
@@ -7221,6 +7286,7 @@ async function consultarCarpetasMensualesDrive() {
       if (Array.isArray(json.carpetas)) {
         const ahora = new Date();
         const maxPeriodoNum = (ahora.getFullYear() * 100) + (ahora.getMonth() + 1);
+        const freshCarpetas = {};
 
         json.carpetas.forEach(c => {
           const name = (c.name || '').trim();
@@ -7243,10 +7309,13 @@ async function consultarCarpetasMensualesDrive() {
             url: c.url,
             id: c.id
           };
-          AppState.carpetasMensuales[canonKey] = item;
+          freshCarpetas[canonKey] = item;
         });
+        AppState.carpetasMensuales = freshCarpetas;
         guardarCarpetasMensualesLocal();
         actualizarBotonCarpetaMes();
+        actualizarSelectorMesesSedes();
+        actualizarSelectorMesesMatriz();
         renderRepositorioGlobal(false);
       }
     }
@@ -8700,6 +8769,11 @@ window.guardarActividadConArchivo = guardarActividadConArchivo;
  * Guarda los documentos del panel lateral en Google Drive y actualiza el legajo
  */
 async function guardarDocumentosDetectadosLateral() {
+  const est = AppState.establecimientoSeleccionado;
+  if (!est) {
+    mostrarToast('⚠️ Seleccioná primero una sede de la tabla antes de guardar documentos.');
+    return;
+  }
   if (archivosDetectadosLateral.length === 0) {
     mostrarToast('No hay archivos pendientes para guardar. Soltá o seleccioná un archivo primero.');
     return;
