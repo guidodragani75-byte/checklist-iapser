@@ -6598,8 +6598,10 @@ function normalizarActividadDesdeSheet(str) {
     return 'medicion_pat';
   }
   // 6. Agua (Análisis / Muestra)
+  if (s === 'muestra_agua' || s === 'agua_toma') return 'muestra_agua';
+  if (s === 'analisis_agua' || s === 'agua_protocolo') return 'analisis_agua';
   if (s.includes('agua') || s.includes('bacteriolog') || s.includes('bromatolog')) {
-    if (s.includes('toma') || s.includes('muestreo') || s.includes('remito')) return 'muestra_agua';
+    if (s.includes('toma') || s.includes('muestra') || s.includes('muestreo') || s.includes('remito')) return 'muestra_agua';
     return 'analisis_agua';
   }
   // 7. Ergonomía
@@ -10764,7 +10766,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
       const sup = Number(e.superficie) > 0 ? Number(e.superficie).toLocaleString('es-AR') + ' m²' : 's/d';
 
       const tareasBadges = item.acts.map(a => {
-        const cat = CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
+        const cat = CATALOGO_ACTIVIDADES[normalizarTipoActividad(a.tipoActividad)] || CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
         return `<span style="display:inline-block;background:#E3EDEF;color:#0F4C5C;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:2px;margin:1px;">${cat.codigo || 'DOC'}</span>`;
       }).join(' ');
 
