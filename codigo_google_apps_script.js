@@ -1053,6 +1053,12 @@ function doPost(e) {
         }
       }
 
+      // 1.b. Enviar también a papelera las copias vinculadas (carpeta mensual / organismo / sede) por nombre codificado
+      if (targetFileName) {
+        var copiasBorradas = papeleraArchivosPorNombre(targetFileName);
+        if (copiasBorradas > 0) fileDeleted = true;
+      }
+
       // 2. Eliminar fila en Legajo_Actividades_Archivos
       var sheetLegajo = ss.getSheetByName("Legajo_Actividades_Archivos");
       if (sheetLegajo && sheetLegajo.getLastRow() > 1) {
@@ -1148,6 +1154,22 @@ function doPost(e) {
         message: "Registro eliminado y archivo enviado a papelera correctamente.",
         fileDeleted: fileDeleted,
         rowDeleted: rowDeleted
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ========================================================
+    // CASO 1.55: ELIMINAR ARCHIVOS (COPIAS VINCULADAS) POR NOMBRE
+    // ========================================================
+    if (data.tipoOperacion === "eliminar_archivos_por_nombre") {
+      var nombresDel = data.fileNames || [];
+      var totalBorrados = 0;
+      for (var nd = 0; nd < nombresDel.length; nd++) {
+        var nmDel = String(nombresDel[nd] || "").trim();
+        if (nmDel) totalBorrados += papeleraArchivosPorNombre(nmDel);
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        archivosEnviadosAPapelera: totalBorrados
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -3082,4 +3104,29 @@ function eliminarOctubre2026Completo() {
 
   result.log = log;
   return result;
+}
+
+/**
+ * Envía a la papelera de Drive todos los archivos con el nombre indicado
+ * (archivo de la sede + copia de la carpeta mensual). Devuelve la cantidad.
+ */
+function papeleraArchivosPorNombre(nombre) {
+  var cant = 0;
+  try {
+    var it = DriveApp.getFilesByName(nombre);
+    while (it.hasNext()) {
+      var f = it.next();
+      try {
+        if (!f.isTrashed()) {
+          f.setTrashed(true);
+          cant++;
+        }
+      } catch (eF) {
+        Logger.log("Aviso al enviar a papelera '" + nombre + "': " + eF);
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso búsqueda por nombre '" + nombre + "': " + e);
+  }
+  return cant;
 }
