@@ -12708,20 +12708,16 @@ function renderVistaLogistica() {
   const allEsts = Object.values(AppState.establecimientos || {});
   if (allEsts.length === 0) return;
 
-  // 1. Poblar selectores de Localidad y Organismo si están vacíos
+  // 1. Poblar selector de Localidades ORDENADO POR CONCENTRACIÓN DE SEDES
   const selLoc = document.getElementById('logistica-filtro-localidad');
   const selOrg = document.getElementById('logistica-filtro-organismo');
 
   if (selLoc && selLoc.options.length <= 1) {
-    const locCounts = {};
-    allEsts.forEach(e => {
-      const loc = (e.localidad || 'Entre Ríos').trim();
-      locCounts[loc] = (locCounts[loc] || 0) + 1;
-    });
-    const sortedLocs = Object.keys(locCounts).sort((a, b) => a.localeCompare(b));
-    let locOptions = '<option value="">Todas las Localidades (' + sortedLocs.length + ')</option>';
-    sortedLocs.forEach(l => {
-      locOptions += `<option value="${escapeHtml(l)}">${escapeHtml(l)} (${locCounts[l]})</option>`;
+    const concentradas = calcularConcentracionLocalidades();
+    let locOptions = '<option value="">Todas las Localidades (' + concentradas.length + ' en Entre Ríos)</option>';
+    concentradas.forEach((c, idx) => {
+      const critStr = c.sedesCriticas > 0 ? ` · ${c.sedesCriticas} críticas` : '';
+      locOptions += `<option value="${escapeHtml(c.localidad)}">${idx + 1}. ${escapeHtml(c.localidad)} (${c.totalSedes} sedes${critStr})</option>`;
     });
     selLoc.innerHTML = locOptions;
     if (AppState.logisticaFiltroLoc) selLoc.value = AppState.logisticaFiltroLoc;
@@ -12741,13 +12737,261 @@ function renderVistaLogistica() {
     if (AppState.logisticaFiltroOrg) selOrg.value = AppState.logisticaFiltroOrg;
   }
 
-  // 2. Poblar accesos directos de rutas principales (Top localidades con más sedes)
+  // 2. Renderizar ranking de concentración por localidad
+  renderTablaConcentracionLocalidades();
+
+  // 3. Poblar accesos directos de rutas principales (Top localidades con más sedes)
   renderPildorasLocalidadesLogistica();
 
-  // 3. Filtrar y procesar datos
+  // 4. Filtrar y procesar datos de la matriz detallada
   filtrarVistaLogistica();
+
+  // 5. Conmutar a modo inicial (por defecto concentración si no hay localidad seleccionada)
+  const modoInicial = AppState.logisticaModo || (AppState.logisticaFiltroLoc ? 'detalle' : 'concentracion');
+  conmutarModoLogistica(modoInicial);
 }
 window.renderVistaLogistica = renderVistaLogistica;
+
+/**
+ * Conmuta entre la sub-vista de Concentración por Localidad y la Matriz Detallada
+ */
+function conmutarModoLogistica(modo) {
+  AppState.logisticaModo = modo;
+  const btnConc = document.getElementById('tab-log-concentracion');
+  const btnDet = document.getElementById('tab-log-detalle');
+  const contConc = document.getElementById('contenedor-logistica-concentracion');
+  const contDet = document.getElementById('contenedor-logistica-detalle');
+
+  if (modo === 'concentracion') {
+    if (btnConc) btnConc.classList.add('on');
+    if (btnDet) btnDet.classList.remove('on');
+    if (contConc) contConc.style.display = 'block';
+    if (contDet) contDet.style.display = 'none';
+    renderTablaConcentracionLocalidades();
+  } else {
+    if (btnConc) btnConc.classList.remove('on');
+    if (btnDet) btnDet.classList.add('on');
+    if (contConc) contConc.style.display = 'none';
+    if (contDet) contDet.style.display = 'block';
+    filtrarVistaLogistica();
+  }
+}
+window.conmutarModoLogistica = conmutarModoLogistica;
+
+/**
+ * Calcula el agrupamiento y concentración geo-logística por localidad en Entre Ríos
+ */
+function calcularConcentracionLocalidades() {
+  const allEsts = Object.values(AppState.establecimientos || {});
+  const evaluadas = allEsts.map(evaluarLogisticaSede).filter(Boolean);
+
+  const locMap = {};
+
+  evaluadas.forEach(e => {
+    const loc = (e.localidad || 'Entre Ríos').trim();
+    if (!locMap[loc]) {
+      locMap[loc] = {
+        localidad: loc,
+        provincia: 'Entre Ríos',
+        totalSedes: 0,
+        sedesCriticas: 0,
+        sedesMedianas: 0,
+        sedesEstandar: 0,
+        organismos: new Set(),
+        sedesConCv: 0,
+        sedesSinCv: 0,
+        totalAccionesPendientes: 0,
+        totalDocsRealizados: 0,
+        superficieAcumulada: 0,
+        sedes: []
+      };
+    }
+
+    const item = locMap[loc];
+    item.totalSedes++;
+    item.sedes.push(e);
+    item.superficieAcumulada += (e.supNum || 0);
+
+    if (e.organismo) item.organismos.add(e.organismo);
+
+    if (e.nivelCriticidad === 'CRITICO') item.sedesCriticas++;
+    else if (e.nivelCriticidad === 'MEDIO') item.sedesMedianas++;
+    else item.sedesEstandar++;
+
+    if (e.hasCv) item.sedesConCv++;
+    else item.sedesSinCv++;
+
+    item.totalAccionesPendientes += e.pendientes.length;
+    item.totalDocsRealizados += e.realizadas.length;
+  });
+
+  const totalUniverso = allEsts.length || 1;
+
+  const lista = Object.values(locMap).map(item => {
+    const sharePct = ((item.totalSedes / totalUniverso) * 100).toFixed(1);
+    const avance1raVisitaPct = item.totalSedes > 0 ? Math.round((item.sedesConCv / item.totalSedes) * 100) : 0;
+    return {
+      ...item,
+      sharePct,
+      avance1raVisitaPct,
+      organismosLista: Array.from(item.organismos).sort()
+    };
+  });
+
+  // Ordenar estrictamente de mayor a menor concentración
+  lista.sort((a, b) => {
+    if (b.totalSedes !== a.totalSedes) return b.totalSedes - a.totalSedes;
+    return b.sedesCriticas - a.sedesCriticas;
+  });
+
+  return lista;
+}
+window.calcularConcentracionLocalidades = calcularConcentracionLocalidades;
+
+/**
+ * Renderiza la tabla ejecutiva de concentración territorial
+ */
+function renderTablaConcentracionLocalidades(filtroTexto = '') {
+  const tbody = document.getElementById('tabla-concentracion-tbody');
+  if (!tbody) return;
+
+  const lista = calcularConcentracionLocalidades();
+  const txt = (filtroTexto || document.getElementById('logistica-busqueda-localidad')?.value || '').trim().toLowerCase();
+
+  const filtradas = lista.filter(item => {
+    if (!txt) return true;
+    return item.localidad.toLowerCase().includes(txt) || item.provincia.toLowerCase().includes(txt);
+  });
+
+  if (filtradas.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">
+          No se encontraron localidades que coincidan con la búsqueda.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const maxSedes = lista.length > 0 ? lista[0].totalSedes : 1;
+
+  const html = filtradas.map((item, idx) => {
+    const barWidth = Math.max(6, Math.round((item.totalSedes / maxSedes) * 100));
+
+    // Badges de organismos presentes en la ciudad
+    const orgPills = item.organismosLista.slice(0, 3).map(org => {
+      const abrev = obtenerAbreviaturaOrganismo(org);
+      return `<span style="display:inline-block;background:#E3EDEF;color:var(--primary);font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:2px;margin:1px;border:1px solid #B8D5DB;" title="${escapeHtml(org)}">${escapeHtml(abrev)}</span>`;
+    }).join(' ');
+
+    const orgsExtra = item.organismosLista.length > 3 ? `<span style="font-size:10px;color:var(--text-muted);font-weight:600;">+${item.organismosLista.length - 3}</span>` : '';
+
+    const critBadge = item.sedesCriticas > 0 
+      ? `<span class="badge badge-alert" style="font-weight:700;font-size:11px;" title="${item.sedesCriticas} sedes ≥ 1.000 m²"><i class="fa-solid fa-triangle-exclamation"></i> ${item.sedesCriticas} crítica${item.sedesCriticas > 1 ? 's' : ''}</span>`
+      : `<span style="color:#94a3b8;font-size:11px;">0</span>`;
+
+    const supAcumFmt = item.superficieAcumulada > 0 ? `${Math.round(item.superficieAcumulada).toLocaleString('es-AR')} m²` : '-';
+
+    return `
+      <tr>
+        <td style="text-align:center;font-size:11.5px;font-weight:700;color:var(--text-muted);">${idx + 1}</td>
+        <td>
+          <div style="font-weight:700;font-size:13.5px;color:var(--text-main);">
+            <i class="fa-solid fa-location-dot" style="color:var(--primary);margin-right:5px;"></i>${escapeHtml(item.localidad)}
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);">Entre Ríos · Sup. total: ${supAcumFmt}</div>
+        </td>
+        <td style="text-align:center;">
+          <div style="font-weight:800;font-size:14px;color:var(--primary);font-family:var(--font-mono);">
+            ${item.totalSedes} <span style="font-size:11px;font-weight:600;color:var(--text-muted);">sedes (${item.sharePct}%)</span>
+          </div>
+          <div style="width:100%;height:5px;background:#E2E8F0;border-radius:3px;margin-top:4px;overflow:hidden;">
+            <div style="width:${barWidth}%;height:100%;background:var(--primary);border-radius:3px;"></div>
+          </div>
+        </td>
+        <td style="text-align:center;">
+          ${critBadge}
+        </td>
+        <td>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px;">
+            ${orgPills} ${orgsExtra}
+          </div>
+        </td>
+        <td style="text-align:center;">
+          <div style="font-weight:700;font-size:12px;color:${item.avance1raVisitaPct === 100 ? '#15803d' : '#991b1b'};">
+            ${item.sedesConCv} / ${item.totalSedes} (${item.avance1raVisitaPct}%)
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);">
+            ${item.sedesSinCv > 0 ? `<span style="color:#b91c1c;font-weight:600;">${item.sedesSinCv} sin 1ª visita</span>` : '<span style="color:#15803d;">Todas visitadas</span>'}
+          </div>
+        </td>
+        <td>
+          <div style="font-weight:700;font-size:12px;color:#b45309;">
+            <i class="fa-solid fa-list-check" style="margin-right:4px;"></i>${item.totalAccionesPendientes} tareas pendientes
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);">
+            ${item.totalDocsRealizados} docs ya registrados
+          </div>
+        </td>
+        <td style="text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
+            <button type="button" class="chip" onclick="enfocarLocalidadDesdeConcentracion('${escapeHtml(item.localidad)}')" style="font-weight:700;font-size:11.5px;color:#fff;background:var(--primary);border-color:var(--primary);padding:4px 10px;" title="Ver las ${item.totalSedes} sedes de ${escapeHtml(item.localidad)} en la hoja de ruta detallada">
+              <i class="fa-solid fa-route"></i> Ver Ruta
+            </button>
+            <button type="button" class="chip" onclick="exportarHojaRutaLocalidadEspecifica('${escapeHtml(item.localidad)}')" style="padding:4px 7px;font-size:11px;color:#15803d;" title="Descargar CSV de ${escapeHtml(item.localidad)}">
+              <i class="fa-solid fa-file-excel"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = html;
+}
+window.renderTablaConcentracionLocalidades = renderTablaConcentracionLocalidades;
+
+function filtrarTablaConcentracionLocalidades() {
+  const val = document.getElementById('logistica-busqueda-localidad')?.value || '';
+  renderTablaConcentracionLocalidades(val);
+}
+window.filtrarTablaConcentracionLocalidades = filtrarTablaConcentracionLocalidades;
+
+/**
+ * Enfoca directamente una localidad desde el ranking de concentración
+ */
+function enfocarLocalidadDesdeConcentracion(loc) {
+  const selLoc = document.getElementById('logistica-filtro-localidad');
+  if (selLoc) selLoc.value = loc;
+  AppState.logisticaFiltroLoc = loc;
+
+  // Actualizar banner superior
+  const banner = document.getElementById('log-banner-localidad-activa');
+  const bannerTxt = document.getElementById('log-banner-texto');
+  if (banner && bannerTxt) {
+    bannerTxt.textContent = `📍 Localidad enfocada: ${loc}`;
+    banner.style.display = 'inline-flex';
+  }
+
+  conmutarModoLogistica('detalle');
+}
+window.enfocarLocalidadDesdeConcentracion = enfocarLocalidadDesdeConcentracion;
+
+/**
+ * Exporta el CSV de una localidad específica
+ */
+function exportarHojaRutaLocalidadEspecifica(loc) {
+  const allEsts = Object.values(AppState.establecimientos || {});
+  const sedesLoc = allEsts.map(evaluarLogisticaSede).filter(e => e && e.localidad === loc);
+  if (sedesLoc.length === 0) {
+    mostrarToast(`No hay sedes en ${loc}`);
+    return;
+  }
+  window._logisticaEstablecimientosFiltrados = sedesLoc;
+  exportarHojaRutaLogisticaCSV();
+}
+window.exportarHojaRutaLocalidadEspecifica = exportarHojaRutaLocalidadEspecifica;
 
 /**
  * Renderiza botones chip para acceso rápido a las localidades con más sedes
@@ -12792,6 +13036,18 @@ function seleccionarLocalidadLogistica(loc) {
   const selLoc = document.getElementById('logistica-filtro-localidad');
   if (selLoc) selLoc.value = loc;
   AppState.logisticaFiltroLoc = loc;
+
+  const banner = document.getElementById('log-banner-localidad-activa');
+  const bannerTxt = document.getElementById('log-banner-texto');
+  if (banner && bannerTxt) {
+    if (loc) {
+      bannerTxt.textContent = `📍 Localidad enfocada: ${loc}`;
+      banner.style.display = 'inline-flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
   renderPildorasLocalidadesLogistica();
   filtrarVistaLogistica();
 }

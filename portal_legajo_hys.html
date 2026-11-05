@@ -1908,79 +1908,21 @@
         </div>
       </div>
 
-      <!-- Barra de Filtros Inteligentes -->
-      <div style="background:#fff;border:1px solid var(--border-table);padding:14px 18px;border-radius:4px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;align-items:center;">
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-location-dot" style="color:var(--primary);margin-right:4px;"></i> Localidad:
-            </label>
-            <select id="logistica-filtro-localidad" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
-              <option value="">Todas las Localidades</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-building" style="color:#0F4C5C;margin-right:4px;"></i> Organismo:
-            </label>
-            <select id="logistica-filtro-organismo" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" onchange="filtrarVistaLogistica()">
-              <option value="">Todos los Organismos</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-layer-group" style="color:#B91C1C;margin-right:4px;"></i> Criticidad (Superficie):
-            </label>
-            <select id="logistica-filtro-criticidad" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
-              <option value="todos">Todas las Superficies</option>
-              <option value="critico">🔴 Sedes Críticas (≥ 1.000 m² - Instrumental)</option>
-              <option value="medio">🟡 Sedes Medianas (300 a 999 m²)</option>
-              <option value="estandar">⚪ Sedes Estándar (< 300 m²)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-filter" style="color:#A8470A;margin-right:4px;"></i> Estado 1ª Visita:
-            </label>
-            <select id="logistica-filtro-estado" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
-              <option value="pendientes" selected>⚠️ Pendientes de 1ª Visita (A Planificar)</option>
-              <option value="sin_cv">🚨 Sin Constancia de Visita (CV Faltante)</option>
-              <option value="al_dia">✅ 1ª Visita Completa (Al Día)</option>
-              <option value="todos">Todas las Sedes (Universo)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-arrow-down-wide-short" style="color:#0F4C5C;margin-right:4px;"></i> Orden Logístico:
-            </label>
-            <select id="logistica-orden-criterio" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
-              <option value="superficie_desc" selected>📐 Superficie: Mayor a Menor (Críticos Primero)</option>
-              <option value="pendientes_desc">⚠️ Más Acciones Pendientes Primero</option>
-              <option value="localidad_asc">📍 Localidad (A - Z)</option>
-              <option value="organismo_asc">🏛️ Organismo (A - Z)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
-              <i class="fa-solid fa-magnifying-glass" style="margin-right:4px;"></i> Búsqueda en Sede / Domicilio:
-            </label>
-            <input type="text" id="logistica-busqueda-texto" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" placeholder="Ej: San Martín, Comisaría, Escuela, 102..." oninput="filtrarVistaLogistica()">
-          </div>
+      <!-- Selector de Modo de Visualización: Concentración Territorial vs Matriz Detallada -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" id="tab-log-concentracion" class="chip on" onclick="conmutarModoLogistica('concentracion')" style="font-size:13px;font-weight:700;padding:7px 16px;min-height:36px;">
+            <i class="fa-solid fa-chart-column" style="margin-right:6px;color:#D97706;"></i> 1. Concentración por Localidad (Ranking Territorial)
+          </button>
+          <button type="button" id="tab-log-detalle" class="chip" onclick="conmutarModoLogistica('detalle')" style="font-size:13px;font-weight:700;padding:7px 16px;min-height:36px;">
+            <i class="fa-solid fa-table-list" style="margin-right:6px;color:var(--primary);"></i> 2. Matriz Detallada de Sedes (Hoja de Ruta)
+          </button>
         </div>
-
-        <!-- Accesos directos: Píldoras de Localidades con más sedes -->
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:11px;font-weight:700;color:var(--text-muted);margin-right:4px;text-transform:uppercase;">
-            <i class="fa-solid fa-bolt" style="color:#D97706;"></i> Rutas Principales:
-          </span>
-          <div id="logistica-pildoras-localidades" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <!-- Generado dinámicamente -->
-          </div>
+        <div id="log-banner-localidad-activa" style="display:none;align-items:center;gap:8px;font-size:12px;background:#E3EDEF;border:1px solid #B8D5DB;padding:5px 12px;border-radius:3px;">
+          <span style="color:var(--primary);font-weight:700;" id="log-banner-texto">Filtro activo: PARANA</span>
+          <button type="button" class="chip" onclick="seleccionarLocalidadLogistica(''); conmutarModoLogistica('concentracion');" style="min-height:24px;padding:2px 8px;font-size:11px;">
+            <i class="fa-solid fa-xmark"></i> Ver todas las localidades
+          </button>
         </div>
       </div>
 
@@ -2042,44 +1984,167 @@
         </div>
       </div>
 
-      <!-- Tabla Operativa de Planificación y Logística -->
-      <div style="background:#fff;border:1px solid var(--border-table);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);overflow:hidden;">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--border-table);background:#F8F9F7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div>
-            <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-main);">
-              <i class="fa-solid fa-table-list" style="color:var(--primary);margin-right:6px;"></i> Matriz de Planificación Logística por Sede
-            </h3>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="logistica-tabla-contador">
-              Cargando sedes...
+      <!-- ==================== SUB-VISTA 1: CONCENTRACIÓN TERRITORIAL POR LOCALIDAD ==================== -->
+      <div id="contenedor-logistica-concentracion" style="display:block;">
+        <div style="background:#fff;border:1px solid var(--border-table);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);overflow:hidden;margin-bottom:20px;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border-table);background:#F8F9F7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-main);">
+                <i class="fa-solid fa-chart-column" style="color:#D97706;margin-right:6px;"></i> Ranking de Concentración de Sedes y Actividades por Localidad (Entre Ríos)
+              </h3>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                Permite priorizar destinos con mayor volumen de sedes y tareas para optimizar costos de traslado y logística de comisiones.
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="text" id="logistica-busqueda-localidad" class="input-clean" style="height:34px;min-height:34px;font-size:12.5px;min-width:220px;" placeholder="Filtrar ciudad..." oninput="filtrarTablaConcentracionLocalidades()">
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="badge badge-ok"><i class="fa-solid fa-check"></i> Realizada</span>
-            <span class="badge badge-alert"><i class="fa-solid fa-clock"></i> Pendiente</span>
-            <span class="badge badge-warn"><i class="fa-solid fa-bolt"></i> Instrumental</span>
+
+          <div style="overflow-x:auto;max-height:72vh;">
+            <table class="t" style="width:100%;margin:0;font-size:12.5px;" id="tabla-logistica-concentracion">
+              <thead style="position:sticky;top:0;background:#F1F5F9;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                <tr>
+                  <th style="width:40px;text-align:center;">#</th>
+                  <th style="min-width:180px;">Localidad / Provincia</th>
+                  <th style="min-width:160px;text-align:center;">Concentración de Sedes</th>
+                  <th style="min-width:120px;text-align:center;">Sedes Críticas (≥1.000 m²)</th>
+                  <th style="min-width:200px;">Organismos Presentes</th>
+                  <th style="min-width:140px;text-align:center;">Avance 1ª Visita</th>
+                  <th style="min-width:220px;">Actividades Pendientes (Backlog Ciudad)</th>
+                  <th style="width:140px;text-align:center;">Operativa</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-concentracion-tbody">
+                <!-- Generado dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SUB-VISTA 2: MATRIZ DETALLADA DE SEDES (HOJA DE RUTA) ==================== -->
+      <div id="contenedor-logistica-detalle" style="display:none;">
+
+        <!-- Barra de Filtros Inteligentes -->
+        <div style="background:#fff;border:1px solid var(--border-table);padding:14px 18px;border-radius:4px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;align-items:center;">
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-location-dot" style="color:var(--primary);margin-right:4px;"></i> Localidad (por concentración):
+              </label>
+              <select id="logistica-filtro-localidad" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+                <option value="">Todas las Localidades</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-building" style="color:#0F4C5C;margin-right:4px;"></i> Organismo:
+              </label>
+              <select id="logistica-filtro-organismo" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" onchange="filtrarVistaLogistica()">
+                <option value="">Todos los Organismos</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-layer-group" style="color:#B91C1C;margin-right:4px;"></i> Criticidad (Superficie):
+              </label>
+              <select id="logistica-filtro-criticidad" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+                <option value="todos">Todas las Superficies</option>
+                <option value="critico">🔴 Sedes Críticas (≥ 1.000 m² - Instrumental)</option>
+                <option value="medio">🟡 Sedes Medianas (300 a 999 m²)</option>
+                <option value="estandar">⚪ Sedes Estándar (< 300 m²)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-filter" style="color:#A8470A;margin-right:4px;"></i> Estado 1ª Visita:
+              </label>
+              <select id="logistica-filtro-estado" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+                <option value="pendientes" selected>⚠️ Pendientes de 1ª Visita (A Planificar)</option>
+                <option value="sin_cv">🚨 Sin Constancia de Visita (CV Faltante)</option>
+                <option value="al_dia">✅ 1ª Visita Completa (Al Día)</option>
+                <option value="todos">Todas las Sedes (Universo)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-arrow-down-wide-short" style="color:#0F4C5C;margin-right:4px;"></i> Orden Logístico:
+              </label>
+              <select id="logistica-orden-criterio" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+                <option value="superficie_desc" selected>📐 Superficie: Mayor a Menor (Críticos Primero)</option>
+                <option value="pendientes_desc">⚠️ Más Acciones Pendientes Primero</option>
+                <option value="localidad_asc">📍 Localidad (A - Z)</option>
+                <option value="organismo_asc">🏛️ Organismo (A - Z)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right:4px;"></i> Búsqueda en Sede / Domicilio:
+              </label>
+              <input type="text" id="logistica-busqueda-texto" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" placeholder="Ej: San Martín, Comisaría, Escuela, 102..." oninput="filtrarVistaLogistica()">
+            </div>
+          </div>
+
+          <!-- Accesos directos: Píldoras de Localidades con más sedes -->
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);margin-right:4px;text-transform:uppercase;">
+              <i class="fa-solid fa-bolt" style="color:#D97706;"></i> Rutas Principales:
+            </span>
+            <div id="logistica-pildoras-localidades" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <!-- Generado dinámicamente -->
+            </div>
           </div>
         </div>
 
-        <div style="overflow-x:auto;max-height:70vh;">
-          <table class="t" style="width:100%;margin:0;font-size:12.5px;" id="tabla-logistica-sedes">
-            <thead style="position:sticky;top:0;background:#F1F5F9;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
-              <tr>
-                <th style="width:38px;text-align:center;">#</th>
-                <th style="min-width:120px;">Localidad</th>
-                <th style="min-width:140px;">Organismo</th>
-                <th style="min-width:210px;">Establecimiento / N°</th>
-                <th style="min-width:220px;">Domicilio Exacto</th>
-                <th style="min-width:140px;text-align:center;">Superficie & Criticidad</th>
-                <th style="min-width:320px;">Acciones Pendientes 1ª Visita (Nomenclatura Docs)</th>
-                <th style="min-width:150px;">Docs Registrados</th>
-                <th style="width:90px;text-align:center;">Acción</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-logistica-tbody">
-              <!-- Filas generadas dinámicamente -->
-            </tbody>
-          </table>
+        <!-- Tabla Operativa de Planificación y Logística -->
+        <div style="background:#fff;border:1px solid var(--border-table);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);overflow:hidden;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border-table);background:#F8F9F7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-main);">
+                <i class="fa-solid fa-table-list" style="color:var(--primary);margin-right:6px;"></i> Matriz de Planificación Logística por Sede
+              </h3>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="logistica-tabla-contador">
+                Cargando sedes...
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" class="chip" onclick="conmutarModoLogistica('concentracion')" style="font-size:11.5px;">
+                <i class="fa-solid fa-arrow-left"></i> Volver a Concentración
+              </button>
+              <span class="badge badge-ok"><i class="fa-solid fa-check"></i> Realizada</span>
+              <span class="badge badge-alert"><i class="fa-solid fa-clock"></i> Pendiente</span>
+              <span class="badge badge-warn"><i class="fa-solid fa-bolt"></i> Instrumental</span>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto;max-height:70vh;">
+            <table class="t" style="width:100%;margin:0;font-size:12.5px;" id="tabla-logistica-sedes">
+              <thead style="position:sticky;top:0;background:#F1F5F9;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                <tr>
+                  <th style="width:38px;text-align:center;">#</th>
+                  <th style="min-width:120px;">Localidad</th>
+                  <th style="min-width:140px;">Organismo</th>
+                  <th style="min-width:210px;">Establecimiento / N°</th>
+                  <th style="min-width:220px;">Domicilio Exacto</th>
+                  <th style="min-width:140px;text-align:center;">Superficie & Criticidad</th>
+                  <th style="min-width:320px;">Acciones Pendientes 1ª Visita (Nomenclatura Docs)</th>
+                  <th style="min-width:150px;">Docs Registrados</th>
+                  <th style="width:90px;text-align:center;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-logistica-tbody">
+                <!-- Filas generadas dinámicamente -->
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
 
     </div>
@@ -2825,7 +2890,7 @@
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
 <script src="reporte_assets.js"></script>
-<script src="portal_app_v2.js?v=20261105_1ra_visita_criticidad_sup"></script>
+<script src="portal_app_v2.js?v=20261105_ranking_concentracion_localidades"></script>
 
 <script>
   // Control responsivo de menú móvil
