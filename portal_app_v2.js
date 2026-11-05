@@ -10883,8 +10883,9 @@ function generarReporteMensualPdf(mesParam, anioParam, tipoReporte = null) {
 
   // ==================== OPCIÓN A: NOTA OFICIAL A CLIENTE (COLONIA SUIZA) ====================
   if (tipoReporte === 'cliente') {
-    const logoHeader = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.encabezadoColoniaSuiza) || 'assets/encabezado_colonia_suiza.png';
-    const firmaImg = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.firmaGuidoDragani) || 'assets/firma_guido_dragani.png';
+    const logoCS = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.logoColoniaSuiza) || 'assets/logo_colonia_suiza_trimmed.png';
+    const contactoCS = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.contactoColoniaSuiza) || 'assets/contacto_colonia_suiza_trimmed.png';
+    const firmaImg = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.firmaGuidoDragani) || 'assets/firma_guido_dragani_trimmed.png';
 
     const clienteHtml = `<!DOCTYPE html>
 <html lang="es">
@@ -10970,13 +10971,18 @@ function generarReporteMensualPdf(mesParam, anioParam, tipoReporte = null) {
   </div>
 
   <div class="page-sheet">
-    <!-- Encabezado Membrete Oficial Colonia Suiza -->
-    <div style="margin-bottom:14px;text-align:center;">
-      <img src="${logoHeader}" style="max-width:100%;height:auto;max-height:85px;display:block;margin:0 auto;" alt="Colonia Suiza" />
+    <!-- Encabezado Membrete Oficial Colonia Suiza: Distribución Extremo a Extremo -->
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;padding-bottom:12px;margin-bottom:12px;border-bottom:2px solid #0F4C5C;">
+      <div style="display:flex;align-items:center;">
+        <img src="${logoCS}" style="height:62px;width:auto;display:block;" alt="Colonia Suiza" />
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;">
+        <img src="${contactoCS}" style="height:46px;width:auto;display:block;" alt="Contacto Colonia Suiza" />
+      </div>
     </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #E2E8F0;padding-top:8px;margin-bottom:16px;font-size:11.5px;color:#475569;">
-      <span><strong>Gestión de Prevención y Seguridad Laboral</strong></span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-size:11.5px;color:#475569;">
+      <span style="font-weight:700;color:#0F4C5C;text-transform:uppercase;letter-spacing:0.5px;">Gestión de Prevención y Seguridad Laboral</span>
       <span style="font-style:italic;">Paraná, Entre Ríos · ${fechaEmisionSoloFecha}</span>
     </div>
 
