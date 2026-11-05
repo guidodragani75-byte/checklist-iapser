@@ -719,6 +719,20 @@ function doGet(e) {
     }
 
 
+    // Diagnosticar archivos en carpeta
+    if (action === "listar_archivos_carpeta") {
+      var folderIdParam = (e.parameter.folderId || "").toString().trim();
+      var fld = DriveApp.getFolderById(folderIdParam);
+      var fileList = [];
+      var fIt = fld.getFiles();
+      while (fIt.hasNext()) {
+        var fi = fIt.next();
+        fileList.push({ id: fi.getId(), name: fi.getName(), size: fi.getSize(), dateCreated: fi.getDateCreated() });
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", folderName: fld.getName(), count: fileList.length, files: fileList }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3m. Eliminar actuaciones, archivos y carpetas de Octubre 2026
     if (action === "eliminar_octubre_2026") {
       var resDel = eliminarOctubre2026Completo();
@@ -1134,6 +1148,46 @@ function doPost(e) {
         message: "Registro eliminado y archivo enviado a papelera correctamente.",
         fileDeleted: fileDeleted,
         rowDeleted: rowDeleted
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ========================================================
+    // CASO 1.6: EDITAR FECHA DE UNA ACTIVIDAD / DOCUMENTO
+    // ========================================================
+    if (data.tipoOperacion === "editar_fecha_actividad") {
+      var edRegId = String(data.registroId || "").trim();
+      var edFileId = String(data.fileId || "").trim();
+      var edFileName = String(data.fileName || "").trim();
+      var edNuevaFecha = String(data.nuevaFecha || "").trim();
+      var fechaEditada = false;
+
+      var sheetLegEd = ss.getSheetByName("Legajo_Actividades_Archivos");
+      if (sheetLegEd && edNuevaFecha && sheetLegEd.getLastRow() > 1) {
+        var dataEd = sheetLegEd.getDataRange().getValues();
+        for (var re = dataEd.length - 1; re >= 1; re--) {
+          var rowEd = dataEd[re];
+          var okEd = (edRegId && String(rowEd[0] || "").trim() === edRegId) ||
+                     (edFileId && String(rowEd[12] || "").trim() === edFileId) ||
+                     (edFileName && String(rowEd[10] || "").trim() === edFileName);
+          if (okEd) {
+            var celdaFecha = sheetLegEd.getRange(re + 1, 3);
+            celdaFecha.setNumberFormat("@");
+            celdaFecha.setValue(edNuevaFecha);
+            try {
+              actualizarMatrizPorActividad(ss, String(rowEd[3] || ""), String(rowEd[5] || ""), String(rowEd[4] || ""),
+                String(rowEd[7] || ""), String(rowEd[8] || "Completado"), edNuevaFecha, String(rowEd[11] || ""));
+            } catch (eMx) {
+              Logger.log("Aviso matriz al editar fecha: " + eMx);
+            }
+            fechaEditada = true;
+            break;
+          }
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        fechaEditada: fechaEditada
       })).setMimeType(ContentService.MimeType.JSON);
     }
 

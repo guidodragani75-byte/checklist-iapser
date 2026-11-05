@@ -196,7 +196,8 @@ const AppState = {
 
   customActivities: [],
   estaSincronizando: false,
-  vistaActividadesModo: (typeof localStorage !== 'undefined' && localStorage.getItem('hys_vista_actividades_modo')) || 'cards' // 'cards' | 'grilla'
+  vistaActividadesModo: (typeof localStorage !== 'undefined' && localStorage.getItem('hys_vista_actividades_modo')) || 'cards', // 'cards' | 'grilla'
+  ultimoEstabSubidoId: (typeof localStorage !== 'undefined' && localStorage.getItem('hys_ultimo_estab_subido')) || null
 };
 if (typeof window !== 'undefined') {
   window.AppState = AppState;
@@ -357,9 +358,6 @@ function cargarCarpetasMensualesLocal() {
             return; // Descartar meses futuros (ej: 2028) o anteriores a 2020
           }
           const canonKey = `${y}-${mon < 10 ? '0' : ''}${mon}`;
-          if (canonKey === '2026-10' || canonKey === '202610') {
-            return; // Descartar carpeta purgada de octubre 2026
-          }
           cleaned[canonKey] = {
             ...item,
             key: canonKey
@@ -621,16 +619,6 @@ function cargarLegajoLocal() {
             if (a.id && String(a.id).startsWith('ACT_PRE_') && (!a.fileUrl || !String(a.fileUrl).trim().startsWith('http'))) {
               return false;
             }
-            // Purgar actuaciones eliminadas de Octubre 2026
-            if (a.fechaActividad && (String(a.fechaActividad).startsWith('2026-10') || String(a.fechaActividad).includes('/10/2026') || String(a.fechaActividad).includes('2026/10'))) {
-              return false;
-            }
-            if (a.monthKey === '202610' || a.monthKey === '2026-10') {
-              return false;
-            }
-            if (a.fileName && a.fileName.includes('_202610')) {
-              return false;
-            }
             return true;
           });
 
@@ -683,6 +671,13 @@ function guardarLegajoLocal() {
   } catch (e) {
     console.error('Error guardando legajo local:', e);
   }
+  // Mantener los contadores de sedes por mes de los filtros siempre al día
+  clearTimeout(window._refrescoSelectoresMesTimer);
+  window._refrescoSelectoresMesTimer = setTimeout(() => {
+    try { if (typeof actualizarSelectorMesesSedes === 'function') actualizarSelectorMesesSedes(); } catch (e) {}
+    try { if (typeof actualizarSelectorMesesMatriz === 'function') actualizarSelectorMesesMatriz(); } catch (e) {}
+    try { if (typeof actualizarChipSedesConGestion === 'function') actualizarChipSedesConGestion(); } catch (e) {}
+  }, 50);
 }
 
 // ==================== CODIFICACIÓN DE ARCHIVOS ====================
@@ -953,6 +948,9 @@ function obtenerActividadesDeSede(e) {
       // Dentro del mismo organismo, verificar si pertenece a esta sede específica
       if (sId && aId && sId === aId) {
         agregarActividad(a);
+      } else if (aId && sId && aId !== sId && AppState.establecimientos[aId]) {
+        // El registro ya está asignado a otra sede concreta: no arrastrarlo por coincidencia de N°
+        return;
       } else if (sNro && aNro && sNro === aNro) {
         agregarActividad(a);
       } else if (!sNro && sNom && aNom && normalizarTextoComparar(sNom) === normalizarTextoComparar(aNom)) {
@@ -1140,6 +1138,13 @@ function renderListaEstablecimientos() {
   // Renderizar en la tabla de la nueva interfaz si existe
   if (tbody) {
     renderizarTablaSedesMaqueta(filtered, tbody);
+  }
+
+  // Auto-selección cuando el filtro de búsqueda coincide con un único establecimiento
+  if (filtered.length === 1 && textFilter && textFilter.length >= 1) {
+    if (!AppState.establecimientoSeleccionado || AppState.establecimientoSeleccionado.id !== filtered[0].id) {
+      seleccionarEstablecimiento(filtered[0].id);
+    }
   }
 
   // Renderizar en lista de tarjetas anterior si existe
@@ -2057,6 +2062,10 @@ function abrirModalDocumentosActividad(catId) {
               <span>Carpeta Mes</span>
             </a>
           ` : ''}
+          <button type="button" onclick="editarFechaActividad('${act.id}', '${est.id}')" style="background:#fff;border:1px solid var(--border-control, #B9BEB8);color:var(--text-main);font-size:11px;padding:5px 8px;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Cambiar la fecha de este documento">
+            <i class="fa-solid fa-calendar-pen"></i>
+            <span>Editar fecha</span>
+          </button>
           <button type="button" onclick="eliminarDocumentoActividad('${act.id}', '${est.id}')" style="background:#fff;border:1px solid #F87171;color:#DC2626;font-size:11px;padding:5px 8px;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Eliminar este documento y registro">
             <i class="fa-solid fa-trash-can"></i>
             <span>Eliminar</span>
@@ -2076,11 +2085,13 @@ function abrirModalDocumentosActividad(catId) {
  * Envía notificación al backend Google Apps Script para enviarlo a la papelera en Drive
  * y borrar la fila de la hoja de cálculo 'Legajo_Actividades_Archivos'.
  */
-async function eliminarDocumentoActividad(regId, estId) {
+async function eliminarDocumentoActividad(regId, estId, skipConfirm = false) {
   if (!regId) return;
 
-  const confirmacion = confirm('¿Estás seguro de que deseas eliminar este documento y limpiar su registro?\n\nEsta acción removerá el registro del establecimiento y enviará el archivo a la papelera de Drive.');
-  if (!confirmacion) return;
+  if (!skipConfirm) {
+    const confirmacion = confirm('¿Estás seguro de que deseas eliminar este documento y limpiar su registro?\n\nEsta acción removerá el registro del establecimiento y enviará el archivo a la papelera de Drive.');
+    if (!confirmacion) return;
+  }
 
   // 1. Localizar el registro y establecimiento correspondiente
   let targetEstId = estId;
@@ -2111,9 +2122,18 @@ async function eliminarDocumentoActividad(regId, estId) {
   }
 
   // 2. Limpiar el registro del estado local y persistir
-  AppState.actividadesRegistradas[targetEstId] = (AppState.actividadesRegistradas[targetEstId] || []).filter(a => 
-    a !== targetItem && a.id !== regId && (!targetItem.id || a.id !== targetItem.id)
-  );
+  // Se quita de TODAS las sedes del almacén (varias sedes comparten N° y organismo, y el mismo
+  // registro puede estar duplicado bajo distintas claves, lo que lo mantenía visible en el modal)
+  Object.keys(AppState.actividadesRegistradas).forEach(k => {
+    if (!Array.isArray(AppState.actividadesRegistradas[k])) return;
+    AppState.actividadesRegistradas[k] = AppState.actividadesRegistradas[k].filter(a => {
+      if (!a) return false;
+      if (a === targetItem) return false;
+      if (a.id && (a.id === regId || a.id === targetItem.id)) return false;
+      if (targetItem.fileId && a.fileId === targetItem.fileId) return false;
+      return true;
+    });
+  });
   guardarLegajoLocal();
 
   // 3. Actualizar vistas locales de inmediato
@@ -2163,9 +2183,15 @@ async function eliminarDocumentoActividad(regId, estId) {
       }).then(r => r.json()).then(res => {
         if (res && res.status === 'success') {
           console.log('✅ Eliminación sincronizada en Google Sheets y Drive:', res);
+          if (res.rowDeleted === false) {
+            mostrarToast('⚠️ Se quitó localmente, pero no se encontró la fila en Google Sheets.');
+          }
+        } else {
+          mostrarToast('⚠️ El servidor no confirmó la eliminación. Reintentá o sincronizá.');
         }
       }).catch(err => {
         console.warn('Aviso sincronización remota eliminación:', err);
+        mostrarToast('⚠️ No se pudo sincronizar la eliminación con Google Sheets.');
       });
     } catch (errPost) {
       console.warn('Error al solicitar eliminación remota:', errPost);
@@ -2173,6 +2199,110 @@ async function eliminarDocumentoActividad(regId, estId) {
   }
 }
 window.eliminarDocumentoActividad = eliminarDocumentoActividad;
+
+function refrescarVistasTrasCambioActividad() {
+  const estActual = AppState.establecimientoSeleccionado;
+  if (estActual) {
+    try { renderPanelActividades(estActual); } catch (e) {}
+    try { actualizarIndicadorLegajo(estActual.id); } catch (e) {}
+  }
+  try { actualizarProgresoGeneral(); } catch (e) {}
+  try { renderRepositorioGlobal(false); } catch (e) {}
+  try { renderMatrizAnual(); } catch (e) {}
+  try { renderDashboard(); } catch (e) {}
+}
+
+/**
+ * Cambia la fecha de un documento/actividad ya registrado (local + Google Sheets).
+ * nuevaFechaIso opcional: si no se pasa, se pide por prompt (dd/mm/aaaa).
+ */
+async function editarFechaActividad(regId, estId, nuevaFechaIso, silencioso = false) {
+  if (!regId) return false;
+
+  let item = null;
+  Object.values(AppState.actividadesRegistradas || {}).some(list => {
+    if (!Array.isArray(list)) return false;
+    item = list.find(a => a && (a.id === regId || (a.fileId && a.fileId === regId) || (a.fileName && a.fileName === regId))) || null;
+    return !!item;
+  });
+  if (!item) {
+    mostrarToast('⚠️ No se encontró el registro para editar.');
+    return false;
+  }
+
+  if (!nuevaFechaIso) {
+    const seguir = confirm('⚠️ Aviso: al cambiar la fecha, el archivo NO se moverá de carpeta en Google Drive.\n\nSolo se actualiza la fecha del registro (y la matriz). El archivo seguirá en la carpeta donde se subió.\n\n¿Querés continuar?');
+    if (!seguir) return false;
+    const actual = formatearFechaDdmmaaa(item.fechaActividad);
+    const entrada = prompt('Nueva fecha del documento (dd/mm/aaaa):', actual === 'S/F' ? '' : actual);
+    if (entrada === null) return false;
+    const m = String(entrada).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (!m || +m[1] < 1 || +m[1] > 31 || +m[2] < 1 || +m[2] > 12) {
+      mostrarToast('⚠️ Fecha inválida. Usá el formato dd/mm/aaaa.');
+      return false;
+    }
+    nuevaFechaIso = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  }
+
+  const mInfo = parsearAnioMesCliente(nuevaFechaIso);
+  const idRef = item.id;
+  const fileIdRef = item.fileId;
+  const fileNameRef = item.fileName;
+
+  // Actualizar todas las copias del mismo registro (puede estar bajo varias sedes)
+  Object.values(AppState.actividadesRegistradas).forEach(list => {
+    if (!Array.isArray(list)) return;
+    list.forEach(a => {
+      if (!a) return;
+      if ((idRef && a.id === idRef) || (fileIdRef && a.fileId === fileIdRef)) {
+        a.fechaActividad = nuevaFechaIso;
+        a.monthKey = mInfo.key;
+        a.monthLabel = mInfo.label;
+        if (AppState.carpetasMensuales[mInfo.key] && AppState.carpetasMensuales[mInfo.key].url) {
+          a.monthFolderUrl = AppState.carpetasMensuales[mInfo.key].url;
+        }
+      }
+    });
+  });
+  guardarLegajoLocal();
+
+  const modalHist = document.getElementById('modal-historial-actividad');
+  if (modalHist && !modalHist.classList.contains('hidden') && item.tipoActividad) {
+    abrirModalDocumentosActividad(item.tipoActividad);
+  }
+  refrescarVistasTrasCambioActividad();
+  if (!silencioso) mostrarToast(`📅 Fecha actualizada a ${formatearFechaDdmmaaa(nuevaFechaIso)}.`);
+
+  const webhookUrl = getWebhookUrl();
+  if (webhookUrl && !webhookUrl.includes('TU_WEBHOOK_URL_AQUI')) {
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          tipoOperacion: 'editar_fecha_actividad',
+          registroId: idRef || '',
+          fileId: fileIdRef || '',
+          fileName: fileNameRef || '',
+          nuevaFecha: nuevaFechaIso
+        })
+      });
+      const json = await res.json();
+      if (!json || json.status !== 'success') {
+        mostrarToast('⚠️ Fecha cambiada localmente; el servidor no confirmó el cambio.');
+        return false;
+      }
+    } catch (err) {
+      console.warn('Aviso sincronización remota edición de fecha:', err);
+      mostrarToast('⚠️ Fecha cambiada localmente; no se pudo sincronizar con Google Sheets.');
+      return false;
+    }
+  }
+  return true;
+}
+window.editarFechaActividad = editarFechaActividad;
+
+
 
 // ==================== VISTA 2: MATRIZ DE CUMPLIMIENTO ANUAL ====================
 
@@ -4000,6 +4130,16 @@ function setupEventListeners() {
       AppState.filtroTexto = e.target.value;
       renderListaEstablecimientos();
     });
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const firstRow = document.querySelector('#tabla-sedes-body tr.sede-row');
+        if (firstRow && firstRow.dataset.estId) {
+          seleccionarEstablecimiento(firstRow.dataset.estId);
+          mostrarToast(`Sede seleccionada: ${firstRow.querySelector('strong')?.textContent || firstRow.dataset.estId}`);
+        }
+      }
+    });
   }
 
   const orgSelect = document.getElementById('filtro-organismo');
@@ -4240,11 +4380,17 @@ function procesarArchivoSeleccionado(file) {
 function mostrarArchivoSeleccionadoUI(file) {
   const dropzone = document.getElementById('dropzone');
   const infoBox = document.getElementById('file-selected-info');
-  const nameLabel = document.getElementById('file-info-name');
-  const sizeLabel = document.getElementById('file-info-size');
+  const nameLabel = document.getElementById('file-name-display') || document.getElementById('file-info-name');
+  const sizeLabel = document.getElementById('file-size-display') || document.getElementById('file-info-size');
 
-  if (dropzone) dropzone.classList.add('hidden');
-  if (infoBox) infoBox.classList.remove('hidden');
+  if (dropzone) {
+    dropzone.classList.add('hidden');
+    dropzone.style.display = 'none';
+  }
+  if (infoBox) {
+    infoBox.classList.remove('hidden');
+    infoBox.style.display = 'flex';
+  }
 
   if (nameLabel) nameLabel.textContent = file.name;
   if (sizeLabel) sizeLabel.textContent = `${(file.size / 1024).toFixed(1)} KB`;
@@ -4733,8 +4879,14 @@ async function guardarActividadYSubir() {
   const progressLabel = document.getElementById('upload-progress-label');
   const btnSubmit = document.getElementById('btn-guardar-actividad');
 
-  if (progressBox) progressBox.classList.remove('hidden');
-  if (btnSubmit) btnSubmit.disabled = true;
+  if (progressBox) {
+    progressBox.classList.remove('hidden');
+    progressBox.style.display = 'block';
+  }
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+  }
 
   animarProgreso(progressBar, progressLabel, 15, 'Preparando metadatos y codificación...');
 
@@ -4823,8 +4975,14 @@ async function guardarActividadYSubir() {
       }
     } else if (result && result.status === 'duplicate_warning') {
       alert(`⚠️ Aviso de Duplicado:\n\n${result.message}`);
-      if (progressBox) progressBox.classList.add('hidden');
-      if (btnSubmit) btnSubmit.disabled = false;
+      if (progressBox) {
+        progressBox.classList.add('hidden');
+        progressBox.style.display = 'none';
+      }
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i>Guardar Actividad';
+      }
       return;
     } else {
       console.warn('Respuesta no exitosa de Apps Script:', result);
@@ -4835,7 +4993,10 @@ async function guardarActividadYSubir() {
     mostrarToast('⚠️ Conexión no disponible. Se guardó copia local.');
   }
 
-  animarProgreso(progressBar, progressLabel, 100, '¡Guardado completado!');
+  animarProgreso(progressBar, progressLabel, 100, '¡Guardado completado exitosamente!');
+  if (btnSubmit) {
+    btnSubmit.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> ¡Guardado!';
+  }
 
   if (!AppState.actividadesRegistradas[est.id]) {
     AppState.actividadesRegistradas[est.id] = [];
@@ -4928,7 +5089,16 @@ window.actualizarProgresoGeneral = actualizarProgresoGeneral;
 
 function animarProgreso(bar, label, targetPercent, text) {
   if (bar) bar.style.width = targetPercent + '%';
-  if (label) label.textContent = `${targetPercent}% - ${text}`;
+  if (label) {
+    const icon = targetPercent >= 100 ? '<i class="fa-solid fa-circle-check" style="color:#16A34A;margin-right:6px;"></i>' : '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>';
+    label.innerHTML = `${icon} ${text}`;
+  }
+  const pctEl = document.getElementById('upload-progress-pct');
+  if (pctEl) pctEl.textContent = `${targetPercent}%`;
+  const sublabel = document.getElementById('upload-progress-sublabel');
+  if (sublabel && targetPercent >= 100) {
+    sublabel.textContent = 'Documento registrado y archivado exitosamente en Google Drive.';
+  }
 }
 
 // ==================== SUBIDA RÁPIDA GENERAL POR ESTABLECIMIENTO ====================
@@ -5195,6 +5365,26 @@ let fastBatchItems = [];
 let fastEstIdActual = null;
 let fastIsUploading = false;
 
+function renderFiltrosOrganismosFast() {
+  const selOrg = document.getElementById('fast-filtro-organismo');
+  if (!selOrg) return;
+
+  const orgs = new Set();
+  Object.values(AppState.establecimientos).forEach(e => {
+    if (e.organismo) orgs.add(e.organismo);
+  });
+
+  const sortedOrgs = Array.from(orgs).sort();
+  selOrg.innerHTML = '<option value="">Todos los Organismos (' + sortedOrgs.length + ')</option>';
+  sortedOrgs.forEach(org => {
+    const opt = document.createElement('option');
+    opt.value = org;
+    opt.textContent = org;
+    selOrg.appendChild(opt);
+  });
+}
+window.renderFiltrosOrganismosFast = renderFiltrosOrganismosFast;
+
 function abrirModalSubidaRapida(estId) {
   const modal = document.getElementById('modal-subida-rapida-general');
   if (!modal) return;
@@ -5206,10 +5396,20 @@ function abrirModalSubidaRapida(estId) {
   }
   fastEstIdActual = targetId;
 
-  // Limpiar buscador y poblar selector de sedes
-  const inputBuscar = document.getElementById('fast-buscar-estab');
-  if (inputBuscar) inputBuscar.value = '';
-  poblarSelectEstablecimientosFast(targetId, '');
+  // Poblar dropdown de organismos en el modal (solo los organismos)
+  renderFiltrosOrganismosFast();
+
+  const est = AppState.establecimientos[fastEstIdActual];
+
+  // Sincronizar filtros: N° Estab y Organismo
+  const inputNro = document.getElementById('fast-filtro-nro');
+  if (inputNro) inputNro.value = (est && est.nroEstab) ? est.nroEstab : '';
+
+  const selOrg = document.getElementById('fast-filtro-organismo');
+  if (selOrg) selOrg.value = (est && est.organismo) ? est.organismo : '';
+
+  // Poblar y sincronizar select de sedes
+  filtrarSelectEstablecimientosFast();
 
   // Resetear input de archivo
   const fileInput = document.getElementById('fast-file-input');
@@ -5266,65 +5466,104 @@ function configurarDragAndDropFast() {
   }, false);
 }
 
-function filtrarSelectEstablecimientosFast(query) {
-  poblarSelectEstablecimientosFast(fastEstIdActual, query);
-}
-window.filtrarSelectEstablecimientosFast = filtrarSelectEstablecimientosFast;
-
-function poblarSelectEstablecimientosFast(selectedId, query = '') {
+function filtrarSelectEstablecimientosFast() {
+  const inputNro = document.getElementById('fast-filtro-nro');
+  const selOrg = document.getElementById('fast-filtro-organismo');
   const sel = document.getElementById('fast-select-estab');
   const countBadge = document.getElementById('fast-estab-count-badge');
-  if (!sel) return;
-  sel.innerHTML = '';
 
-  const q = (query || '').toLowerCase().trim();
+  const valNro = (inputNro?.value || '').trim();
+  const valOrg = (selOrg?.value || '').trim();
+
   const allEsts = Object.values(AppState.establecimientos);
+
   const filtrados = allEsts.filter(e => {
-    if (!q) return true;
-    const matchName = e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(q);
-    const matchOrg = e.organismo && e.organismo.toLowerCase().includes(q);
-    const matchLoc = e.localidad && e.localidad.toLowerCase().includes(q);
-    const matchNro = e.nroEstab && e.nroEstab.toString().includes(q);
-    const matchDom = e.domicilio && e.domicilio.toLowerCase().includes(q);
-    return matchName || matchOrg || matchLoc || matchNro || matchDom;
+    // 1. Filtro Exclusivo por Nro de Establecimiento
+    if (valNro) {
+      if (!e.nroEstab) return false;
+      const numInput = parseInt(valNro, 10);
+      const numEstab = parseInt(e.nroEstab, 10);
+      if (!isNaN(numInput) && !isNaN(numEstab)) {
+        if (numInput !== numEstab) return false;
+      } else {
+        if (String(e.nroEstab).trim().toLowerCase() !== valNro.toLowerCase()) return false;
+      }
+    }
+
+    // 2. Filtro estricto por Organismo (solo organismos)
+    if (valOrg) {
+      if (e.organismo !== valOrg && !sonOrganismosCoincidentes(e.organismo, valOrg)) return false;
+    }
+
+    return true;
   });
 
   if (countBadge) {
     countBadge.textContent = `${filtrados.length} sedes`;
   }
 
+  if (!sel) return;
+  sel.innerHTML = '';
+
   if (filtrados.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
     opt.textContent = 'No se encontraron sedes coincidentes';
     sel.appendChild(opt);
-    actualizarSedeHeaderFast();
+    actualizarSedeHeaderFast(null);
     return;
   }
 
-  let idEncontrado = false;
+  // Si se ingresó un N° específico y hay exactamente 1 coincidencia, auto-seleccionarlo directamente
+  if (valNro && filtrados.length === 1) {
+    fastEstIdActual = filtrados[0].id;
+  } else {
+    // Si el actual sigue en la lista filtrada, mantenerlo; sino tomar el primero
+    const existeActual = filtrados.some(e => e.id === fastEstIdActual);
+    if (!existeActual && filtrados.length > 0) {
+      fastEstIdActual = filtrados[0].id;
+    }
+  }
+
   filtrados.forEach(e => {
     const opt = document.createElement('option');
     opt.value = e.id;
-    opt.textContent = `${e.nroEstab ? '#' + e.nroEstab + ' - ' : ''}${e.nombreEstablecimiento} (${e.organismo} | ${e.localidad})`;
-    if (e.id === selectedId) {
+    opt.textContent = `${e.nroEstab ? '#' + String(e.nroEstab).padStart(3, '0') + ' - ' : ''}${e.nombreEstablecimiento} (${e.organismo} | ${e.localidad || 'Entre Ríos'})`;
+    if (e.id === fastEstIdActual) {
       opt.selected = true;
-      idEncontrado = true;
     }
     sel.appendChild(opt);
   });
 
-  if (!idEncontrado && filtrados.length > 0) {
-    fastEstIdActual = filtrados[0].id;
-    sel.value = fastEstIdActual;
-  }
-
+  sel.value = fastEstIdActual;
   actualizarSedeHeaderFast();
 
   // Actualizar previews de nombres codificados en todos los items del lote
   if (fastBatchItems && fastBatchItems.length > 0) {
     fastBatchItems.forEach(it => actualizarPreviewItemLote(it));
   }
+}
+window.filtrarSelectEstablecimientosFast = filtrarSelectEstablecimientosFast;
+
+function limpiarFiltrosSedeFast() {
+  const inputNro = document.getElementById('fast-filtro-nro');
+  const selOrg = document.getElementById('fast-filtro-organismo');
+  if (inputNro) inputNro.value = '';
+  if (selOrg) selOrg.value = '';
+  filtrarSelectEstablecimientosFast();
+}
+window.limpiarFiltrosSedeFast = limpiarFiltrosSedeFast;
+
+function manejarEnterFiltroNroFast(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    filtrarSelectEstablecimientosFast();
+  }
+}
+window.manejarEnterFiltroNroFast = manejarEnterFiltroNroFast;
+
+function poblarSelectEstablecimientosFast(selectedId, query = '') {
+  filtrarSelectEstablecimientosFast();
 }
 
 function cambiarSedeEnSubidaRapida(newEstId) {
@@ -5337,24 +5576,32 @@ function cambiarSedeEnSubidaRapida(newEstId) {
 }
 window.cambiarSedeEnSubidaRapida = cambiarSedeEnSubidaRapida;
 
-function actualizarSedeHeaderFast() {
-  const est = AppState.establecimientos[fastEstIdActual];
+function actualizarSedeHeaderFast(forzadoEst = undefined) {
+  const est = (forzadoEst !== undefined) ? forzadoEst : AppState.establecimientos[fastEstIdActual];
   const infoNom = document.getElementById('fast-info-nombre');
   const infoCuit = document.getElementById('fast-info-cuit');
   const infoLoc = document.getElementById('fast-info-loc');
+  const alertaMismo = document.getElementById('fast-mismo-estab-alerta');
 
   if (!est) {
-    if (infoNom) infoNom.textContent = 'Seleccioná un establecimiento';
+    if (infoNom) infoNom.textContent = 'Ningún establecimiento seleccionado';
     if (infoCuit) infoCuit.textContent = 'CUIT: -';
     if (infoLoc) infoLoc.textContent = 'Localidad: -';
+    if (alertaMismo) alertaMismo.style.display = 'none';
     return;
   }
 
   if (infoNom) {
-    infoNom.textContent = `${est.nroEstab ? '#' + est.nroEstab + ' - ' : ''}${est.nombreEstablecimiento} (${est.organismo})`;
+    infoNom.textContent = `${est.nroEstab ? '#' + String(est.nroEstab).padStart(3, '0') + ' - ' : ''}${est.nombreEstablecimiento} (${est.organismo})`;
   }
   if (infoCuit) infoCuit.textContent = `CUIT: ${est.cuit || 'S/D'}`;
   if (infoLoc) infoLoc.textContent = `Localidad: ${est.localidad || 'S/D'}`;
+
+  // Alerta preventiva si es el mismo de la última subida
+  if (alertaMismo) {
+    const esMismoAnterior = Boolean(AppState.ultimoEstabSubidoId && est.id === AppState.ultimoEstabSubidoId);
+    alertaMismo.style.display = esMismoAnterior ? 'block' : 'none';
+  }
 }
 
 function generarOpcionesActividades(selectedId) {
@@ -5774,6 +6021,25 @@ async function guardarLoteSubidaRapida() {
     it.fechaDdmmaaa = formatearFechaDdmmaaa(iso);
   }
 
+  // Validación y confirmación explícita del establecimiento destino para evitar subidas involuntarias
+  const nroStr = est.nroEstab ? `#${String(est.nroEstab).padStart(3, '0')} - ` : '';
+  const esMismoAnterior = Boolean(AppState.ultimoEstabSubidoId && est.id === AppState.ultimoEstabSubidoId);
+
+  let confirmMsg = `¿CONFIRMAR SUBIDA DE ${fastBatchItems.length} DOCUMENTO(S)?\n\n` +
+    `📍 Sede Destino: ${nroStr}${est.nombreEstablecimiento}\n` +
+    `🏢 Organismo: ${est.organismo}\n` +
+    `📌 Localidad: ${est.localidad || 'S/D'}\n`;
+
+  if (esMismoAnterior) {
+    confirmMsg += `\n⚠️ ATENCIÓN: Es la MISMA sede donde subiste en la carga anterior.\n`;
+  }
+
+  confirmMsg += `\nPresioná ACEPTAR para iniciar la subida o CANCELAR para revisar la sede de destino.`;
+
+  if (!window.confirm(confirmMsg)) {
+    return;
+  }
+
   // Detección previa de duplicados en la cola para esta sede
   const duplicadosEncontrados = [];
   fastBatchItems.forEach(it => {
@@ -5996,6 +6262,12 @@ async function guardarLoteSubidaRapida() {
 
   fastIsUploading = false;
   if (btnGuardar) btnGuardar.disabled = false;
+
+  // Registrar último establecimiento subido para alertas preventivas
+  AppState.ultimoEstabSubidoId = est.id;
+  try {
+    localStorage.setItem('hys_ultimo_estab_subido', est.id);
+  } catch (e) {}
 
   mostrarToast(`🎉 ¡Bloque de ${exitosos} documento(s) subido con éxito a la sede ${est.nroEstab ? '#' + est.nroEstab : ''}!`);
 
@@ -8151,8 +8423,13 @@ function actualizarFichaLateralMaqueta(est) {
     }
   }
 
-  // Asignar ID para la subida lateral
+  // Asignar ID para la subida lateral y reflejarlo en el botón
   window.fastEstIdActual = est.id;
+  const btnSubidaLatTxt = document.getElementById('btn-lateral-subida-masiva-txt');
+  if (btnSubidaLatTxt) {
+    const nroTxt = est.nroEstab ? `#${String(est.nroEstab).padStart(3, '0')}` : `#${est.id}`;
+    btnSubidaLatTxt.textContent = `Subida Masiva a ${nroTxt}`;
+  }
 }
 window.actualizarFichaLateralMaqueta = actualizarFichaLateralMaqueta;
 

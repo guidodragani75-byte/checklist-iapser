@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -1367,8 +1367,8 @@
               <i class="fa-solid fa-expand" style="color:var(--primary)"></i> Ver todas en pantalla completa
             </button>
           
-            <button type="button" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="width:100%;font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Subida rápida por lote con OCR para esta sede">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Subida Masiva (OCR)
+            <button type="button" id="btn-lateral-subida-masiva" class="chip" onclick="abrirModalSubidaRapida(AppState.establecimientoSeleccionado?.id)" style="width:100%;font-weight:600;background:var(--alert-bg);border-color:var(--alert);color:var(--alert);display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Subida rápida por lote con OCR para esta sede">
+              <i class="fa-solid fa-cloud-arrow-up"></i> <span id="btn-lateral-subida-masiva-txt">Subida Masiva (OCR)</span>
             </button>
             <button type="button" class="chip" onclick="descargarZipSedeActual()" style="width:100%;font-weight:600;background:#F0F4F8;border-color:#C9D6DA;color:#0F4C5C;display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;font-size:12px;margin-top:6px;" title="Descargar paquete ZIP con todos los documentos técnicos de esta sede">
               <i class="fa-solid fa-file-zipper" style="color:#0F4C5C;"></i> Descargar Legajo en ZIP
@@ -2022,12 +2022,17 @@
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Soporta PDF, Word, Excel o imágenes (hasta 25 MB)</div>
         </div>
 
-        <div id="file-selected-info" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:#E3EDEF;border:1px solid #C9D6DA;margin-top:8px;border-radius:2px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <i class="fa-solid fa-file-pdf" style="color:var(--alert);font-size:18px;"></i>
-            <span id="file-name-display" style="font-size:12px;font-weight:600;">archivo.pdf</span>
+        <div id="file-selected-info" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:#E3EDEF;border:1.5px solid #C9D6DA;margin-top:8px;border-radius:3px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-file-pdf" style="color:var(--alert);font-size:22px;"></i>
+            <div>
+              <div id="file-name-display" style="font-size:12.5px;font-weight:700;color:var(--text-main);">archivo.pdf</div>
+              <div id="file-size-display" style="font-size:11px;color:var(--text-muted);">0 KB</div>
+            </div>
           </div>
-          <button type="button" onclick="quitarArchivoSeleccionado()" style="border:none;background:none;color:var(--alert);cursor:pointer;font-weight:600;">&times; Quitar</button>
+          <button type="button" onclick="quitarArchivoSeleccionado()" style="border:none;background:none;color:var(--alert);cursor:pointer;font-weight:700;font-size:12px;display:flex;align-items:center;gap:4px;">
+            <i class="fa-solid fa-trash-can"></i> Quitar
+          </button>
         </div>
       </div>
 
@@ -2035,6 +2040,22 @@
       <div style="padding:10px 14px;background:#F7F8F6;border:1px solid var(--border-table);border-radius:2px;">
         <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Nombre estandarizado para Google Drive:</div>
         <div id="modal-act-preview-nombre" class="m" style="font-size:12px;color:var(--primary);margin-top:3px;word-break:break-all;">-</div>
+      </div>
+
+      <!-- Barra de Progreso y Estado de Guardado en Google Drive -->
+      <div id="upload-progress-box" class="hidden" style="display:none;background:var(--primary-light);border:1.5px solid #C4DDE2;border-radius:3px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">
+          <span id="upload-progress-label">
+            <i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> Subiendo a Google Drive...
+          </span>
+          <span id="upload-progress-pct" style="font-weight:700;">0%</span>
+        </div>
+        <div style="width:100%;height:8px;background:#CBD5E1;border-radius:9999px;overflow:hidden;">
+          <div id="upload-progress-bar" style="height:100%;width:0%;background:var(--primary);border-radius:9999px;transition:width 0.3s ease;"></div>
+        </div>
+        <div id="upload-progress-sublabel" style="font-size:11px;color:var(--text-muted);margin-top:6px;">
+          Transmitiendo archivo a Google Drive y asentando registro en Google Sheets...
+        </div>
       </div>
 
     </div>
@@ -2094,30 +2115,69 @@
 
     <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;max-height:calc(85vh - 130px);">
       
-      <!-- 1. Selector de Sede con Busqueda Integrada -->
+      <!-- 1. Selector de Sede con Filtros Directos (N° Exclusivo, Organismo y Buscador) -->
       <div style="background:#F7F8F6;border:1px solid var(--border-table);padding:14px;border-radius:2px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <strong style="font-size:12px;text-transform:uppercase;color:var(--text-main);"><i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px;"></i>1. Seleccionar Establecimiento Destino *</strong>
-          <span id="fast-estab-count-badge" class="chip on" style="font-size:11px;padding:2px 8px;">452 sedes</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong style="font-size:12px;text-transform:uppercase;color:var(--text-main);display:flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-building" style="color:var(--primary);"></i> 1. Seleccionar Establecimiento Destino *
+          </strong>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="fast-estab-count-badge" class="chip on" style="font-size:11px;padding:2px 8px;">452 sedes</span>
+            <button type="button" class="chip" onclick="limpiarFiltrosSedeFast()" style="font-size:11px;padding:2px 8px;cursor:pointer;font-weight:600;" title="Limpiar filtros para ver todas las sedes">
+              <i class="fa-solid fa-rotate-left" style="margin-right:3px;"></i> Limpiar filtros
+            </button>
+          </div>
         </div>
         
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
-          <div style="position:relative;">
-            <input type="text" id="fast-buscar-estab" placeholder="Escribí para buscar (ej: 102, Escuela, CGE)..." class="input-clean" style="width:100%;" oninput="filtrarSelectEstablecimientosFast(this.value)">
-          </div>
+        <!-- Fila de Filtros Clave: N° Estab Exclusivo y Organismo -->
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:12px;margin-bottom:10px;">
           <div>
-            <select id="fast-select-estab" class="input-clean" style="width:100%;font-weight:600;" onchange="cambiarSedeEnSubidaRapida(this.value)">
-              <!-- Opciones cargadas dinamicamente -->
+            <label style="font-size:11px;font-weight:700;color:var(--primary);display:block;margin-bottom:3px;">
+              <i class="fa-solid fa-hashtag"></i> N° Estab. <span style="color:var(--alert);font-size:10px;">(Exclusivo)</span>
+            </label>
+            <input type="text" id="fast-filtro-nro" placeholder="Ej: 58" class="input-clean" style="width:100%;font-weight:700;color:var(--primary);background:#fff;border-color:var(--primary);" oninput="filtrarSelectEstablecimientosFast()" onkeydown="manejarEnterFiltroNroFast(event)" title="Ingresá el N° exacto de establecimiento para seleccionarlo directamente">
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--primary);display:block;margin-bottom:3px;">
+              <i class="fa-solid fa-sitemap"></i> Organismo
+            </label>
+            <select id="fast-filtro-organismo" class="input-clean" style="width:100%;font-weight:600;background:#fff;" onchange="filtrarSelectEstablecimientosFast()">
+              <option value="">Todos los Organismos</option>
             </select>
           </div>
         </div>
 
-        <div id="fast-estab-info-strip" style="margin-top:8px;padding:8px 12px;background:#fff;border:1px solid var(--border-table);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-          <span id="fast-info-nombre" style="font-weight:600;color:var(--primary);">Seleccioná un establecimiento</span>
-          <div style="display:flex;gap:12px;color:var(--text-muted);font-size:11px;">
-            <span id="fast-info-cuit">CUIT: -</span>
-            <span>*</span>
-            <span id="fast-info-loc">Localidad: -</span>
+        <!-- Dropdown de Sedes Coincidentes -->
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:3px;">
+            Establecimiento de destino:
+          </label>
+          <select id="fast-select-estab" class="input-clean" style="width:100%;font-weight:600;background:#fff;" onchange="cambiarSedeEnSubidaRapida(this.value)">
+            <!-- Opciones cargadas dinamicamente -->
+          </select>
+        </div>
+
+        <!-- Banner de Confirmación Destino -->
+        <div id="fast-estab-info-strip" style="margin-top:8px;padding:10px 12px;background:#fff;border:1.5px solid var(--primary);border-radius:3px;display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;text-transform:uppercase;background:var(--primary);color:#fff;font-weight:700;padding:2px 7px;border-radius:2px;">
+                <i class="fa-solid fa-circle-check"></i> Sede Destino Activa
+              </span>
+              <span id="fast-info-nombre" style="font-weight:700;color:var(--primary);font-size:13px;">Seleccioná un establecimiento</span>
+            </div>
+            <div style="display:flex;gap:12px;color:var(--text-muted);font-size:11px;">
+              <span id="fast-info-cuit">CUIT: -</span>
+              <span>•</span>
+              <span id="fast-info-loc">Localidad: -</span>
+            </div>
+          </div>
+
+          <!-- Alerta preventiva si es el mismo de la última subida -->
+          <div id="fast-mismo-estab-alerta" style="display:none;font-size:11.5px;color:#854D0E;background:#FEF9C3;border:1px solid #FDE047;padding:6px 10px;border-radius:2px;margin-top:2px;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right:5px;color:#CA8A04;"></i>
+            <strong>Aviso de control:</strong> Esta sede es la misma donde subiste en la carga anterior. Si vas a cargar en otra sede, ingresá su <strong>N° Estab</strong> o el selector arriba antes de subir.
           </div>
         </div>
       </div>
@@ -2428,7 +2488,7 @@
 
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
-<script src="portal_app_v2.js?v=20261104_purge_octubre_2026"></script>
+<script src="portal_app_v2.js?v=20261105_solo_editar_fecha"></script>
 
 <script>
   // Control responsivo de menú móvil
