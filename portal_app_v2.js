@@ -10645,11 +10645,54 @@ function exportarMetricasConsolidadas() {
 window.exportarMetricasConsolidadas = exportarMetricasConsolidadas;
 
 /**
- * Genera y descarga/imprime el informe ejecutivo oficial del mes en formato PDF
+ * Abre el modal para seleccionar el tipo de reporte PDF (Nota a Cliente o Reporte Ejecutivo)
+ */
+function abrirModalSelectorReportePdf(mesParam, anioParam) {
+  let mes = mesParam;
+  if (!mes || mes === 'todos') {
+    const selMes = document.getElementById('filtro-mes')?.value;
+    const selMetr = document.getElementById('metricas-filtro-mes')?.value;
+    mes = (selMes && selMes !== 'todos') ? selMes : ((selMetr && selMetr !== 'todos') ? selMetr : AppState.filtroMes);
+  }
+  const anio = anioParam || AppState.matrizAnio || '2026';
+  window._reporteTargetMes = mes;
+  window._reporteTargetAnio = anio;
+
+  const mesNum = parseInt(mes, 10);
+  const mesIdx = isNaN(mesNum) ? (new Date().getMonth()) : mesNum - 1;
+  const mesNombre = MESES_NOMBRES[mesIdx] || 'Mes actual';
+
+  const sub = document.getElementById('modal-selector-reporte-sub');
+  if (sub) {
+    sub.textContent = `Período evaluado: ${mesNombre} ${anio}`;
+  }
+
+  const modal = document.getElementById('modal-selector-tipo-reporte');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+}
+window.abrirModalSelectorReportePdf = abrirModalSelectorReportePdf;
+
+function ejecutarGeneracionReporte(tipo) {
+  cerrarModal('modal-selector-tipo-reporte');
+  generarReporteMensualPdf(window._reporteTargetMes, window._reporteTargetAnio, tipo);
+}
+window.ejecutarGeneracionReporte = ejecutarGeneracionReporte;
+
+/**
+ * Genera y descarga/imprime el informe del mes en formato PDF
  * @param {string} mesParam Código de mes '01' a '12' (opcional)
  * @param {string} anioParam Año '2026' (opcional)
+ * @param {string} tipoReporte 'cliente' | 'ejecutivo' (si se omite, abre el selector modal)
  */
-function generarReporteMensualPdf(mesParam, anioParam) {
+function generarReporteMensualPdf(mesParam, anioParam, tipoReporte = null) {
+  if (!tipoReporte) {
+    abrirModalSelectorReportePdf(mesParam, anioParam);
+    return;
+  }
+
   // 1. Determinar el mes seleccionado
   let mes = mesParam;
   if (!mes || mes === 'todos') {
@@ -10748,6 +10791,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
   const ahora = new Date();
   const fechaEmision = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
                        ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const fechaEmisionSoloFecha = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   // Filas tabla detallada de sedes
   let filasSedesHtml = '';
@@ -10767,14 +10811,25 @@ function generarReporteMensualPdf(mesParam, anioParam) {
 
       const tareasBadges = item.acts.map(a => {
         const cat = CATALOGO_ACTIVIDADES[normalizarTipoActividad(a.tipoActividad)] || CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
-        return `<span style="display:inline-block;background:#E3EDEF;color:#0F4C5C;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:2px;margin:1px;">${cat.codigo || 'DOC'}</span>`;
+        const cod = cat.codigo || 'DOC';
+        let bg = '#E3EDEF';
+        let col = '#0F4C5C';
+        if (cod === 'CV') { bg = '#E0F2FE'; col = '#0369A1'; }
+        else if (cod === 'AGUA_TOMA') { bg = '#DCFCE7'; col = '#15803D'; }
+        else if (cod === 'AGUA_PROTOCOLO') { bg = '#DBEAFE'; col = '#1D4ED8'; }
+        else if (cod.includes('ILUM')) { bg = '#FEF3C7'; col = '#B45309'; }
+        else if (cod === 'PAT') { bg = '#FEF9C3'; col = '#854D0E'; }
+        else if (cod === 'RUIDO') { bg = '#F3E8FF'; col = '#7E22CE'; }
+        else if (cod === 'RGRL' || cod === 'RAR') { bg = '#DCFCE7'; col = '#166534'; }
+        else if (cod.includes('886') || cod.includes('ERGO')) { bg = '#FEE2E2'; col = '#B91C1C'; }
+        return `<span style="display:inline-block;background:${bg};color:${col};font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:2px;margin:1px;border:1px solid ${col}25;">${cod}</span>`;
       }).join(' ');
 
       const fechaFmt = item.ultimaFecha ? formatearFechaDdmmaaa(item.ultimaFecha) : '-';
 
       filasSedesHtml += `
         <tr style="border-bottom:1px solid #E3E5E1;">
-          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;">${nro}</td>
+          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;text-align:center;">${nro}</td>
           <td style="padding:6px 8px;">
             <strong>${escapeHtml(e.nombreEstablecimiento)}</strong>
             <div style="font-size:10px;color:#5B6670;">${escapeHtml(e.domicilio || '')}</div>
@@ -10783,7 +10838,7 @@ function generarReporteMensualPdf(mesParam, anioParam) {
           <td style="padding:6px 8px;font-size:10.5px;">${escapeHtml(e.localidad || '-')}</td>
           <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10px;">${sup}</td>
           <td style="padding:6px 8px;">${tareasBadges}</td>
-          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap;">${fechaFmt}</td>
+          <td style="padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap;text-align:center;">${fechaFmt}</td>
         </tr>
       `;
     });
@@ -10826,6 +10881,181 @@ function generarReporteMensualPdf(mesParam, anioParam) {
     return;
   }
 
+  // ==================== OPCIÓN A: NOTA OFICIAL A CLIENTE (COLONIA SUIZA) ====================
+  if (tipoReporte === 'cliente') {
+    const logoHeader = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.encabezadoColoniaSuiza) || 'assets/encabezado_colonia_suiza.png';
+    const firmaImg = (window.ASSETS_REPORTE && window.ASSETS_REPORTE.firmaGuidoDragani) || 'assets/firma_guido_dragani.png';
+
+    const clienteHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Nota a Cliente — ${mesNombre} ${anio} · Colonia Suiza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 14mm 14mm 14mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #17202A;
+      margin: 0;
+      padding: 0;
+      background: #F1F5F9;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page-sheet {
+      max-width: 210mm;
+      margin: 16px auto;
+      background: #ffffff;
+      padding: 16mm 18mm 18mm 18mm;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      border-radius: 3px;
+    }
+    @media print {
+      body { background: #ffffff !important; }
+      .page-sheet {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+      .no-print { display: none !important; }
+      tr { page-break-inside: avoid; }
+      .bloque-firma { page-break-inside: avoid; }
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 10px;
+    }
+    .report-table th {
+      background: #0F4C5C;
+      color: #ffffff;
+      padding: 8px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid #0B3D4A;
+    }
+    .report-table td {
+      padding: 6px 8px;
+      border: 1px solid #D5D8D3;
+      vertical-align: middle;
+      font-size: 10.5px;
+    }
+    .report-table tr:nth-child(even) td {
+      background-color: #F8FAFC;
+    }
+  </style>
+</head>
+<body>
+  <!-- Barra flotante de acciones -->
+  <div class="no-print" style="position:fixed;top:14px;right:16px;z-index:9999;display:flex;gap:8px;background:rgba(15,76,92,0.95);padding:8px 12px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+    <button onclick="window.print()" style="background:#22C55E;color:#fff;border:none;padding:7px 14px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      <i class="fa-solid fa-print"></i> Imprimir / Guardar como PDF
+    </button>
+    <button onclick="window.close()" style="background:#fff;color:#0F4C5C;border:none;padding:7px 12px;border-radius:4px;font-weight:600;font-size:12px;cursor:pointer;">
+      Cerrar
+    </button>
+  </div>
+
+  <div class="page-sheet">
+    <!-- Encabezado Membrete Oficial Colonia Suiza -->
+    <div style="margin-bottom:14px;text-align:center;">
+      <img src="${logoHeader}" style="max-width:100%;height:auto;max-height:85px;display:block;margin:0 auto;" alt="Colonia Suiza" />
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #E2E8F0;padding-top:8px;margin-bottom:16px;font-size:11.5px;color:#475569;">
+      <span><strong>Gestión de Prevención y Seguridad Laboral</strong></span>
+      <span style="font-style:italic;">Paraná, Entre Ríos · ${fechaEmisionSoloFecha}</span>
+    </div>
+
+    <!-- Cuerpo de la Nota Oficial -->
+    <div style="font-size:13px;line-height:1.6;color:#1E293B;margin-bottom:16px;">
+      <p style="margin:0 0 10px 0;font-weight:700;font-size:14px;">Estimado cliente:</p>
+      <p style="margin:0 0 14px 0;">
+        Por medio de la presente, nos dirigimos a usted con el fin de informarle la gestión de higiene y seguridad realizada en los Organismos que se detallan en <strong>${mesNombre} ${anio}</strong>.
+      </p>
+
+      <p style="margin:0 0 6px 0;font-weight:700;color:#0F4C5C;font-size:11.5px;text-transform:uppercase;letter-spacing:0.5px;">
+        <i class="fa-solid fa-building-user" style="margin-right:4px;"></i> Empleadores incluídos:
+      </p>
+      <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:4px solid #0F4C5C;padding:10px 14px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;color:#334155;margin-bottom:16px;">
+        <div>30707558691 UNIVERSIDAD AUTÓNOMA DE ENTRE RÍOS</div>
+        <div>30681122334 MINISTERIO DE GOBIERNO Y TRABAJO DE LA PROVINCIA DE ENTRE RÍOS</div>
+        <div>30712147829 ADMINISTRADORA TRIBUTARIA DE LA PROVINCIA DE ENTRE RÍOS</div>
+        <div>30671208710 CAJA DE JUBILACIÓN Y PENSIONES ENTRE RÍOS</div>
+        <div>30707404309 TRIBUNAL DE CUENTAS DE ENTRE RÍOS</div>
+        <div>30710656890 DIRECCIÓN DE ADMINISTRACIÓN SECRETARÍA DE ENERGÍA</div>
+        <div>30709064424 INSTITUTO DE CONTROL DE ALIMENTOS, MEDICAMENTOS Y BROMATOLOGÍA</div>
+        <div>30707591885 ENTE DE PROMOCIÓN DE LA PRODUCCIÓN Y EL EMPLEO</div>
+        <div>30671198081 JEFATURA DE POLICÍA DE LA PROVINCIA DE ENTRE RIOS</div>
+        <div>30681125236 MINISTERIO DE SALUD DE ENTRE RÍOS</div>
+      </div>
+
+      <p style="margin:0 0 12px 0;">
+        En el marco del plan anual de Higiene y Seguridad correspondiente a los 10 CUIT del Gobierno de la Provincia de Entre Ríos, se llevaron a cabo las siguientes acciones:
+      </p>
+    </div>
+
+    <!-- Grilla detalle por sede -->
+    <div style="margin-bottom:20px;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width:36px;text-align:center;">N.º</th>
+            <th>Establecimiento / Domicilio</th>
+            <th>Organismo</th>
+            <th>Localidad</th>
+            <th style="text-align:right;width:65px;">m²</th>
+            <th>Tareas Realizadas</th>
+            <th style="width:75px;text-align:center;">Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filasSedesHtml}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bloque de Firma Oficial -->
+    <div class="bloque-firma" style="margin-top:28px;display:flex;justify-content:flex-end;">
+      <div style="text-align:center;min-width:240px;">
+        <img src="${firmaImg}" style="max-height:85px;width:auto;display:block;margin:0 auto 4px auto;" alt="Firma Ing. Guido J. Dragani" />
+        <div style="font-weight:700;font-size:13px;color:#0F172A;">Ing Guido J Dragani</div>
+        <div style="font-size:11px;color:#475569;">Gerente de Prevención</div>
+        <div style="font-size:11px;color:#475569;">Colonia Suiza</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(() => {
+        window.print();
+      }, 600);
+    };
+  <\/script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(clienteHtml);
+    printWindow.document.close();
+    return;
+  }
+
+  // ==================== OPCIÓN B: REPORTE EJECUTIVO COMPLETO (IAPSER ART) ====================
   const reportHtml = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11213,6 +11443,8 @@ function generarReporteMensualPdf(mesParam, anioParam) {
   printWindow.document.close();
 }
 window.generarReporteMensualPdf = generarReporteMensualPdf;
+window.generarReporteClientePdf = (mes, anio) => generarReporteMensualPdf(mes, anio, 'cliente');
+window.generarReporteEjecutivoPdf = (mes, anio) => generarReporteMensualPdf(mes, anio, 'ejecutivo');
 
 function actualizarSelectorMesesSedes() {
   const selectSedes = document.getElementById('filtro-mes');
