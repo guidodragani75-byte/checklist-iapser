@@ -3681,6 +3681,9 @@ function abrirModalRegistrarActividad(actividadId) {
   }
 
   // Ocultar etiquetas y badges de detección previa
+  window._fechaFijadaPorNombre = null;
+  window._tipoFijadoPorNombre = null;
+
   const tagTipoOcr = document.getElementById('act-tipo-detectado-tag');
   if (tagTipoOcr) tagTipoOcr.style.display = 'none';
 
@@ -3697,6 +3700,29 @@ function abrirModalRegistrarActividad(actividadId) {
   if (badgeOcr) {
     badgeOcr.classList.add('hidden');
     badgeOcr.style.display = 'none';
+  }
+
+  const statusAnalisis = document.getElementById('act-file-analisis-status');
+  if (statusAnalisis) statusAnalisis.style.display = 'none';
+
+  const estabBadge = document.getElementById('modal-act-estab-badge');
+  if (estabBadge) estabBadge.style.display = 'none';
+
+  const progressBox = document.getElementById('upload-progress-box');
+  if (progressBox) {
+    progressBox.classList.add('hidden');
+    progressBox.style.display = 'none';
+    progressBox.classList.remove('upload-box-active');
+  }
+  const progressBar = document.getElementById('upload-progress-bar');
+  if (progressBar) {
+    progressBar.style.width = '0%';
+    progressBar.classList.remove('progress-bar-animated-stripes');
+  }
+  const btnSubmit = document.getElementById('btn-guardar-actividad');
+  if (btnSubmit) {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i>Guardar Actividad';
   }
 
   const cat = CATALOGO_ACTIVIDADES[currentActividadModal] || {
@@ -4334,6 +4360,8 @@ function setupEventListeners() {
 }
 
 function procesarArchivoSeleccionado(file) {
+  if (!file) return;
+
   const maxMb = 25;
   if (file.size > maxMb * 1024 * 1024) {
     alert(`⚠️ El archivo pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB. El límite recomendado para subida a Google Apps Script es de ${maxMb} MB. Si es posible, comprime el PDF antes de subirlo.`);
@@ -4351,17 +4379,103 @@ function procesarArchivoSeleccionado(file) {
     ext: ext
   };
 
+  window._fechaFijadaPorNombre = null;
+  window._tipoFijadoPorNombre = null;
+
+  mostrarArchivoSeleccionadoUI(file);
+
+  // 1. ANÁLISIS DE ALTA PRIORIDAD: METADATOS DEL NOMBRE DE ARCHIVO
+  const metaNombre = extraerMetadataDeNombreArchivo(file.name);
+
+  // A. Reconocimiento de Sede / N° Establecimiento desde el nombre (ej: POL_040, 058, Estab 40)
+  const estabBadge = document.getElementById('modal-act-estab-badge');
+  if (metaNombre && metaNombre.nroEstab) {
+    const estActual = AppState.establecimientoSeleccionado;
+    const nroActual = estActual && estActual.nroEstab ? String(parseInt(estActual.nroEstab, 10)) : null;
+    const nroDetectado = metaNombre.nroEstab;
+
+    if (nroActual && nroActual === nroDetectado) {
+      if (estabBadge) {
+        estabBadge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Sede #${metaNombre.nroEstab} verificada con archivo`;
+        estabBadge.style.display = 'inline-flex';
+      }
+    } else {
+      const matchEst = buscarEstablecimientoPorNro(metaNombre.nroEstab, estActual ? estActual.organismo : null);
+      if (matchEst) {
+        const nomOrg = matchEst.organismo || '';
+        const nomSede = matchEst.nombreEstablecimiento || '';
+        const cambiar = confirm(`📄 En el nombre del archivo se detectó la sede #${metaNombre.nroEstab}:\n"${nomSede}" (${nomOrg})\n\n¿Deseas asignar y guardar la actividad en esta sede?`);
+        if (cambiar) {
+          seleccionarEstablecimiento(matchEst.id);
+          actualizarInfoEncabezadoModalActividad(currentActividadModal, matchEst);
+          if (estabBadge) {
+            estabBadge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Sede reasignada a #${metaNombre.nroEstab}`;
+            estabBadge.style.display = 'inline-flex';
+          }
+          mostrarToast(`✓ Sede cambiada a #${metaNombre.nroEstab} (${matchEst.organismo})`);
+        }
+      }
+    }
+  }
+
+  // B. Reconocimiento de Formulario / Actividad desde el nombre
+  if (metaNombre && metaNombre.tipoActividad) {
+    window._tipoFijadoPorNombre = metaNombre.tipoActividad.id;
+    cambiarActividadEnModal(metaNombre.tipoActividad.id, true /* detectado */);
+    const badgeTipo = document.getElementById('act-tipo-detectado-badge');
+    const badgeTipoTxt = document.getElementById('act-tipo-detectado-txt');
+    const tagTipo = document.getElementById('act-tipo-detectado-tag');
+    if (tagTipo) {
+      tagTipo.innerHTML = `<i class="fa-solid fa-file mr-1"></i> Detectado por nombre`;
+      tagTipo.style.display = 'inline-flex';
+    }
+    if (badgeTipo && badgeTipoTxt) {
+      badgeTipoTxt.innerHTML = `Formulario detectado en nombre de archivo: <strong>${metaNombre.tipoActividad.nombre}</strong>`;
+      badgeTipo.style.display = 'block';
+    }
+    mostrarToast(`✨ Formulario detectado por nombre: ${metaNombre.tipoActividad.nombre}`);
+  }
+
+  // C. Reconocimiento de Fecha desde el nombre
+  if (metaNombre && metaNombre.fechaIso) {
+    window._fechaFijadaPorNombre = metaNombre.fechaIso;
+    const inputFecha = document.getElementById('act-fecha');
+    const badgeFecha = document.getElementById('act-fecha-detectada-badge');
+    const badgeFechaTxt = document.getElementById('act-fecha-detectada-txt');
+    if (inputFecha) inputFecha.value = metaNombre.fechaIso;
+    if (badgeFecha && badgeFechaTxt) {
+      badgeFecha.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
+      badgeFecha.style.display = 'flex';
+      badgeFechaTxt.innerHTML = `📅 Fecha detectada del nombre: <strong>${metaNombre.fechaDdmmaaa}</strong> (Prioridad alta)`;
+      badgeFecha.classList.remove('hidden');
+    }
+    mostrarToast(`📅 Fecha detectada por nombre: ${metaNombre.fechaDdmmaaa}`);
+  }
+
+  actualizarPreviewNombreArchivo();
+
+  // Mostrar estado animado de lectura / OCR
+  const statusBox = document.getElementById('act-file-analisis-status');
+  const statusTxt = document.getElementById('act-file-analisis-txt');
+  const statusIcon = document.getElementById('act-file-analisis-icon');
+  if (statusBox) {
+    statusBox.style.display = 'flex';
+    if (statusTxt) statusTxt.textContent = 'Leyendo archivo y analizando contenido con OCR...';
+    if (statusIcon) statusIcon.className = 'fa-solid fa-circle-notch fa-spin text-blue-600';
+  }
+
   const reader = new FileReader();
   reader.onload = async (e) => {
     const result = e.target.result;
     const commaIndex = result.indexOf(',');
     archivoSeleccionadoBase64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
 
-    mostrarArchivoSeleccionadoUI(file);
     actualizarPreviewNombreArchivo();
 
-    // 1. Análisis preliminar por nombre y cabeceras
-    analizarYCargarFechaArchivo(file, archivoSeleccionadoBase64);
+    // Si aún no teníamos fecha del nombre, analizar metadatos PDF
+    if (!window._fechaFijadaPorNombre) {
+      analizarYCargarFechaArchivo(file, archivoSeleccionadoBase64);
+    }
 
     // 2. Análisis profundo por OCR / texto en el interior del documento
     try {
@@ -4372,6 +4486,14 @@ function procesarArchivoSeleccionado(file) {
       await procesarOcrYTextoDeArchivo(file, arrayBuffer);
     } catch (errOcr) {
       console.warn('Aviso OCR:', errOcr);
+    } finally {
+      if (statusBox) {
+        if (statusTxt) statusTxt.textContent = 'Archivo leído y analizado correctamente';
+        if (statusIcon) statusIcon.className = 'fa-solid fa-circle-check text-emerald-600';
+        setTimeout(() => {
+          if (statusBox) statusBox.style.display = 'none';
+        }, 4500);
+      }
     }
   };
   reader.readAsDataURL(file);
@@ -4446,59 +4568,183 @@ function decodificarColaBase64(base64Str, maxChars = 40000) {
 }
 
 /**
- * Analiza el nombre, contenido y metadatos del archivo para extraer la fecha técnica del documento
+ * Extrae metadatos estructurados directamente del nombre del archivo:
+ * - Número de establecimiento (ej: POL_040, 058, Estab 40, SEDE_040, 40_CV)
+ * - Tipo de documento/actividad (ej: CV, FOTO, INF, ILUM, RUIDO, PAT, AGUA, etc.)
+ * - Fecha técnica (ej: 20261029, 29-10-2026, 29_10_26, 2026-10-29, etc.)
  */
-function extraerFechaDeArchivo(file, base64Str) {
-  const meses = {
-    enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
-    julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
-    noviembre: '11', diciembre: '12',
-    ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
-    jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
-  };
+function extraerMetadataDeNombreArchivo(nombreArchivo) {
+  if (!nombreArchivo) return { nroEstab: null, nroEstabPad: null, tipoActividad: null, fechaIso: null, fechaDdmmaaa: null };
 
-  const nombre = file && file.name ? file.name : '';
+  const raw = String(nombreArchivo).trim();
+  const sinExt = raw.replace(/\.[a-zA-Z0-9]+$/i, '');
+  const clean = sinExt.replace(/[\s\-_.]+/g, '_');
 
-  // 1. Análisis del NOMBRE DEL ARCHIVO (prioridad alta: suele reflejar la fecha que asignó el usuario)
-  if (nombre) {
-    // Patrón ISO: YYYY-MM-DD / YYYY_MM_DD / YYYY.MM.DD
-    let m = nombre.match(/(202[0-9])[-_./](0[1-9]|1[0-2])[-_./]([0-2][0-9]|3[01])/);
+  // A. EXTRACCIÓN DE FECHA DEL NOMBRE
+  let fechaIso = null;
+  let fechaDdmmaaa = null;
+
+  // 1. Patrón Compacto: YYYYMMDD (ej: 20261029)
+  let m = sinExt.match(/\b(202[0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])\b/);
+  if (m) {
+    fechaIso = `${m[1]}-${m[2]}-${m[3]}`;
+    fechaDdmmaaa = `${m[3]}/${m[2]}/${m[1]}`;
+  }
+
+  // 2. Patrón ISO: YYYY-MM-DD / YYYY_MM_DD / YYYY.MM.DD
+  if (!fechaIso) {
+    m = sinExt.match(/(202[0-9])[-_./\s](0[1-9]|1[0-2])[-_./\s]([0-2][0-9]|3[01])/);
     if (m) {
-      return { fecha: `${m[1]}-${m[2]}-${m[3]}`, origen: 'nombre del archivo' };
-    }
-
-    // Patrón Latino: DD-MM-YYYY / DD_MM_YYYY / DD.MM.YYYY
-    m = nombre.match(/([0-2]?[0-9]|3[01])[-_./](0?[1-9]|1[0-2])[-_./](202[0-9])/);
-    if (m) {
-      const d = m[1].padStart(2, '0');
-      const mo = m[2].padStart(2, '0');
-      return { fecha: `${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
-    }
-
-    // Patrón Corto: DD-MM-YY (ej: 14-04-26)
-    m = nombre.match(/([0-2]?[0-9]|3[01])[-_./](0?[1-9]|1[0-2])[-_./](2[0-9])\b/);
-    if (m) {
-      const d = m[1].padStart(2, '0');
-      const mo = m[2].padStart(2, '0');
-      return { fecha: `20${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
-    }
-
-    // Patrón Compacto: YYYYMMDD (ej: 20260414)
-    m = nombre.match(/(202[0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])/);
-    if (m) {
-      return { fecha: `${m[1]}-${m[2]}-${m[3]}`, origen: 'nombre del archivo' };
-    }
-
-    // Mes en texto en el nombre: ej "14 de abril 2026", "14_abril_2026", "abril_2026"
-    m = nombre.match(/([0-2]?[0-9]|3[01])?[-_\s]*(?:de[-_\s]*)?([a-zA-Z]{3,10})[-_\s]*(?:de[-_\s]*)?(202[0-9])/i);
-    if (m && meses[m[2].toLowerCase()]) {
-      const d = m[1] ? m[1].padStart(2, '0') : '01';
-      const mo = meses[m[2].toLowerCase()];
-      return { fecha: `${m[3]}-${mo}-${d}`, origen: 'nombre del archivo' };
+      fechaIso = `${m[1]}-${m[2]}-${m[3]}`;
+      fechaDdmmaaa = `${m[3]}/${m[2]}/${m[1]}`;
     }
   }
 
-  // 2. Análisis del CONTENIDO Y METADATOS INTERNOS DEL ARCHIVO
+  // 3. Patrón Latino: DD-MM-YYYY / DD_MM_YYYY / DD.MM.YYYY
+  if (!fechaIso) {
+    m = sinExt.match(/([0-2]?[0-9]|3[01])[-_./\s](0?[1-9]|1[0-2])[-_./\s](202[0-9])/);
+    if (m) {
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      fechaIso = `${m[3]}-${mo}-${d}`;
+      fechaDdmmaaa = `${d}/${mo}/${m[3]}`;
+    }
+  }
+
+  // 4. Patrón Corto: DD-MM-YY (ej: 29-10-26 o 29_10_26)
+  if (!fechaIso) {
+    m = sinExt.match(/([0-2]?[0-9]|3[01])[-_./\s](0?[1-9]|1[0-2])[-_./\s](2[4-9])\b/);
+    if (m) {
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      fechaIso = `20${m[3]}-${mo}-${d}`;
+      fechaDdmmaaa = `${d}/${mo}/20${m[3]}`;
+    }
+  }
+
+  // 5. Patrón Compacto Latino: DDMMYYYY (ej: 29102026)
+  if (!fechaIso) {
+    m = sinExt.match(/\b([0-2][0-9]|3[01])(0[1-9]|1[0-2])(202[0-9])\b/);
+    if (m) {
+      fechaIso = `${m[3]}-${m[2]}-${m[1]}`;
+      fechaDdmmaaa = `${m[1]}/${m[2]}/${m[3]}`;
+    }
+  }
+
+  // 6. Mes en texto en nombre: ej "29 de octubre 2026", "29_oct_2026", "octubre_2026"
+  if (!fechaIso) {
+    const meses = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+      julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+      noviembre: '11', diciembre: '12',
+      ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
+      jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
+    };
+    m = sinExt.match(/([0-2]?[0-9]|3[01])?[-_\s]*(?:de[-_\s]*)?([a-zA-Z]{3,10})[-_\s]*(?:de[-_\s]*)?(202[0-9])/i);
+    if (m && meses[m[2].toLowerCase()]) {
+      const d = m[1] ? m[1].padStart(2, '0') : '01';
+      const mo = meses[m[2].toLowerCase()];
+      fechaIso = `${m[3]}-${mo}-${d}`;
+      fechaDdmmaaa = `${d}/${mo}/${m[3]}`;
+    }
+  }
+
+  // B. EXTRACCIÓN DE NÚMERO DE ESTABLECIMIENTO DEL NOMBRE
+  let nroEstab = null;
+  // B1. Prefijos comunes de sede/organismo: POL_040, POL-040, POL 40, ESTAB_40, EST_040, SEDE_040, ESC_040, etc.
+  let mEst = sinExt.match(/(?:estab|est|sede|pol|policia|esc|escuela|org)[_\s\-\.#]*0*([0-9]{1,4})\b/i);
+  if (mEst) {
+    nroEstab = String(parseInt(mEst[1], 10));
+  }
+  // B2. Con CUIT: 30671198081_040...
+  if (!nroEstab) {
+    mEst = sinExt.match(/30\d{9}[_\s\-\.#]+0*([0-9]{1,4})\b/);
+    if (mEst) {
+      nroEstab = String(parseInt(mEst[1], 10));
+    }
+  }
+  // B3. Al inicio del nombre seguido de guión o barra baja: 040_CV... o 40-FOTO...
+  if (!nroEstab) {
+    mEst = sinExt.match(/^0*([0-9]{1,4})[_\-\s]+[A-Za-z]/);
+    if (mEst) {
+      nroEstab = String(parseInt(mEst[1], 10));
+    }
+  }
+  // B4. Entre delimitadores: ej _040_ o _40_
+  if (!nroEstab && typeof AppState !== 'undefined' && AppState && AppState.establecimientos) {
+    const tokens = clean.split('_');
+    for (const tok of tokens) {
+      if (/^\d{1,4}$/.test(tok)) {
+        const num = parseInt(tok, 10);
+        if (num >= 2020 && num <= 2035) continue; // Descartar años
+        if (num > 0) {
+          const existe = Object.values(AppState.establecimientos).some(e => parseInt(e.nroEstab, 10) === num);
+          if (existe) {
+            nroEstab = String(num);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // C. EXTRACCIÓN DE TIPO DE DOCUMENTO / ACTIVIDAD DEL NOMBRE
+  const tipoActividad = detectarTipoActividadDeTexto('', sinExt);
+
+  return {
+    nroEstab: nroEstab,
+    nroEstabPad: nroEstab ? nroEstab.padStart(3, '0') : null,
+    tipoActividad: tipoActividad,
+    fechaIso: fechaIso,
+    fechaDdmmaaa: fechaDdmmaaa,
+    origen: 'nombre del archivo'
+  };
+}
+window.extraerMetadataDeNombreArchivo = extraerMetadataDeNombreArchivo;
+
+function buscarEstablecimientoPorNro(nroEstab, organismoPreferido = null) {
+  if (!nroEstab || typeof AppState === 'undefined' || !AppState || !AppState.establecimientos) return null;
+  const numBuscado = parseInt(nroEstab, 10);
+  if (isNaN(numBuscado)) return null;
+
+  const todos = Object.values(AppState.establecimientos);
+  
+  // 1. Buscar coincidencia exacta dentro del organismo preferido
+  if (organismoPreferido) {
+    const matchOrg = todos.find(e => parseInt(e.nroEstab, 10) === numBuscado && e.organismo === organismoPreferido);
+    if (matchOrg) return matchOrg;
+  }
+
+  // 2. Si la sede actualmente activa coincide con el número, priorizarla
+  if (AppState.establecimientoSeleccionado && parseInt(AppState.establecimientoSeleccionado.nroEstab, 10) === numBuscado) {
+    return AppState.establecimientoSeleccionado;
+  }
+
+  // 3. Si no, buscar en todos los establecimientos
+  const coincidencias = todos.filter(e => parseInt(e.nroEstab, 10) === numBuscado);
+  if (coincidencias.length > 0) {
+    return coincidencias[0];
+  }
+
+  return null;
+}
+window.buscarEstablecimientoPorNro = buscarEstablecimientoPorNro;
+
+/**
+ * Analiza el nombre, contenido y metadatos del archivo para extraer la fecha técnica del documento
+ */
+function extraerFechaDeArchivo(file, base64Str) {
+  const nombre = file && file.name ? file.name : '';
+
+  // 1. ANÁLISIS DEL NOMBRE DEL ARCHIVO (MÁXIMA PRIORIDAD)
+  if (nombre) {
+    const metaNombre = extraerMetadataDeNombreArchivo(nombre);
+    if (metaNombre && metaNombre.fechaIso) {
+      return { fecha: metaNombre.fechaIso, origen: 'nombre del archivo' };
+    }
+  }
+
+  // 2. ANÁLISIS DEL CONTENIDO Y METADATOS INTERNOS DEL ARCHIVO
   if (base64Str) {
     const headerText = decodificarFragmentoBase64(base64Str, 120000);
     const trailerText = decodificarColaBase64(base64Str, 40000);
@@ -4510,28 +4756,10 @@ function extraerFechaDeArchivo(file, base64Str) {
       return { fecha: `${mPdf[1]}-${mPdf[2]}-${mPdf[3]}`, origen: 'metadatos PDF' };
     }
 
-    // B. Texto del documento con encabezado de fecha: "Fecha: DD/MM/YYYY" o "Fecha de visita: DD/MM/YYYY"
-    let mFechaDoc = sample.match(/fecha[^\d\n\r]{0,35}([0-2]?[0-9]|3[01])[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](202[0-9])/i);
-    if (mFechaDoc) {
-      const d = mFechaDoc[1].padStart(2, '0');
-      const mo = mFechaDoc[2].padStart(2, '0');
-      return { fecha: `${mFechaDoc[3]}-${mo}-${d}`, origen: 'texto del documento' };
-    }
-
-    // C. Expresión formal en español: "14 de abril de 2026" o "a los 14 días del mes de abril de 2026"
-    let mTextoMes = sample.match(/([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del\s+a[ñn]o\s+|de\s+)?(202[0-9])/i);
-    if (mTextoMes && meses[mTextoMes[2].toLowerCase()]) {
-      const d = mTextoMes[1].padStart(2, '0');
-      const mo = meses[mTextoMes[2].toLowerCase()];
-      return { fecha: `${mTextoMes[3]}-${mo}-${d}`, origen: 'texto del documento' };
-    }
-
-    // D. Cualquier fecha válida DD/MM/YYYY presente en el cuerpo
-    let mGeneral = headerText.match(/\b([0-2]?[0-9]|3[01])[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](202[0-9])\b/);
-    if (mGeneral) {
-      const d = mGeneral[1].padStart(2, '0');
-      const mo = mGeneral[2].padStart(2, '0');
-      return { fecha: `${mGeneral[3]}-${mo}-${d}`, origen: 'contenido del documento' };
+    // B. Buscar fecha técnica en el texto interior con algoritmo robusto
+    const fDoc = buscarFechasEnTexto(sample);
+    if (fDoc) {
+      return { fecha: fDoc, origen: 'texto del documento' };
     }
   }
 
@@ -4560,6 +4788,7 @@ function analizarYCargarFechaArchivo(file, base64Str) {
       badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
       badgeTxt.innerHTML = `✨ Fecha detectada (${detectado.origen}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
       badge.classList.remove('hidden');
+      badge.style.display = 'flex';
     }
     mostrarToast(`✨ Fecha detectada del documento: ${detectado.fecha}`);
   }
@@ -4572,6 +4801,7 @@ function restablecerFechaHoy() {
   const inputFecha = document.getElementById('act-fecha');
   const badge = document.getElementById('act-fecha-detectada-badge');
   const ocrBadge = document.getElementById('act-ocr-loading-badge');
+  window._fechaFijadaPorNombre = null;
   if (inputFecha) {
     inputFecha.value = new Date().toISOString().slice(0, 10);
     actualizarPreviewNombreArchivo();
@@ -4583,7 +4813,9 @@ function restablecerFechaHoy() {
 window.restablecerFechaHoy = restablecerFechaHoy;
 
 /**
- * Busca fechas técnicas válidas dentro de un texto extraído por OCR o capa digital de PDF
+ * Busca fechas técnicas válidas dentro de un texto extraído por OCR o capa digital de PDF.
+ * Especialmente optimizado para fechas manuscritas con confusiones de OCR comunes (O->0, l/I->1, S->5, etc.)
+ * y prevención de falsos positivos en números de decretos y resoluciones.
  */
 function buscarFechasEnTexto(fullText) {
   if (!fullText) return null;
@@ -4596,36 +4828,64 @@ function buscarFechasEnTexto(fullText) {
     jul: '07', ago: '08', sep: '09', set: '09', oct: '10', nov: '11', dic: '12'
   };
 
-  // Normalizar caracteres comunes en OCR de casilleros y formularios
-  let clean = fullText
+  // Normalizar caracteres generales
+  let clean = String(fullText)
     .replace(/\r/g, ' ')
     .replace(/\n+/g, ' ')
     .replace(/[—_]/g, '-');
 
-  // Separadores comunes entre casilleros: barra /, guión -, punto ., barra vertical |, o espacios
-  const sep = '(?:[\\/\\-\\.\\|\\s]+)';
+  // 1. ZONA CONTEXTUAL DE FECHA MANUSCRITA:
+  // Busca las palabras clave típicas de formularios: fecha, visita, relevamiento, acta, dia, recorrida
+  const contextRegex = /(?:fecha|visita|relevamiento|acta|inspecci[oó]n|d[ií]a|servicio|recorrida|emisi[oó]n|constancia)[^a-zA-Z0-9]{0,25}([^\n\r]{4,45})/gi;
+  let contextMatch;
+  while ((contextMatch = contextRegex.exec(clean)) !== null) {
+    let snippet = contextMatch[1];
 
-  // 1. Patrón con contexto (fecha, visita, relevamiento, acta, servicio, etc.)
-  // Detecta años de 4 dígitos (2020-2030) o 2 dígitos (24-30 -> 202X)
-  const regexConContexto = new RegExp(
-    '(?:fecha|visita|relevamiento|acta|emisi[oó]n|d[ií]a|servicio|recorrida|inspecci[oó]n)[^\\d]{0,35}' +
-    '([0-2]?[0-9]|3[01])' + sep + '(0?[1-9]|1[0-2])' + sep + '(202[0-9]|2[4-9])\\b',
-    'i'
-  );
-  let match = clean.match(regexConContexto);
-  if (match) {
-    const d = match[1].padStart(2, '0');
-    const m = match[2].padStart(2, '0');
-    let y = match[3];
-    if (y.length === 2) y = '20' + y;
-    if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
-      return `${y}-${m}-${d}`;
+    // Corregir sustituciones habituales de OCR manuscrito en fragmentos de fecha
+    let normSnippet = snippet
+      .replace(/([0-9\/\-\.\s])[Oo]([0-9\/\-\.\s])/g, '$10$2')
+      .replace(/([0-9\/\-\.\s])[lI|!]([0-9\/\-\.\s])/g, '$11$2')
+      .replace(/([0-9\/\-\.\s])[Ss]([0-9\/\-\.\s])/g, '$15$2')
+      .replace(/([0-9\/\-\.\s])[Bb]([0-9\/\-\.\s])/g, '$18$2')
+      .replace(/([0-9\/\-\.\s])[Zz]([0-9\/\-\.\s])/g, '$12$2');
+
+    // Descartar citas a normativas: 84/12, 85/12, 351/79, 900/15, 886/15
+    if (/res(?:oluci[oó]n)?\.?\s*(?:84|85|900|886|351|463|1338)/i.test(snippet)) {
+      continue;
+    }
+
+    // A. Formato numérico DD / MM / YYYY o DD / MM / YY con separadores flexibles
+    const mNum = normSnippet.match(/(?:^|[^\d])([0-3]?\d)\s*[\/\-\.\|\s]\s*(0?[1-9]|1[0-2])\s*[\/\-\.\|\s]\s*(202[0-9]|2[4-9])\b/);
+    if (mNum) {
+      const d = mNum[1].padStart(2, '0');
+      const m = mNum[2].padStart(2, '0');
+      let y = mNum[3];
+      if (y.length === 2) y = '20' + y;
+      const dayNum = parseInt(d, 10);
+      const monthNum = parseInt(m, 10);
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+        return `${y}-${m}-${d}`;
+      }
+    }
+
+    // B. Formato de casilleros manuscritos: dígitos separados por espacios (ej: 2 9 / 1 0 / 2 6)
+    const mSpaced = normSnippet.match(/(?:^|[^\d])([0-3])\s+([0-9])\s*[\/\-\.\|\s]\s*([0-1])\s+([0-9])\s*[\/\-\.\|\s]\s*(2\s*0\s*2\s*[0-9]|2\s*[4-9])\b/);
+    if (mSpaced) {
+      const d = (mSpaced[1] + mSpaced[2]).padStart(2, '0');
+      const m = (mSpaced[3] + mSpaced[4]).padStart(2, '0');
+      let y = mSpaced[5].replace(/\s+/g, '');
+      if (y.length === 2) y = '20' + y;
+      const dayNum = parseInt(d, 10);
+      const monthNum = parseInt(m, 10);
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+        return `${y}-${m}-${d}`;
+      }
     }
   }
 
-  // 2. Patrón en letras: "15 de septiembre de 2026" o "15 de setiembre de 2026"
-  const regexLetras = /([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]+)\s+(?:del?\s+)?(?:a[ñn]o\s+)?(202[0-9]|2[4-9])/i;
-  match = clean.match(regexLetras);
+  // 2. PATRÓN EN LETRAS: "29 de octubre de 2026" o "29 de octubre 2026"
+  const regexLetras = /([0-2]?[0-9]|3[01])\s+(?:d[ií]as\s+del\s+mes\s+de|de)\s+([a-zA-Z]{3,12})\s+(?:del?\s+)?(?:a[ñn]o\s+)?(202[0-9]|2[4-9])/i;
+  let match = clean.match(regexLetras);
   if (match && meses[match[2].toLowerCase()]) {
     const d = match[1].padStart(2, '0');
     const m = meses[match[2].toLowerCase()];
@@ -4634,18 +4894,23 @@ function buscarFechasEnTexto(fullText) {
     return `${y}-${m}-${d}`;
   }
 
-  // 3. Patrón numérico general DD/MM/AAAA en cualquier parte del texto
-  const regexNum = new RegExp(
-    '\\b([0-2]?[0-9]|3[01])' + sep + '(0?[1-9]|1[0-2])' + sep + '(202[0-9]|2[4-9])\\b',
-    'i'
-  );
-  match = clean.match(regexNum);
-  if (match) {
+  // 3. PATRÓN NUMÉRICO GENERAL DD/MM/AAAA (filtrando resoluciones y normativas)
+  const regexNum = /\b([0-2]?[0-9]|3[01])[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](202[0-9]|2[4-9])\b/g;
+  while ((match = regexNum.exec(clean)) !== null) {
     const d = match[1].padStart(2, '0');
     const m = match[2].padStart(2, '0');
     let y = match[3];
     if (y.length === 2) y = '20' + y;
-    if (parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31 && parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12) {
+
+    // Verificar texto previo para no capturar leyes, decretos o resoluciones
+    const prevText = clean.substring(Math.max(0, match.index - 25), match.index).toLowerCase();
+    if (prevText.includes('ley') || prevText.includes('dec') || prevText.includes('res') || prevText.includes('cuit')) {
+      continue;
+    }
+
+    const dayNum = parseInt(d, 10);
+    const monthNum = parseInt(m, 10);
+    if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
       return `${y}-${m}-${d}`;
     }
   }
@@ -4786,26 +5051,34 @@ async function procesarOcrYTextoDeArchivo(file, arrayBuffer) {
     }
   }
 
-  // 1. Si identificamos el formulario por OCR, actualizar desplegable y UI
+  // 1. Si identificamos el formulario por OCR, actualizar desplegable (a menos que ya se haya fijado por nombre)
   if (tipoEncontrado) {
-    cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
-    mostrarToast(`✨ Clasificación OCR precisa: ${tipoEncontrado.nombre}`);
+    if (window._tipoFijadoPorNombre) {
+      console.log('Tipo de actividad determinado por nombre de archivo prevalece sobre OCR:', window._tipoFijadoPorNombre);
+    } else {
+      cambiarActividadEnModal(tipoEncontrado.id, true /* esPorOcr */);
+      mostrarToast(`✨ Clasificación OCR precisa: ${tipoEncontrado.nombre}`);
+    }
   }
 
-  // 2. Si encontramos la fecha en el interior del documento, actualizar UI
+  // 2. Si encontramos la fecha en el interior del documento, actualizar UI (a menos que ya se haya fijado por nombre)
   if (fechaEncontrada && inputFecha) {
-    inputFecha.value = fechaEncontrada;
-    actualizarPreviewNombreArchivo();
+    if (window._fechaFijadaPorNombre) {
+      console.log('Fecha técnica determinada por nombre de archivo prevalece sobre OCR:', window._fechaFijadaPorNombre);
+    } else {
+      inputFecha.value = fechaEncontrada;
+      actualizarPreviewNombreArchivo();
 
-    if (badge && badgeTxt) {
-      const partes = fechaEncontrada.split('-');
-      const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
-      badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
-      badge.style.display = 'flex';
-      badgeTxt.innerHTML = `✨ Fecha detectada por <strong>OCR</strong> (${origenOcr}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
-      badge.classList.remove('hidden');
+      if (badge && badgeTxt) {
+        const partes = fechaEncontrada.split('-');
+        const fechaFmt = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        badge.className = 'mt-1.5 p-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between gap-1 transition';
+        badge.style.display = 'flex';
+        badgeTxt.innerHTML = `✨ Fecha detectada por <strong>OCR</strong> (${origenOcr}): <strong>${fechaFmt}</strong>. Puedes modificarla si lo deseas.`;
+        badge.classList.remove('hidden');
+      }
+      mostrarToast(`✨ Fecha detectada por OCR: ${fechaEncontrada}`);
     }
-    mostrarToast(`✨ Fecha detectada por OCR: ${fechaEncontrada}`);
   }
 }
 
@@ -4882,13 +5155,32 @@ async function guardarActividadYSubir() {
   if (progressBox) {
     progressBox.classList.remove('hidden');
     progressBox.style.display = 'block';
+    progressBox.classList.add('upload-box-active');
+  }
+  if (progressBar) {
+    progressBar.classList.add('progress-bar-animated-stripes');
   }
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+    btnSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Subiendo a Drive...';
   }
 
-  animarProgreso(progressBar, progressLabel, 15, 'Preparando metadatos y codificación...');
+  let progActual = 15;
+  animarProgreso(progressBar, progressLabel, progActual, 'Preparando metadatos y codificación oficial...');
+
+  const progressInterval = setInterval(() => {
+    if (progActual < 85) {
+      progActual += Math.floor(Math.random() * 8) + 4;
+      if (progActual > 85) progActual = 85;
+      let msg = 'Subiendo archivo binario a Google Drive...';
+      if (progActual > 35 && progActual <= 65) {
+        msg = 'Verificando y organizando carpetas en Google Drive...';
+      } else if (progActual > 65) {
+        msg = 'Asentando registro en Google Sheets...';
+      }
+      animarProgreso(progressBar, progressLabel, progActual, msg);
+    }
+  }, 550);
 
   let cleanB64 = (archivoSeleccionadoBase64 || '').trim();
   if (cleanB64.includes(',')) {
@@ -4920,8 +5212,6 @@ async function guardarActividadYSubir() {
     }
   };
 
-  animarProgreso(progressBar, progressLabel, 45, 'Transmitiendo a Google Drive y Google Sheets...');
-
   let driveUrl = '';
   let driveFileId = '';
   let monthFolderUrl = '';
@@ -4938,7 +5228,8 @@ async function guardarActividadYSubir() {
       body: JSON.stringify(payload)
     });
 
-    animarProgreso(progressBar, progressLabel, 85, 'Procesando confirmación del servidor...');
+    clearInterval(progressInterval);
+    animarProgreso(progressBar, progressLabel, 92, 'Procesando confirmación del servidor...');
     const result = await response.json();
 
     if (result && result.status === 'success') {
@@ -4974,6 +5265,9 @@ async function guardarActividadYSubir() {
         actualizarEnlacesCarpetaLateral(est);
       }
     } else if (result && result.status === 'duplicate_warning') {
+      clearInterval(progressInterval);
+      if (progressBar) progressBar.classList.remove('progress-bar-animated-stripes');
+      if (progressBox) progressBox.classList.remove('upload-box-active');
       alert(`⚠️ Aviso de Duplicado:\n\n${result.message}`);
       if (progressBox) {
         progressBox.classList.add('hidden');
@@ -4989,11 +5283,15 @@ async function guardarActividadYSubir() {
       mostrarToast('⚠️ Aviso del servidor: ' + ((result && result.message) || 'Guardado local'));
     }
   } catch (err) {
+    clearInterval(progressInterval);
     console.warn('No se pudo conectar inmediatamente con Google Apps Script (se guardará localmente):', err);
     mostrarToast('⚠️ Conexión no disponible. Se guardó copia local.');
   }
 
+  clearInterval(progressInterval);
   animarProgreso(progressBar, progressLabel, 100, '¡Guardado completado exitosamente!');
+  if (progressBar) progressBar.classList.remove('progress-bar-animated-stripes');
+  if (progressBox) progressBox.classList.remove('upload-box-active');
   if (btnSubmit) {
     btnSubmit.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> ¡Guardado!';
   }
@@ -5135,82 +5433,126 @@ function detectarTipoActividadDeTexto(texto, nombreArchivo = '') {
 
   // ================= 1. EVALUACIÓN POR PATRONES EN NOMBRE DE ARCHIVO =================
   if (fn) {
-    // Constancia de Visita
-    if (/\b(?:cv|constancia_visita|constancia_de_visita)\b/i.test(fn) || fn.includes('_cv_') || fn.includes('cv_') || fn.includes('-cv-') || fn.includes('_cv.') || fn.includes('acta_de_visita')) {
-      scores.constancia_visita += 110;
+    const fnClean = fn.replace(/[-_.\s]+/g, '_');
+
+    // Informe Fotográfico / Relevamiento / Anexo de Fotos (prioridad absoluta para evitar confusión con CV)
+    const esFotoEnNombre = (
+      fn.includes('foto') || fn.includes('fotograf') ||
+      fn.includes('relevamiento') || fn.includes('inf_foto') ||
+      fn.includes('informe_foto') || fn.includes('reporte_foto') ||
+      fn.includes('anexo_foto') || fn.includes('inf_tecnico') ||
+      fn.includes('informe_tec')
+    );
+    if (esFotoEnNombre) {
+      scores.informe_tecnico += 350;
+      scores.constancia_visita -= 500; // Impide categóricamente que fotos se confundan con CV
     }
+
+    // Constancia de Visita Oficial
+    const esCvEnNombre = (
+      /(?:^|_)(?:cv|constancia_visita|constancia_de_visita|acta_visita|acta_de_visita|hoja_visita)(?:_|$)/i.test(fnClean) ||
+      /\bcv\b/i.test(fn) || fn.includes('_cv_') || fn.includes('-cv-') || fn.includes('_cv.')
+    );
+    if (esCvEnNombre && !esFotoEnNombre) {
+      scores.constancia_visita += 350;
+      scores.informe_tecnico -= 500;
+    }
+
     // Medición de Iluminación
-    if (fn.includes('_ilum_') || fn.includes('_iluminacion_') || fn.includes('iluminacion.pdf') || fn.includes('ilum.pdf') || fn.includes('res_84_12') || fn.includes('84_12')) {
-      scores.medicion_iluminacion += 110;
-    }
-    // Informe Fotográfico / Relevamiento Inicial
-    if (fn.includes('_informe_') || fn.includes('_inf_') || fn.includes('_foto_') || fn.includes('informe_fotografico') || fn.includes('relevamiento_inicial') || fn.includes('relevamiento_fotografico') || fn.includes('reporte_fotografico')) {
-      scores.informe_tecnico += 110;
+    if (fn.includes('_ilum_') || fn.includes('_iluminacion_') || fn.includes('iluminacion.pdf') || fn.includes('ilum.pdf') || fn.includes('res_84_12') || fn.includes('84_12') || fn.includes('res84')) {
+      scores.medicion_iluminacion += 150;
     }
     // Ruido
-    if (fn.includes('_ruido_') || fn.includes('_sonoro_') || fn.includes('ruido.pdf') || fn.includes('res_85_12')) {
-      scores.medicion_ruido += 110;
+    if (fn.includes('_ruido_') || fn.includes('_sonoro_') || fn.includes('ruido.pdf') || fn.includes('res_85_12') || fn.includes('res85')) {
+      scores.medicion_ruido += 150;
     }
     // Puesta a Tierra
-    if (fn.includes('_pat_') || fn.includes('_puesta_a_tierra_') || fn.includes('pat.pdf') || fn.includes('res_900_15')) {
-      scores.medicion_pat += 110;
+    if (fn.includes('_pat_') || fn.includes('_puesta_a_tierra_') || fn.includes('pat.pdf') || fn.includes('res_900_15') || fn.includes('res900')) {
+      scores.medicion_pat += 150;
     }
     // Análisis de Agua
     if (fn.includes('_agua_protocolo_') || fn.includes('agua_protocolo') || fn.includes('_lab_') || fn.includes('liaquim') || fn.includes('analisis_agua')) {
-      scores.analisis_agua += 110;
+      scores.analisis_agua += 150;
     }
     // Toma de muestra de Agua
     if (fn.includes('_agua_toma_') || fn.includes('_toma_agua_') || fn.includes('toma_de_muestra') || fn.includes('cadena_custodia')) {
-      scores.muestra_agua += 110;
+      scores.muestra_agua += 150;
     }
     // RAR
     if (/\b(?:confeccion_)?rar\b/i.test(fn) || fn.includes('_rar_') || fn.includes('rar.pdf')) {
-      scores.confeccion_rar += 110;
+      scores.confeccion_rar += 150;
     }
     // RGRL
     if (/\b(?:confeccion_)?rgrl\b/i.test(fn) || fn.includes('_rgrl_') || fn.includes('rgrl.pdf')) {
-      scores.confeccion_rgrl += 110;
+      scores.confeccion_rgrl += 150;
     }
     // Carga de Fuego
     if (fn.includes('_carga_fuego_') || fn.includes('carga_de_fuego') || fn.includes('carga_fuego')) {
-      scores.carga_fuego += 110;
+      scores.carga_fuego += 150;
     }
     // Capacitaciones
     if (fn.includes('_capacitacion_') || fn.includes('capacitaciones') || fn.includes('capacitacion')) {
-      scores.capacitaciones += 110;
+      scores.capacitaciones += 150;
     }
     // Simulacro
     if (fn.includes('_simulacro_') || fn.includes('simulacro')) {
-      scores.simulacro += 110;
+      scores.simulacro += 150;
     }
     // Ergonomía
     if (fn.includes('_res_886_') || fn.includes('_ergo_') || fn.includes('ergonomia') || fn.includes('886_15')) {
-      scores.res_886 += 110;
+      scores.res_886 += 150;
     }
   }
 
   // ================= 2. EVALUACIÓN POR ENCABEZADO / TÍTULO PRINCIPAL (PAGE 1) =================
   if (headerText) {
-    // A. Constancia de Visita Oficial
-    if (headerText.includes('constancia de visita') || headerText.includes('constancia de visitas') || headerText.includes('formulario de visita') || headerText.includes('acta de visita') || headerText.includes('hoja de visita') || (headerText.includes('constancia') && headerText.includes('visita'))) {
-      scores.constancia_visita += 140;
+    // Marcadores fotográficos en encabezado o texto general
+    const tieneMarcadoresFoto = (
+      t.includes('informe fotográfico') || t.includes('informe fotografico') ||
+      t.includes('relevamiento fotográfico') || t.includes('relevamiento fotografico') ||
+      t.includes('registro fotográfico') || t.includes('registro fotografico') ||
+      t.includes('anexo fotográfico') || t.includes('anexo fotografico') ||
+      t.includes('reporte fotográfico') || t.includes('reporte fotografico') ||
+      t.includes('evidencia fotográfica') || t.includes('evidencia fotografica') ||
+      t.includes('registro de imágenes') || t.includes('registro de imagenes') ||
+      /\bfoto\s*[1-9]\b/.test(t) || /\bfotograf[ií]a\s*[1-9]\b/.test(t) || /\bimagen\s*[1-9]\b/.test(t)
+    );
+
+    if (tieneMarcadoresFoto) {
+      scores.informe_tecnico += 250;
+      scores.constancia_visita -= 400; // Impide categóricamente que informes con fotos se cataloguen como CV
     }
-    // B. Informe Fotográfico / Técnico
-    if (headerText.includes('informe fotográfico') || headerText.includes('informe fotografico') || headerText.includes('relevamiento fotográfico') || headerText.includes('relevamiento fotografico') || headerText.includes('registro fotográfico') || headerText.includes('registro fotografico') || headerText.includes('reporte fotográfico') || headerText.includes('reporte fotografico') || headerText.includes('anexo fotográfico') || headerText.includes('anexo fotografico') || headerText.includes('relevamiento inicial') || headerText.includes('informe de visita técnica') || headerText.includes('informe de relevamiento')) {
-      scores.informe_tecnico += 140;
+
+    // A. Constancia de Visita Oficial (requiere encabezado formal explícito y ausencia de galería fotográfica)
+    const tieneHeaderCV = (
+      headerText.includes('constancia de visita') ||
+      headerText.includes('constancia de visitas') ||
+      headerText.includes('acta de visita') ||
+      headerText.includes('formulario de visita') ||
+      headerText.includes('hoja de visita')
+    );
+    if (tieneHeaderCV && !tieneMarcadoresFoto) {
+      scores.constancia_visita += 200;
+      scores.informe_tecnico -= 200;
     }
+
+    // B. Informe Fotográfico / Técnico formal
+    if (headerText.includes('informe fotográfico') || headerText.includes('informe fotografico') || headerText.includes('relevamiento fotográfico') || headerText.includes('relevamiento inicial') || headerText.includes('informe de visita técnica') || headerText.includes('informe de relevamiento')) {
+      scores.informe_tecnico += 200;
+    }
+
     // C. Protocolos Técnicos Específicos
     if (headerText.includes('protocolo para la medición del nivel de iluminación') || headerText.includes('protocolo de medición de iluminación') || headerText.includes('protocolo de medicion de iluminacion') || headerText.includes('protocolo de iluminaci')) {
-      scores.medicion_iluminacion += 150;
+      scores.medicion_iluminacion += 160;
     }
     if (headerText.includes('protocolo para la medición del nivel sonoro') || headerText.includes('protocolo de medición de ruido') || headerText.includes('protocolo de medicion de ruido') || headerText.includes('protocolo de ruido')) {
-      scores.medicion_ruido += 150;
+      scores.medicion_ruido += 160;
     }
     if (headerText.includes('protocolo para la medición de la puesta a tierra') || headerText.includes('protocolo de puesta a tierra') || headerText.includes('protocolo de continuidad de las masas')) {
-      scores.medicion_pat += 150;
+      scores.medicion_pat += 160;
     }
     if (headerText.includes('protocolo de análisis de agua') || headerText.includes('informe de ensayo de agua') || headerText.includes('certificado de análisis bromatológico') || headerText.includes('análisis fisicoquímico y bacteriológico')) {
-      scores.analisis_agua += 140;
+      scores.analisis_agua += 150;
     }
   }
 
@@ -5629,14 +5971,20 @@ async function manejarArchivosSubidaRapida(files) {
     const file = fileArray[i];
     const ext = file.name ? file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() : 'pdf';
     
-    // Intento preliminar de fecha en nombre
-    const fechaPreliminar = extraerFechaDeArchivo(file, null);
+    // Extracción de metadatos exhaustivos por nombre de archivo
+    const metaNombre = extraerMetadataDeNombreArchivo(file.name);
     const hoyIso = new Date().toISOString().slice(0, 10);
-    const fechaIso = (fechaPreliminar && fechaPreliminar.fecha) ? fechaPreliminar.fecha : hoyIso;
+    const fechaIso = (metaNombre && metaNombre.fechaIso) ? metaNombre.fechaIso : hoyIso;
     const fechaDdmmaaa = formatearFechaDdmmaaa(fechaIso);
 
-    // Intento preliminar de tipo en nombre
-    const tipoPreliminar = detectarTipoActividadDeTexto('', file.name);
+    // Tipo preliminar por nombre
+    const tipoPreliminar = (metaNombre && metaNombre.tipoActividad) ? metaNombre.tipoActividad : detectarTipoActividadDeTexto('', file.name);
+
+    // Detección de sede por nombre de archivo
+    let matchEst = null;
+    if (metaNombre && metaNombre.nroEstab) {
+      matchEst = buscarEstablecimientoPorNro(metaNombre.nroEstab, AppState.establecimientoSeleccionado?.organismo);
+    }
 
     const item = {
       id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
@@ -5648,10 +5996,15 @@ async function manejarArchivosSubidaRapida(files) {
       base64: null,
       fecha: fechaIso,
       fechaDdmmaaa: fechaDdmmaaa,
-      fechaDetectada: (fechaPreliminar && fechaPreliminar.fecha) ? fechaDdmmaaa : null,
-      origenFecha: (fechaPreliminar && fechaPreliminar.origen) ? fechaPreliminar.origen : null,
+      fechaDetectada: (metaNombre && metaNombre.fechaIso) ? fechaDdmmaaa : null,
+      origenFecha: (metaNombre && metaNombre.fechaIso) ? 'nombre del archivo' : null,
+      fechaFijadaPorNombre: Boolean(metaNombre && metaNombre.fechaIso),
       actTipo: tipoPreliminar ? tipoPreliminar.id : 'confeccion_rgrl',
       actDetectada: tipoPreliminar ? tipoPreliminar.nombre : null,
+      actDetectadaPorNombre: Boolean(metaNombre && metaNombre.tipoActividad),
+      nroEstabDetectado: (metaNombre && metaNombre.nroEstab) ? metaNombre.nroEstab : null,
+      estIdDetectado: matchEst ? matchEst.id : null,
+      estNombreDetectado: matchEst ? `${matchEst.nombreEstablecimiento} (${matchEst.organismo})` : null,
       detalle: '',
       preventor: '',
       observaciones: '',
@@ -5743,19 +6096,25 @@ async function procesarOcrItemLote(item) {
         console.warn('Aviso en OCR para', item.originalName, errOcr);
       }
 
-      // Si se halló fecha en el interior, actualizar item con formato DD/MM/AAAA
-      if (fechaEncontrada) {
+      // Si el archivo ya traía fecha explícita en su nombre, se respeta la prioridad del nombre
+      if (item.fechaFijadaPorNombre) {
+        console.log('Fecha de item lote conservada desde nombre de archivo:', item.fechaDdmmaaa);
+      } else if (fechaEncontrada) {
         item.fecha = convertirDdmmaaaAIso(fechaEncontrada);
         item.fechaDdmmaaa = formatearFechaDdmmaaa(fechaEncontrada);
         item.fechaDetectada = item.fechaDdmmaaa;
         item.origenFecha = origenFecha;
       }
 
-      // Analizar tipo de actividad por texto interior y por nombre
-      const detectada = detectarTipoActividadDeTexto(extractedText, item.originalName);
-      if (detectada) {
-        item.actTipo = detectada.id;
-        item.actDetectada = detectada.nombre;
+      // Si el archivo ya traía tipo específico en su nombre (ej: FOTO o CV), se preserva la prioridad del nombre
+      if (item.actDetectadaPorNombre) {
+        console.log('Tipo de actividad de lote conservado desde nombre de archivo:', item.actDetectada);
+      } else {
+        const detectada = detectarTipoActividadDeTexto(extractedText, item.originalName);
+        if (detectada) {
+          item.actTipo = detectada.id;
+          item.actDetectada = detectada.nombre;
+        }
       }
 
       item.ocrStatus = 'done';
@@ -5805,13 +6164,14 @@ function renderFastBatchList() {
     let ocrBadgeHtml = '';
     if (item.ocrStatus === 'processing') {
       ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full"><i class="fa-solid fa-spinner fa-spin text-amber-600"></i> Analizando OCR...</span>`;
-    } else if (item.actDetectada || item.fechaDetectada) {
+    } else if (item.actDetectada || item.fechaDetectada || item.nroEstabDetectado) {
       let desc = [];
+      if (item.nroEstabDetectado) desc.push(`Sede #${item.nroEstabDetectado}`);
       if (item.actDetectada) desc.push(`${item.actDetectada}`);
       if (item.fechaDetectada) {
         desc.push(`${formatearFechaDdmmaaa(item.fechaDetectada)}`);
       }
-      ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
+      ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por nombre / OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
     } else {
       ocrBadgeHtml = `<span id="ocr-badge-${item.id}" class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Manual</span>`;
     }
@@ -5892,13 +6252,14 @@ function actualizarCardItemLote(item) {
     let ocrBadgeHtml = '';
     if (item.ocrStatus === 'processing') {
       ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full"><i class="fa-solid fa-spinner fa-spin text-amber-600"></i> Analizando OCR...</span>`;
-    } else if (item.actDetectada || item.fechaDetectada) {
+    } else if (item.actDetectada || item.fechaDetectada || item.nroEstabDetectado) {
       let desc = [];
+      if (item.nroEstabDetectado) desc.push(`Sede #${item.nroEstabDetectado}`);
       if (item.actDetectada) desc.push(`${item.actDetectada}`);
       if (item.fechaDetectada) {
         desc.push(`${formatearFechaDdmmaaa(item.fechaDetectada)}`);
       }
-      ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
+      ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full" title="Detectado por nombre / OCR"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> ${escapeHtml(desc.join(' • '))}</span>`;
     } else {
       ocrBadgeHtml = `<span class="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Manual</span>`;
     }
@@ -6069,8 +6430,18 @@ async function guardarLoteSubidaRapida() {
   const progPct = document.getElementById('fast-upload-progress-pct');
   const progSublabel = document.getElementById('fast-upload-progress-sublabel');
 
-  if (btnGuardar) btnGuardar.disabled = true;
-  if (progBox) progBox.classList.remove('hidden');
+  if (btnGuardar) {
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Subiendo lote a Drive...';
+  }
+  if (progBox) {
+    progBox.classList.remove('hidden');
+    progBox.style.display = 'block';
+    progBox.classList.add('upload-box-active');
+  }
+  if (progBar) {
+    progBar.classList.add('progress-bar-animated-stripes');
+  }
 
   const total = fastBatchItems.length;
   let exitosos = 0;
@@ -6261,7 +6632,12 @@ async function guardarLoteSubidaRapida() {
   renderDashboard();
 
   fastIsUploading = false;
-  if (btnGuardar) btnGuardar.disabled = false;
+  if (progBar) progBar.classList.remove('progress-bar-animated-stripes');
+  if (progBox) progBox.classList.remove('upload-box-active');
+  if (btnGuardar) {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Guardar y Subir Bloque';
+  }
 
   // Registrar último establecimiento subido para alertas preventivas
   AppState.ultimoEstabSubidoId = est.id;
