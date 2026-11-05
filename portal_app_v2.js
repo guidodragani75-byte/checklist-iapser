@@ -12475,56 +12475,208 @@ window.descargarZipSedeActual = descargarZipSedeActual;
 // =========================================================
 
 /**
- * Evalúa en profundidad el estado operativo y de backlog de un establecimiento
+ * Evalúa el estado operativo de 1ª Visita y criticidad por superficie según los
+ * lineamientos oficiales de gestión operativa:
+ * - Nomenclatura oficial: CV, RGRL, RAR, FOTOGRAFICO, AGUA, ILUMINACION, RUIDO, PAT, ERGONOMIA, CARGA_FUEGO, CAPACITACION.
+ * - En la 1ª visita se realiza el relevamiento in situ integral y la toma de muestra de AGUA.
+ * - Las sedes ≥ 1.000 m² son CRÍTICAS y exigen instrumental técnico completo (PAT, ILUMINACION, RUIDO, AGUA).
  */
 function evaluarLogisticaSede(est) {
   if (!est) return null;
   const acts = obtenerActividadesDeSede(est) || [];
 
+  // Verificación de documentos existentes con mapeo a la nomenclatura oficial
   const hasCv = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'constancia_visita');
-  const hasFoto = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico');
   const hasRgrl = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl');
   const hasRar = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rar');
-  const hasPat = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_pat');
-  const hasIlum = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_iluminacion');
-  const hasRuido = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_ruido');
+  const hasFotografico = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico');
   const hasAgua = acts.some(a => ['muestra_agua', 'analisis_agua'].includes(normalizarTipoActividad(a.tipoActividad)));
+  const hasIluminacion = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_iluminacion');
+  const hasRuido = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_ruido');
+  const hasPat = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_pat');
+  const hasErgonomia = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'res_886');
+  const hasCargaFuego = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'carga_fuego');
+  const hasCapacitacion = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'capacitaciones');
 
+  // Cálculo de Superficie y Nivel de Criticidad
   const supRaw = String(est.superficie || '0').replace(/\./g, '').replace(',', '.');
   const supNum = parseFloat(supRaw) || 0;
   const esGranSup = Boolean(supNum >= 1000 || est.requiereMediciones);
 
-  const pendientes = [];
-  if (!hasCv) {
-    pendientes.push({ cod: 'CV', label: 'Constancia de Visita', icon: 'fa-clipboard-check', color: '#0284c7', desc: 'Visita Oficial in situ' });
-  }
-  if (!hasRgrl) {
-    pendientes.push({ cod: 'RGRL', label: 'RGRL (Dec. 351/79)', icon: 'fa-list-check', color: '#1e40af', desc: 'Relevamiento General' });
-  }
-  if (!hasRar) {
-    pendientes.push({ cod: 'RAR', label: 'RAR (Nómina Expuestos)', icon: 'fa-users', color: '#0369a1', desc: 'Agentes de Riesgo' });
-  }
-  if (!hasFoto) {
-    pendientes.push({ cod: 'FOTO', label: 'Informe Fotográfico', icon: 'fa-camera', color: '#0f766e', desc: 'Relevamiento Visual' });
-  }
+  let nivelCriticidad = 'ESTANDAR';
+  let criticidadLabel = 'Estándar (<300 m²)';
+  let criticidadBadgeClass = 'badge-neutral';
+  let requiereInstrumentalPesado = false;
+
   if (esGranSup) {
+    nivelCriticidad = 'CRITICO';
+    criticidadLabel = 'CRÍTICO (≥1.000 m²)';
+    criticidadBadgeClass = 'badge-alert';
+    requiereInstrumentalPesado = true;
+  } else if (supNum >= 300) {
+    nivelCriticidad = 'MEDIO';
+    criticidadLabel = 'Medio (300-999 m²)';
+    criticidadBadgeClass = 'badge-warn';
+  }
+
+  // Backlog de Acciones a Realizar en 1ª Visita (Usa la nomenclatura exacta del lineamiento)
+  const pendientes = [];
+
+  // 1. Constancia de Visita Oficial in situ
+  if (!hasCv) {
+    pendientes.push({
+      cod: 'CV',
+      label: 'Constancia de Visita',
+      icon: 'fa-clipboard-check',
+      color: '#0284c7',
+      desc: 'Formulario oficial SRT firmado in situ en 1ª visita',
+      critico: true
+    });
+  }
+
+  // 2. Relevamiento General de Riesgos Laborales (Dec. 351/79)
+  if (!hasRgrl) {
+    pendientes.push({
+      cod: 'RGRL',
+      label: 'Relevamiento RGRL',
+      icon: 'fa-list-check',
+      color: '#1e40af',
+      desc: 'RGRL de común acuerdo con referente del organismo',
+      critico: true
+    });
+  }
+
+  // 3. Relevamiento de Agentes de Riesgo
+  if (!hasRar) {
+    pendientes.push({
+      cod: 'RAR',
+      label: 'Relevamiento RAR',
+      icon: 'fa-users',
+      color: '#0369a1',
+      desc: 'Confirmar, rectificar o ratificar nómina de expuestos',
+      critico: true
+    });
+  }
+
+  // 4. Informe Fotográfico de relevamiento
+  if (!hasFotografico) {
+    pendientes.push({
+      cod: 'FOTOGRAFICO',
+      label: 'Informe Fotográfico',
+      icon: 'fa-camera',
+      color: '#0f766e',
+      desc: 'Registro fotográfico de desvíos y mejoras edilicias',
+      critico: false
+    });
+  }
+
+  // 5. Toma de Muestra de Agua (Obligatorio en 1ª Visita según lineamientos)
+  if (!hasAgua) {
+    pendientes.push({
+      cod: 'AGUA',
+      label: 'Muestra de Agua (Toma in situ)',
+      icon: 'fa-droplet',
+      color: '#0284c7',
+      desc: 'Toma obligatoria de muestra in situ en 1ª visita para lab',
+      instrumental: true
+    });
+  }
+
+  // 6. Mediciones en sedes críticas y medianas
+  if (esGranSup) {
+    // PAT: Prioridad máxima en sedes ≥ 1.000 m²
     if (!hasPat) {
-      pendientes.push({ cod: 'PAT', label: 'Puesta a Tierra (Res. 900/15)', icon: 'fa-bolt', color: '#b45309', instrumental: true, desc: 'Medición con Telurómetro' });
-    }
-    if (!hasIlum) {
-      pendientes.push({ cod: 'ILUM', label: 'Iluminación (Res. 84/12)', icon: 'fa-lightbulb', color: '#d97706', instrumental: true, desc: 'Medición con Luxómetro' });
-    }
-    if (!hasRuido) {
-      pendientes.push({ cod: 'RUIDO', label: 'Ruido (Res. 85/12)', icon: 'fa-volume-high', color: '#b91c1c', instrumental: true, desc: 'Medición con Decibelímetro' });
+      pendientes.push({
+        cod: 'PAT',
+        label: 'Puesta a Tierra (Res. 900/15)',
+        icon: 'fa-bolt',
+        color: '#b45309',
+        desc: 'Medición con Telurómetro e instrumental de campo',
+        instrumental: true,
+        critico: true
+      });
     }
   }
 
+  if (esGranSup || supNum >= 300) {
+    if (!hasIluminacion) {
+      pendientes.push({
+        cod: 'ILUMINACION',
+        label: 'Medición de Iluminación (Res. 84/12)',
+        icon: 'fa-lightbulb',
+        color: '#d97706',
+        desc: 'Medición simplificada in situ con luxómetro',
+        instrumental: true
+      });
+    }
+    if (!hasRuido) {
+      pendientes.push({
+        cod: 'RUIDO',
+        label: 'Medición de Ruido (Res. 85/12)',
+        icon: 'fa-volume-high',
+        color: '#b91c1c',
+        desc: 'Medición in situ con decibelímetro/sonómetro',
+        instrumental: true
+      });
+    }
+  }
+
+  // 7. Ergonomía (Res. SRT 886/15)
+  if (!hasErgonomia) {
+    pendientes.push({
+      cod: 'ERGONOMIA',
+      label: 'Protocolo Ergonomía (Res. 886/15)',
+      icon: 'fa-person-walking',
+      color: '#4338ca',
+      desc: 'Relevamiento ergonómico inicial en puestos de trabajo'
+    });
+  }
+
+  // 8. Carga de Fuego y Extintores
+  if (!hasCargaFuego) {
+    pendientes.push({
+      cod: 'CARGA_FUEGO',
+      label: 'Estudio de Carga de Fuego',
+      icon: 'fa-fire-extinguisher',
+      color: '#dc2626',
+      desc: 'Relevamiento de carga de fuego y potencial extintor'
+    });
+  }
+
+  // 9. Plan de Capacitación Anual
+  if (!hasCapacitacion) {
+    pendientes.push({
+      cod: 'CAPACITACION',
+      label: 'Plan de Capacitación Anual',
+      icon: 'fa-chalkboard-user',
+      color: '#059669',
+      desc: 'Confeccionar plan y coordinar capacitaciones in situ/virtuales'
+    });
+  }
+
+  // Mapeo de documentos registrados usando la nomenclatura oficial
   const realizadas = acts.map(a => {
     const norm = normalizarTipoActividad(a.tipoActividad);
-    const cat = CATALOGO_ACTIVIDADES[norm] || CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
+    let codigoOficial = 'DOC';
+    if (norm === 'constancia_visita') codigoOficial = 'CV';
+    else if (norm === 'confeccion_rgrl') codigoOficial = 'RGRL';
+    else if (norm === 'confeccion_rar') codigoOficial = 'RAR';
+    else if (norm === 'informe_tecnico') codigoOficial = 'FOTOGRAFICO';
+    else if (norm === 'muestra_agua' || norm === 'analisis_agua') codigoOficial = 'AGUA';
+    else if (norm === 'medicion_iluminacion') codigoOficial = 'ILUMINACION';
+    else if (norm === 'medicion_ruido') codigoOficial = 'RUIDO';
+    else if (norm === 'medicion_pat') codigoOficial = 'PAT';
+    else if (norm === 'res_886') codigoOficial = 'ERGONOMIA';
+    else if (norm === 'carga_fuego') codigoOficial = 'CARGA_FUEGO';
+    else if (norm === 'capacitaciones') codigoOficial = 'CAPACITACION';
+    else {
+      const cat = CATALOGO_ACTIVIDADES[norm] || CATALOGO_ACTIVIDADES[a.tipoActividad];
+      codigoOficial = cat ? (cat.codigo || norm.toUpperCase()) : 'DOC';
+    }
+
     return {
-      codigo: cat.codigo || 'DOC',
-      nombre: cat.nombre,
+      codigo: codigoOficial,
+      tipoNorm: norm,
       fecha: a.fechaActividad ? formatearFechaDdmmaaa(a.fechaActividad) : '',
       fileUrl: a.fileUrl || a.driveUrl || ''
     };
@@ -12534,6 +12686,13 @@ function evaluarLogisticaSede(est) {
     ...est,
     supNum,
     esGranSup,
+    nivelCriticidad,
+    criticidadLabel,
+    criticidadBadgeClass,
+    requiereInstrumentalPesado,
+    hasCv,
+    hasAgua,
+    hasPat,
     pendientes,
     realizadas,
     totalPendientes: pendientes.length,
@@ -12639,22 +12798,28 @@ function seleccionarLocalidadLogistica(loc) {
 window.seleccionarLocalidadLogistica = seleccionarLocalidadLogistica;
 
 /**
- * Filtra los datos territoriales y actualiza la tabla y KPIs de Logística
+ * Filtra los datos territoriales, prioriza por criticidad/superficie y actualiza KPIs
  */
 function filtrarVistaLogistica() {
   const selLoc = document.getElementById('logistica-filtro-localidad');
   const selOrg = document.getElementById('logistica-filtro-organismo');
+  const selCrit = document.getElementById('logistica-filtro-criticidad');
   const selEstado = document.getElementById('logistica-filtro-estado');
+  const selOrden = document.getElementById('logistica-orden-criterio');
   const inputBusqueda = document.getElementById('logistica-busqueda-texto');
 
   const locVal = selLoc ? selLoc.value.trim() : '';
   const orgVal = selOrg ? selOrg.value.trim() : '';
+  const critVal = selCrit ? selCrit.value : 'todos';
   const estadoVal = selEstado ? selEstado.value : 'pendientes';
+  const ordenVal = selOrden ? selOrden.value : 'superficie_desc';
   const txtVal = inputBusqueda ? inputBusqueda.value.trim().toLowerCase() : '';
 
   AppState.logisticaFiltroLoc = locVal;
   AppState.logisticaFiltroOrg = orgVal;
+  AppState.logisticaFiltroCrit = critVal;
   AppState.logisticaFiltroEstado = estadoVal;
+  AppState.logisticaOrden = ordenVal;
   AppState.logisticaBusqueda = txtVal;
 
   const allEsts = Object.values(AppState.establecimientos || {});
@@ -12664,9 +12829,15 @@ function filtrarVistaLogistica() {
     if (locVal && e.localidad !== locVal) return false;
     if (orgVal && e.organismo !== orgVal && !sonOrganismosCoincidentes(e.organismo, orgVal)) return false;
 
+    // Filtro por Criticidad de Superficie
+    if (critVal === 'critico' && e.nivelCriticidad !== 'CRITICO') return false;
+    if (critVal === 'medio' && e.nivelCriticidad !== 'MEDIO') return false;
+    if (critVal === 'estandar' && e.nivelCriticidad !== 'ESTANDAR') return false;
+
+    // Filtro por Estado de 1ª Visita
     if (estadoVal === 'pendientes' && e.pendientes.length === 0) return false;
+    if (estadoVal === 'sin_cv' && e.hasCv) return false;
     if (estadoVal === 'al_dia' && e.pendientes.length > 0) return false;
-    if (estadoVal === 'sup1000' && !e.esGranSup) return false;
 
     if (txtVal) {
       const match = (e.organismo && e.organismo.toLowerCase().includes(txtVal)) ||
@@ -12679,21 +12850,32 @@ function filtrarVistaLogistica() {
     return true;
   });
 
-  // Ordenamiento inteligente para logística:
-  // 1. Por localidad
-  // 2. Por pendientes descendente (las que requieren más tareas primero)
+  // Ordenamiento Logístico (Por defecto: Mayor a menor superficie para tomar los más grandes como críticos)
   filtradas.sort((a, b) => {
-    const locComp = (a.localidad || '').localeCompare(b.localidad || '');
-    if (locComp !== 0) return locComp;
-    return b.pendientes.length - a.pendientes.length;
+    if (ordenVal === 'superficie_desc') {
+      if (b.supNum !== a.supNum) return b.supNum - a.supNum;
+      return b.pendientes.length - a.pendientes.length;
+    } else if (ordenVal === 'pendientes_desc') {
+      if (b.pendientes.length !== a.pendientes.length) return b.pendientes.length - a.pendientes.length;
+      return b.supNum - a.supNum;
+    } else if (ordenVal === 'localidad_asc') {
+      const lComp = (a.localidad || '').localeCompare(b.localidad || '');
+      if (lComp !== 0) return lComp;
+      return b.supNum - a.supNum;
+    } else if (ordenVal === 'organismo_asc') {
+      const oComp = (a.organismo || '').localeCompare(b.organismo || '');
+      if (oComp !== 0) return oComp;
+      return b.supNum - a.supNum;
+    }
+    return b.supNum - a.supNum;
   });
 
   window._logisticaEstablecimientosFiltrados = filtradas;
 
-  // Actualizar KPIs de la vista
+  // Actualizar KPIs ejecutivos
   const locsPresentes = new Set(filtradas.map(e => e.localidad || 'Entre Ríos'));
   const sedesConPend = filtradas.filter(e => e.pendientes.length > 0).length;
-  const sedesInstrumental = filtradas.filter(e => e.esGranSup).length;
+  const sedesCriticas = filtradas.filter(e => e.nivelCriticidad === 'CRITICO').length;
   const totalTareas = filtradas.reduce((sum, e) => sum + e.pendientes.length, 0);
 
   const kpiLoc = document.getElementById('log-kpi-localidades');
@@ -12713,18 +12895,18 @@ function filtrarVistaLogistica() {
   const kpiPendPct = document.getElementById('log-kpi-pendientes-pct');
   if (kpiPendPct) {
     const pct = filtradas.length > 0 ? Math.round((sedesConPend / filtradas.length) * 100) : 0;
-    kpiPendPct.textContent = `${pct}% de las sedes filtradas`;
+    kpiPendPct.textContent = `${pct}% con tareas pendientes`;
   }
 
   const kpiInst = document.getElementById('log-kpi-instrumental');
-  if (kpiInst) kpiInst.textContent = sedesInstrumental;
+  if (kpiInst) kpiInst.textContent = sedesCriticas;
 
   const kpiTareas = document.getElementById('log-kpi-total-tareas');
   if (kpiTareas) kpiTareas.textContent = totalTareas;
 
   const contadorEl = document.getElementById('logistica-tabla-contador');
   if (contadorEl) {
-    contadorEl.textContent = `Mostrando ${filtradas.length} sedes (${totalTareas} tareas pendientes en terreno)`;
+    contadorEl.textContent = `Mostrando ${filtradas.length} sedes (${sedesCriticas} críticas ≥1.000 m² · ${totalTareas} tareas pendientes en terreno)`;
   }
 
   // Renderizar tabla
@@ -12734,7 +12916,7 @@ function filtrarVistaLogistica() {
 window.filtrarVistaLogistica = filtrarVistaLogistica;
 
 /**
- * Renderiza el cuerpo de la tabla logística
+ * Renderiza el cuerpo de la tabla logística con la nomenclatura oficial de los documentos
  */
 function renderTablaLogistica(list) {
   const tbody = document.getElementById('tabla-logistica-tbody');
@@ -12754,55 +12936,88 @@ function renderTablaLogistica(list) {
 
   const html = list.map((est, idx) => {
     const nroEstabDisplay = est.nroEstab ? `N° ${est.nroEstab}` : 'S/N';
-    const supDisplay = est.superficie ? `${est.superficie} m²` : '<span style="color:#94a3b8;">S/D</span>';
+    const supDisplay = est.supNum > 0 ? `${est.supNum.toLocaleString('es-AR')} m²` : '<span style="color:#94a3b8;">S/D</span>';
 
-    // Medidas e instrumental requerido
-    const instrumentalBadge = est.esGranSup ? `
-      <div style="margin-top:2px;">
-        <span class="badge badge-warn" style="font-size:9.5px;" title="Superficie ≥1.000 m²: requiere mediciones SRT">
-          <i class="fa-solid fa-bolt"></i> ≥1.000 m²
+    // Badge de Criticidad por Superficie
+    let badgeCriticidadHtml = '';
+    if (est.nivelCriticidad === 'CRITICO') {
+      badgeCriticidadHtml = `
+        <span class="badge badge-alert" style="font-size:9.5px;font-weight:700;" title="Sede Crítica (≥1.000 m²): requiere instrumental técnico completo en 1ª visita">
+          <i class="fa-solid fa-triangle-exclamation"></i> CRÍTICO
         </span>
-      </div>
-    ` : '';
-
-    // Badges de acciones a realizar (pendientes)
-    let pendientesHtml = '';
-    if (est.pendientes.length === 0) {
-      pendientesHtml = `<span class="badge badge-ok"><i class="fa-solid fa-circle-check"></i> Al Día (Relevada)</span>`;
+      `;
+    } else if (est.nivelCriticidad === 'MEDIO') {
+      badgeCriticidadHtml = `
+        <span class="badge badge-warn" style="font-size:9px;" title="Sede Mediana (300 a 999 m²)">
+          <i class="fa-solid fa-circle-dot"></i> MEDIO
+        </span>
+      `;
     } else {
-      const pills = est.pendientes.map(p => `
-        <span class="badge ${p.instrumental ? 'badge-warn' : 'badge-alert'}" style="font-size:10px;padding:2px 6px;" title="${escapeHtml(p.desc)}">
-          <i class="fa-solid ${p.icon}"></i> Falta ${p.cod}
+      badgeCriticidadHtml = `
+        <span class="badge badge-neutral" style="font-size:9px;" title="Sede Estándar (<300 m²)">
+          ESTÁNDAR
         </span>
-      `).join(' ');
-
-      const instAlert = (est.esGranSup && est.pendientes.some(p => p.instrumental)) ? `
-        <div style="font-size:10px;color:#92400e;margin-top:3px;font-weight:600;">
-          <i class="fa-solid fa-toolbox"></i> Cargar telurómetro / luxómetro / sonómetro
-        </div>
-      ` : '';
-
-      pendientesHtml = `<div style="display:flex;flex-wrap:wrap;gap:3px;">${pills}</div>${instAlert}`;
+      `;
     }
 
-    // Badges de acciones ya realizadas
+    // Badges de acciones a realizar en 1ª Visita usando la NOMENCLATURA EXACTA DE ARCHIVOS
+    let pendientesHtml = '';
+    if (est.pendientes.length === 0) {
+      pendientesHtml = `<span class="badge badge-ok"><i class="fa-solid fa-circle-check"></i> 1ª Visita Completa</span>`;
+    } else {
+      const pills = est.pendientes.map(p => {
+        let bClass = 'badge-alert';
+        if (p.cod === 'AGUA') bClass = 'badge-info';
+        else if (p.instrumental) bClass = 'badge-warn';
+        else if (p.cod === 'ERGONOMIA' || p.cod === 'CARGA_FUEGO' || p.cod === 'CAPACITACION') bClass = 'badge-neutral';
+
+        return `
+          <span class="badge ${bClass}" style="font-size:10px;padding:2px 6px;font-weight:700;" title="${escapeHtml(p.desc)}">
+            <i class="fa-solid ${p.icon}"></i> ${p.cod}
+          </span>
+        `;
+      }).join(' ');
+
+      // Alerta de equipamiento a cargar en el móvil según criticidad de la sede
+      let avisoCarga = '';
+      if (est.nivelCriticidad === 'CRITICO') {
+        avisoCarga = `
+          <div style="font-size:9.5px;color:#991B1B;background:#FEE2E2;border:1px solid #FCA5A5;padding:2px 6px;border-radius:2px;margin-top:3px;font-weight:600;">
+            <i class="fa-solid fa-toolbox"></i> Cargar: Telurómetro (PAT) + Luxómetro (ILUM) + Sonómetro (RUIDO) + Frascos (AGUA)
+          </div>
+        `;
+      } else {
+        avisoCarga = `
+          <div style="font-size:9.5px;color:#0369A1;margin-top:2px;">
+            <i class="fa-solid fa-droplet"></i> Toma in situ de AGUA + Formularios
+          </div>
+        `;
+      }
+
+      pendientesHtml = `<div style="display:flex;flex-wrap:wrap;gap:3px;">${pills}</div>${avisoCarga}`;
+    }
+
+    // Badges de acciones ya realizadas usando la NOMENCLATURA OFICIAL
     let realizadasHtml = '';
     if (est.realizadas.length === 0) {
-      realizadasHtml = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Sin registro</span>`;
+      realizadasHtml = `
+        <span style="font-size:10.5px;color:#991B1B;background:#FEE2E2;border:1px solid #FCA5A5;padding:2px 6px;border-radius:2px;font-weight:600;">
+          <i class="fa-solid fa-clock"></i> Sin 1ª Visita
+        </span>
+      `;
     } else {
-      const pillsRealizadas = est.realizadas.slice(0, 4).map(r => `
-        <span class="badge badge-ok" style="font-size:9.5px;padding:1px 5px;" title="${escapeHtml(r.nombre)} ${r.fecha ? `(${r.fecha})` : ''}">
+      const pillsRealizadas = est.realizadas.slice(0, 5).map(r => `
+        <span class="badge badge-ok" style="font-size:9.5px;padding:1px 5px;font-weight:700;" title="Documento registrado: ${r.codigo} ${r.fecha ? `(${r.fecha})` : ''}">
           <i class="fa-solid fa-check"></i> ${r.codigo}${r.fecha ? ` <span style="font-weight:normal;opacity:0.85;">${r.fecha}</span>` : ''}
         </span>
       `).join(' ');
-      const mas = est.realizadas.length > 4 ? `<span style="font-size:10px;color:var(--text-muted);font-weight:600;">+${est.realizadas.length - 4}</span>` : '';
+      const mas = est.realizadas.length > 5 ? `<span style="font-size:10px;color:var(--text-muted);font-weight:600;">+${est.realizadas.length - 5}</span>` : '';
       realizadasHtml = `<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;">${pillsRealizadas} ${mas}</div>`;
     }
 
     const mapQuery = encodeURIComponent(`${est.domicilio}, ${est.localidad}, Entre Rios`);
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
 
-    // Estilo distintivo para el organismo
     const orgNombre = est.organismo || 'Sin Organismo';
     const orgAbrev = obtenerAbreviaturaOrganismo(orgNombre);
 
@@ -12832,9 +13047,9 @@ function renderTablaLogistica(list) {
             <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9.5px;"></i> Ver en Google Maps
           </a>
         </td>
-        <td class="m" style="text-align:right;">
-          ${supDisplay}
-          ${instrumentalBadge}
+        <td style="text-align:center;">
+          <div style="font-weight:700;font-family:var(--font-mono);font-size:12px;">${supDisplay}</div>
+          <div style="margin-top:2px;">${badgeCriticidadHtml}</div>
         </td>
         <td>${pendientesHtml}</td>
         <td>${realizadasHtml}</td>
@@ -12851,7 +13066,7 @@ function renderTablaLogistica(list) {
 }
 
 /**
- * Exporta la lista filtrada a una planilla CSV compatible con Excel
+ * Exporta la lista filtrada a una planilla CSV compatible con Excel, priorizando por criticidad y superficie
  */
 function exportarHojaRutaLogisticaCSV() {
   const list = window._logisticaEstablecimientosFiltrados || [];
@@ -12861,21 +13076,23 @@ function exportarHojaRutaLogisticaCSV() {
   }
 
   let csv = "data:text/csv;charset=utf-8,\uFEFF";
-  csv += "LOCALIDAD;ORGANISMO;NRO_ESTABLECIMIENTO;NOMBRE_ESTABLECIMIENTO;DOMICILIO;SUPERFICIE_M2;GRAN_SUPERFICIE;ESTADO;ACCIONES_A_REALIZAR;ACCIONES_REALIZADAS;INSTRUMENTAL_REQUERIDO\n";
+  csv += "LOCALIDAD;ORGANISMO;NRO_ESTABLECIMIENTO;NOMBRE_ESTABLECIMIENTO;DOMICILIO;SUPERFICIE_M2;CRITICIDAD_SUPERFICIE;ESTADO_1RA_VISITA;ACCIONES_PENDIENTES_1RA_VISITA;DOCUMENTOS_REGISTRADOS;INSTRUMENTAL_A_CARGAR_EN_MOVIL\n";
 
   list.forEach(e => {
-    const pendStr = e.pendientes.map(p => p.cod).join(' + ') || 'NINGUNA';
-    const realStr = e.realizadas.map(r => `${r.codigo}${r.fecha ? ` (${r.fecha})` : ''}`).join(' | ') || 'NINGUNA';
-    const instStr = (e.esGranSup && e.pendientes.some(p => p.instrumental)) ? 'TELUROMETRO + LUXOMETRO + SONOMETRO' : 'ESTANDAR (PLANILLAS + EPP)';
-    const estadoStr = e.pendientes.length === 0 ? 'AL DIA' : `PENDIENTE (${e.pendientes.length})`;
+    const pendStr = e.pendientes.map(p => p.cod).join(' + ') || 'COMPLETA';
+    const realStr = e.realizadas.map(r => `${r.codigo}${r.fecha ? ` (${r.fecha})` : ''}`).join(' | ') || 'SIN DOCUMENTOS';
+    const instStr = (e.nivelCriticidad === 'CRITICO') 
+      ? 'TELUROMETRO (PAT) + LUXOMETRO (ILUMINACION) + SONOMETRO (RUIDO) + CONSERVADORA (AGUA)' 
+      : 'FRASCOS TOMA DE AGUA + FORMULARIOS SRT';
+    const estadoStr = e.pendientes.length === 0 ? '1RA VISITA COMPLETA' : (!e.hasCv ? 'SIN 1RA VISITA (URGENTE)' : `EN CURSO (${e.pendientes.length} PENDIENTES)`);
 
     csv += `"${(e.localidad || '').replace(/"/g, '""')}";`;
     csv += `"${(e.organismo || '').replace(/"/g, '""')}";`;
     csv += `"${(e.nroEstab || '').toString().replace(/"/g, '""')}";`;
     csv += `"${(e.nombreEstablecimiento || '').replace(/"/g, '""')}";`;
     csv += `"${(e.domicilio || '').replace(/"/g, '""')}";`;
-    csv += `"${(e.superficie || '').toString().replace(/"/g, '""')}";`;
-    csv += `"${e.esGranSup ? 'SI (>=1000 m2)' : 'NO'}";`;
+    csv += `"${(e.supNum || 0).toString().replace(/"/g, '""')}";`;
+    csv += `"${e.criticidadLabel}";`;
     csv += `"${estadoStr}";`;
     csv += `"${pendStr}";`;
     csv += `"${realStr}";`;
@@ -12890,12 +13107,12 @@ function exportarHojaRutaLogisticaCSV() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  mostrarToast(`✓ Se descargó la Hoja de Ruta Logística (${list.length} sedes).`);
+  mostrarToast(`✓ Se descargó la Hoja de Ruta Logística (${list.length} sedes ordenadas por criticidad).`);
 }
 window.exportarHojaRutaLogisticaCSV = exportarHojaRutaLogisticaCSV;
 
 /**
- * Abre una ventana imprimible optimizada para que los preventores lleven la hoja de ruta en campo
+ * Abre una ventana imprimible optimizada para llevar en comisiones de campo, priorizando sedes críticas
  */
 function imprimirHojaRutaLogistica() {
   const list = window._logisticaEstablecimientosFiltrados || [];
@@ -12908,9 +13125,19 @@ function imprimirHojaRutaLogistica() {
   const orgVal = document.getElementById('logistica-filtro-organismo')?.value || 'Todos los Organismos';
 
   const filas = list.map((e, idx) => {
-    const pendStr = e.pendientes.map(p => `<span style="display:inline-block;border:1px solid #c2410c;background:#fff7ed;color:#c2410c;padding:1px 5px;font-size:10px;font-weight:bold;margin:1px;border-radius:2px;">${p.cod}</span>`).join(' ') || '<span style="color:#15803d;font-weight:bold;">AL DÍA</span>';
-    const supStr = e.superficie ? `${e.superficie} m²` : '-';
-    const instStr = (e.esGranSup && e.pendientes.some(p => p.instrumental)) ? '<span style="color:#b45309;font-weight:bold;font-size:10px;">⚡ INSTRUMENTAL (PAT/RUIDO/ILUM)</span>' : '<span style="color:#64748b;font-size:10px;">Estándar</span>';
+    const pendStr = e.pendientes.map(p => `<span style="display:inline-block;border:1px solid #b91c1c;background:#fee2e2;color:#991b1b;padding:1px 5px;font-size:9.5px;font-weight:bold;margin:1px;border-radius:2px;">${p.cod}</span>`).join(' ') || '<span style="color:#15803d;font-weight:bold;">1ª VISITA COMPLETA</span>';
+    const supStr = e.supNum > 0 ? `${e.supNum.toLocaleString('es-AR')} m²` : '-';
+    
+    let critBadge = `<span style="font-size:9px;color:#475569;">Estándar</span>`;
+    if (e.nivelCriticidad === 'CRITICO') {
+      critBadge = `<span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-weight:bold;font-size:9px;padding:1px 4px;border-radius:2px;">CRÍTICO</span>`;
+    } else if (e.nivelCriticidad === 'MEDIO') {
+      critBadge = `<span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-weight:bold;font-size:9px;padding:1px 4px;border-radius:2px;">MEDIO</span>`;
+    }
+
+    const equipStr = (e.nivelCriticidad === 'CRITICO') 
+      ? '<div style="color:#b45309;font-weight:bold;font-size:9px;margin-top:2px;">⚡ INSTRUMENTAL: Telurómetro (PAT) + Luxómetro + Sonómetro + Muestra AGUA</div>' 
+      : '<div style="color:#0369a1;font-size:9px;margin-top:2px;">💧 Toma de muestra AGUA + Planillas</div>';
 
     return `
       <tr style="border-bottom:1px solid #cbd5e1;">
@@ -12922,12 +13149,15 @@ function imprimirHojaRutaLogistica() {
           <div style="font-size:10px;color:#64748b;">N° ${e.nroEstab || 'S/N'}</div>
         </td>
         <td style="padding:6px 8px;font-size:11px;">${escapeHtml(e.domicilio)}</td>
-        <td style="padding:6px 8px;text-align:right;font-size:10.5px;">${supStr}</td>
+        <td style="padding:6px 8px;text-align:center;font-size:10.5px;">
+          <div>${supStr}</div>
+          <div style="margin-top:1px;">${critBadge}</div>
+        </td>
         <td style="padding:6px 8px;">
           ${pendStr}
-          <div style="margin-top:2px;">${instStr}</div>
+          ${equipStr}
         </td>
-        <td style="padding:6px 8px;border-left:1px dashed #cbd5e1;width:120px;">
+        <td style="padding:6px 8px;border-left:1px dashed #cbd5e1;width:110px;">
           <div style="height:35px;border-bottom:1px solid #94a3b8;"></div>
           <div style="font-size:8px;color:#94a3b8;text-align:center;margin-top:2px;">Firma / Fecha</div>
         </td>
@@ -12941,13 +13171,13 @@ function imprimirHojaRutaLogistica() {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Hoja de Ruta Logística HyS - IAPSER Seguros</title>
+      <title>Hoja de Ruta Logística HyS (1ª Visita) - IAPSER Seguros</title>
       <style>
-        @page { size: A4 landscape; margin: 12mm; }
+        @page { size: A4 landscape; margin: 10mm; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 10px; font-size: 11px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #0F4C5C; color: #fff; text-align: left; padding: 7px 8px; font-size: 11px; text-transform: uppercase; }
-        .header-box { border-bottom: 2px solid #0F4C5C; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .header-box { border-bottom: 2px solid #0F4C5C; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         @media print {
           .no-print { display: none; }
         }
@@ -12955,33 +13185,33 @@ function imprimirHojaRutaLogistica() {
     </head>
     <body>
       <div class="no-print" style="margin-bottom:12px;display:flex;justify-content:space-between;background:#f8fafc;padding:10px 14px;border:1px solid #cbd5e1;border-radius:4px;">
-        <div><strong>Vista previa de impresión:</strong> Hoja de Ruta Operativa de Terreno (${list.length} sedes).</div>
+        <div><strong>Vista previa de impresión:</strong> Hoja de Ruta Operativa de 1ª Visita (${list.length} sedes ordenadas por criticidad de superficie).</div>
         <button onclick="window.print()" style="background:#0F4C5C;color:#fff;border:none;padding:6px 16px;border-radius:3px;font-weight:bold;cursor:pointer;">Imprimir / Guardar como PDF</button>
       </div>
 
       <div class="header-box">
         <div>
-          <h2 style="margin:0;color:#0F4C5C;font-size:18px;">IAPSER SEGUROS · GOBIERNO DE ENTRE RÍOS</h2>
-          <div style="font-size:13px;font-weight:bold;margin-top:3px;">HOJA DE RUTA OPERATIVA · PLAN ANUAL DE HIGIENE Y SEGURIDAD</div>
-          <div style="font-size:11px;color:#475569;margin-top:2px;">Filtro territorial: <strong>${escapeHtml(locVal)}</strong> | Organismo: <strong>${escapeHtml(orgVal)}</strong></div>
+          <h2 style="margin:0;color:#0F4C5C;font-size:17px;">IAPSER SEGUROS · GOBIERNO DE ENTRE RÍOS</h2>
+          <div style="font-size:12px;font-weight:bold;margin-top:2px;">HOJA DE RUTA OPERATIVA · RELEVAMIENTO DE 1ª VISITA IN SITU</div>
+          <div style="font-size:10.5px;color:#475569;margin-top:2px;">Filtro territorial: <strong>${escapeHtml(locVal)}</strong> | Organismo: <strong>${escapeHtml(orgVal)}</strong> | Prioridad: <strong>Superficie & Sedes Críticas Primero</strong></div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:11px;"><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-AR')}</div>
-          <div style="font-size:11px;"><strong>Total Sedes a Relevar:</strong> ${list.length}</div>
+          <div style="font-size:10.5px;"><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-AR')}</div>
+          <div style="font-size:10.5px;"><strong>Sedes a Relevar:</strong> ${list.length}</div>
         </div>
       </div>
 
       <table>
         <thead>
           <tr>
-            <th style="width:40px;text-align:center;">Estado</th>
+            <th style="width:35px;text-align:center;">Check</th>
             <th style="width:110px;">Localidad</th>
             <th style="width:130px;">Organismo</th>
             <th style="width:180px;">Establecimiento / N°</th>
             <th style="width:200px;">Domicilio</th>
-            <th style="width:65px;text-align:right;">Sup.</th>
-            <th>Acciones a Realizar</th>
-            <th style="width:120px;text-align:center;">Conformidad</th>
+            <th style="width:85px;text-align:center;">Sup. / Criticidad</th>
+            <th>Acciones 1ª Visita (Nomenclatura Docs)</th>
+            <th style="width:110px;text-align:center;">Conformidad</th>
           </tr>
         </thead>
         <tbody>
