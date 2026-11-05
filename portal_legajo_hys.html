@@ -432,6 +432,41 @@
       flex-direction: column;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .badge-ok {
+      background: #DCFCE7;
+      color: #166534;
+      border: 1px solid #86EFAC;
+    }
+    .badge-warn {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FCD34D;
+    }
+    .badge-alert {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #FCA5A5;
+    }
+    .badge-neutral {
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #CBD5E1;
+    }
+    .badge-info {
+      background: #E0F2FE;
+      color: #0369A1;
+      border: 1px solid #BAE6FD;
+    }
     .badge-stock {
       display: inline-flex;
       align-items: center;
@@ -946,6 +981,10 @@
         <a class="nav" id="nav-metricas" href="#" onclick="cambiarVistaPrincipal('metricas'); return false;" title="Cuadro de mando ejecutivo: avance del plan, metas y stocks" style="display:flex;align-items:center;justify-content:space-between;">
           <span style="display:flex;align-items:center;"><i class="fa-solid fa-chart-pie" style="width:18px;margin-right:6px;opacity:0.85;"></i> Plan y métricas</span>
           <span style="font-size: 10px; font-weight: bold; background: #0F4C5C; color:#fff; padding: 1px 5px; border-radius:2px;">SEP=M0</span>
+        </a>
+        <a class="nav" id="nav-logistica" href="#" onclick="cambiarVistaPrincipal('logistica'); return false;" title="Inteligencia de negocio y planificación operativa por localidad y sede" style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="display:flex;align-items:center;"><i class="fa-solid fa-map-location-dot" style="width:18px;margin-right:6px;opacity:0.85;"></i> Logística & BI</span>
+          <span style="font-size: 10px; font-weight: bold; background: #E0F2FE; color:#0369A1; padding: 1px 5px; border-radius:2px;">RUTAS</span>
         </a>
         <a class="nav" id="nav-repositorio" href="#" onclick="cambiarVistaPrincipal('repositorio'); return false;" title="Tabla completa de auditoría y validación de registros y documentos cargados">
           <i class="fa-solid fa-table-list" style="width:18px;margin-right:6px;opacity:0.85;"></i> Tabla de Registros
@@ -1844,6 +1883,183 @@
 
     </div>
 
+    <!-- ==================== VISTA 3: LOGÍSTICA & BUSINESS INTELLIGENCE ==================== -->
+    <div id="vista-logistica" class="vista-modulo" style="display:none;padding:22px 28px;">
+      
+      <!-- Encabezado y Acciones de Exportación -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--text-main);">Planificación Logística & Business Intelligence</h2>
+            <span class="badge-stock badge-stock-consumido"><i class="fa-solid fa-route"></i> Hoja de Ruta Operativa</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+            Análisis territorial por <strong>Localidad</strong>: Organismos, establecimientos, domicilios y matriz de acciones pendientes para optimizar traslados y comisiones de preventores.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="chip" onclick="exportarHojaRutaLogisticaCSV()" style="font-weight:600;background:#EAF7ED;border-color:#2E7D32;color:#1B5E20;" title="Descargar planilla CSV compatible con Excel con todas las sedes, domicilios y acciones pendientes">
+            <i class="fa-solid fa-file-excel" style="color:#2E7D32;margin-right:5px;"></i> Exportar Hoja de Ruta (Excel)
+          </button>
+          <button type="button" class="chip" onclick="imprimirHojaRutaLogistica()" style="font-weight:600;color:var(--primary);" title="Abrir versión imprimible para llevar en comisiones o auditorías de campo">
+            <i class="fa-solid fa-print" style="margin-right:5px;"></i> Imprimir / PDF Ruta
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros Inteligentes -->
+      <div style="background:#fff;border:1px solid var(--border-table);padding:14px 18px;border-radius:4px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;align-items:center;">
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+              <i class="fa-solid fa-location-dot" style="color:var(--primary);margin-right:4px;"></i> Localidad:
+            </label>
+            <select id="logistica-filtro-localidad" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+              <option value="">Todas las Localidades</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+              <i class="fa-solid fa-building" style="color:#0F4C5C;margin-right:4px;"></i> Organismo:
+            </label>
+            <select id="logistica-filtro-organismo" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" onchange="filtrarVistaLogistica()">
+              <option value="">Todos los Organismos</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+              <i class="fa-solid fa-filter" style="color:#A8470A;margin-right:4px;"></i> Estado Operativo:
+            </label>
+            <select id="logistica-filtro-estado" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;font-weight:600;" onchange="filtrarVistaLogistica()">
+              <option value="todos">Todas las Sedes (Universo)</option>
+              <option value="pendientes" selected>⚠️ Con Acciones Pendientes (A Planificar)</option>
+              <option value="al_dia">✅ Sedes Completas / Al Día</option>
+              <option value="sup1000">⚡ Grandes Superficies (≥1.000 m² - Instrumental)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">
+              <i class="fa-solid fa-magnifying-glass" style="margin-right:4px;"></i> Búsqueda en Sede / Domicilio:
+            </label>
+            <input type="text" id="logistica-busqueda-texto" class="input-clean" style="width:100%;height:38px;min-height:38px;font-size:13px;" placeholder="Ej: San Martín, Comisaría, Escuela, 102..." oninput="filtrarVistaLogistica()">
+          </div>
+        </div>
+
+        <!-- Accesos directos: Píldoras de Localidades con más sedes -->
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #F1F5F9;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;font-weight:700;color:var(--text-muted);margin-right:4px;text-transform:uppercase;">
+            <i class="fa-solid fa-bolt" style="color:#D97706;"></i> Rutas Principales:
+          </span>
+          <div id="logistica-pildoras-localidades" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <!-- Generado dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjetas BI (KPIs Operativos) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Localidades Activas</span>
+            <i class="fa-solid fa-map-location-dot" style="color:var(--primary);font-size:15px;"></i>
+          </div>
+          <div class="stat-number" id="log-kpi-localidades" style="color:var(--text-main);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+            Municipios y ciudades cubiertas
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Sedes en Alcance</span>
+            <i class="fa-solid fa-building" style="color:#0F4C5C;font-size:15px;"></i>
+          </div>
+          <div class="stat-number" id="log-kpi-sedes" style="color:var(--primary);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;" id="log-kpi-sedes-sub">
+            Total de sedes según filtro
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Sedes con Pendientes</span>
+            <i class="fa-solid fa-triangle-exclamation" style="color:#A8470A;font-size:15px;"></i>
+          </div>
+          <div class="stat-number" id="log-kpi-pendientes" style="color:#A8470A;">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;" id="log-kpi-pendientes-pct">
+            0% del grupo seleccionado
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Instrumental Requerido</span>
+            <i class="fa-solid fa-bolt" style="color:#D97706;font-size:15px;"></i>
+          </div>
+          <div class="stat-number" id="log-kpi-instrumental" style="color:#D97706;">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+            Sedes ≥1.000 m² (PAT/Ruido/Ilum)
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Tareas a Ejecutar</span>
+            <i class="fa-solid fa-list-check" style="color:#1E40AF;font-size:15px;"></i>
+          </div>
+          <div class="stat-number" id="log-kpi-total-tareas" style="color:#1E40AF;">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+            Volumen acumulado de backlog
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla Operativa de Planificación y Logística -->
+      <div style="background:#fff;border:1px solid var(--border-table);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border-table);background:#F8F9F7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-main);">
+              <i class="fa-solid fa-table-list" style="color:var(--primary);margin-right:6px;"></i> Matriz de Planificación Logística por Sede
+            </h3>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="logistica-tabla-contador">
+              Cargando sedes...
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-ok"><i class="fa-solid fa-check"></i> Realizada</span>
+            <span class="badge badge-alert"><i class="fa-solid fa-clock"></i> Pendiente</span>
+            <span class="badge badge-warn"><i class="fa-solid fa-bolt"></i> Instrumental</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;max-height:70vh;">
+          <table class="t" style="width:100%;margin:0;font-size:12.5px;" id="tabla-logistica-sedes">
+            <thead style="position:sticky;top:0;background:#F1F5F9;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+              <tr>
+                <th style="width:38px;text-align:center;">#</th>
+                <th style="min-width:130px;">Localidad</th>
+                <th style="min-width:150px;">Organismo</th>
+                <th style="min-width:220px;">Establecimiento / N°</th>
+                <th style="min-width:240px;">Domicilio Exacto</th>
+                <th class="m" style="text-align:right;min-width:85px;">Superficie</th>
+                <th style="min-width:260px;">Acciones a Realizar (Pendientes)</th>
+                <th style="min-width:160px;">Acciones Realizadas</th>
+                <th style="width:100px;text-align:center;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-logistica-tbody">
+              <!-- Filas generadas dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
     <!-- ==================== VISTA 4: REPOSITORIO DE DOCUMENTOS ==================== -->
     <div id="vista-repositorio" class="vista-modulo" style="display:none;padding:20px 28px;">
       
@@ -2585,7 +2801,7 @@
 <!-- ==================== SCRIPTS BASE Y LÓGICA DE APLICACIÓN ==================== -->
 <script src="datos_precargados_v2.js"></script>
 <script src="reporte_assets.js"></script>
-<script src="portal_app_v2.js?v=20261105_ocr_filename_upload_anim"></script>
+<script src="portal_app_v2.js?v=20261105_logistica_bi_fix_acciones"></script>
 
 <script>
   // Control responsivo de menú móvil

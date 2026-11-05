@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Restaurar módulo activo si fue guardado
   const savedModulo = localStorage.getItem(STORAGE_KEYS.MODULO_ACTIVO);
-  if (savedModulo && ['sedes', 'metricas', 'matriz', 'repositorio'].includes(savedModulo)) {
+  if (savedModulo && ['sedes', 'metricas', 'matriz', 'repositorio', 'logistica'].includes(savedModulo)) {
     cambiarVistaPrincipal(savedModulo);
   } else {
     cambiarVistaPrincipal('sedes');
@@ -492,7 +492,7 @@ function cambiarModulo(moduloId, guardar = true) {
     cambiarVistaPrincipal('metricas');
     return;
   }
-  if (moduloId === 'matriz' || moduloId === 'repositorio') {
+  if (moduloId === 'matriz' || moduloId === 'repositorio' || moduloId === 'logistica') {
     cambiarVistaPrincipal(moduloId);
     return;
   }
@@ -8090,7 +8090,7 @@ function cambiarVistaPrincipal(vistaId) {
   if (activeNav) activeNav.classList.add('on');
 
   // 2. Ocultar todas las vistas principales
-  const vistas = ['sedes', 'metricas', 'repositorio'];
+  const vistas = ['sedes', 'metricas', 'repositorio', 'logistica'];
   vistas.forEach(v => {
     const el = document.getElementById(`vista-${v}`);
     if (el) el.style.display = 'none';
@@ -8112,6 +8112,8 @@ function cambiarVistaPrincipal(vistaId) {
       titleEl.textContent = 'Plan y Avance Anual HyS';
     } else if (vistaId === 'repositorio') {
       titleEl.textContent = 'Repositorio Central de Documentos';
+    } else if (vistaId === 'logistica') {
+      titleEl.textContent = 'Logística & Planificación Territorial';
     }
   }
 
@@ -8124,6 +8126,8 @@ function cambiarVistaPrincipal(vistaId) {
   } else if (vistaId === 'repositorio') {
     renderFiltrosRepositorio();
     renderRepositorioGlobal();
+  } else if (vistaId === 'logistica') {
+    renderVistaLogistica();
   }
 }
 window.cambiarVistaPrincipal = cambiarVistaPrincipal;
@@ -10600,6 +10604,7 @@ function renderTablaResumenMensualHyS(data) {
 
     const sedesReales = data.timelineSedesMes[m.key] ? data.timelineSedesMes[m.key].size : 0;
     const visitasReales = data.timelineVisitasMes[m.key] || 0;
+    const accionesReales = (data.timelineAccionesMes && data.timelineAccionesMes[m.key]) ? data.timelineAccionesMes[m.key] : visitasReales;
 
     let medicionesMes = 0;
     let sedes1000Mes = 0;
@@ -10642,7 +10647,9 @@ function renderTablaResumenMensualHyS(data) {
         </td>
         <td class="m" style="text-align:right;">${metaMes}</td>
         <td class="m" style="text-align:right; font-weight:700; color:var(--primary);">${isTranscurrido ? sedesReales : '-'}</td>
-        <td class="m" style="text-align:right;">${isTranscurrido ? visitasReales : '-'}</td>
+        <td class="m" style="text-align:right; font-weight:600;">
+          ${isTranscurrido ? `${accionesReales}${visitasReales > 0 ? ` <span style="font-size:10px;color:#5B6670;font-weight:normal;" title="${visitasReales} Constancias de Visita (CV)">(${visitasReales} CV)</span>` : ''}` : '-'}
+        </td>
         <td class="m" style="text-align:right;">${isTranscurrido ? medicionesMes : '-'}</td>
         <td class="m" style="text-align:right;">${isTranscurrido ? sedes1000Mes : '-'}</td>
         <td class="m" style="text-align:right;">${isTranscurrido ? cumplimientoPct + '%' : '-'}</td>
@@ -12462,4 +12469,529 @@ async function descargarZipSedeActual() {
   }
 }
 window.descargarZipSedeActual = descargarZipSedeActual;
+
+// =========================================================
+// MÓDULO DE LOGÍSTICA & BUSINESS INTELLIGENCE TERRITORIAL
+// =========================================================
+
+/**
+ * Evalúa en profundidad el estado operativo y de backlog de un establecimiento
+ */
+function evaluarLogisticaSede(est) {
+  if (!est) return null;
+  const acts = obtenerActividadesDeSede(est) || [];
+
+  const hasCv = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'constancia_visita');
+  const hasFoto = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'informe_tecnico');
+  const hasRgrl = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rgrl');
+  const hasRar = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'confeccion_rar');
+  const hasPat = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_pat');
+  const hasIlum = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_iluminacion');
+  const hasRuido = acts.some(a => normalizarTipoActividad(a.tipoActividad) === 'medicion_ruido');
+  const hasAgua = acts.some(a => ['muestra_agua', 'analisis_agua'].includes(normalizarTipoActividad(a.tipoActividad)));
+
+  const supRaw = String(est.superficie || '0').replace(/\./g, '').replace(',', '.');
+  const supNum = parseFloat(supRaw) || 0;
+  const esGranSup = Boolean(supNum >= 1000 || est.requiereMediciones);
+
+  const pendientes = [];
+  if (!hasCv) {
+    pendientes.push({ cod: 'CV', label: 'Constancia de Visita', icon: 'fa-clipboard-check', color: '#0284c7', desc: 'Visita Oficial in situ' });
+  }
+  if (!hasRgrl) {
+    pendientes.push({ cod: 'RGRL', label: 'RGRL (Dec. 351/79)', icon: 'fa-list-check', color: '#1e40af', desc: 'Relevamiento General' });
+  }
+  if (!hasRar) {
+    pendientes.push({ cod: 'RAR', label: 'RAR (Nómina Expuestos)', icon: 'fa-users', color: '#0369a1', desc: 'Agentes de Riesgo' });
+  }
+  if (!hasFoto) {
+    pendientes.push({ cod: 'FOTO', label: 'Informe Fotográfico', icon: 'fa-camera', color: '#0f766e', desc: 'Relevamiento Visual' });
+  }
+  if (esGranSup) {
+    if (!hasPat) {
+      pendientes.push({ cod: 'PAT', label: 'Puesta a Tierra (Res. 900/15)', icon: 'fa-bolt', color: '#b45309', instrumental: true, desc: 'Medición con Telurómetro' });
+    }
+    if (!hasIlum) {
+      pendientes.push({ cod: 'ILUM', label: 'Iluminación (Res. 84/12)', icon: 'fa-lightbulb', color: '#d97706', instrumental: true, desc: 'Medición con Luxómetro' });
+    }
+    if (!hasRuido) {
+      pendientes.push({ cod: 'RUIDO', label: 'Ruido (Res. 85/12)', icon: 'fa-volume-high', color: '#b91c1c', instrumental: true, desc: 'Medición con Decibelímetro' });
+    }
+  }
+
+  const realizadas = acts.map(a => {
+    const norm = normalizarTipoActividad(a.tipoActividad);
+    const cat = CATALOGO_ACTIVIDADES[norm] || CATALOGO_ACTIVIDADES[a.tipoActividad] || { codigo: 'DOC', nombre: a.tipoActividad };
+    return {
+      codigo: cat.codigo || 'DOC',
+      nombre: cat.nombre,
+      fecha: a.fechaActividad ? formatearFechaDdmmaaa(a.fechaActividad) : '',
+      fileUrl: a.fileUrl || a.driveUrl || ''
+    };
+  });
+
+  return {
+    ...est,
+    supNum,
+    esGranSup,
+    pendientes,
+    realizadas,
+    totalPendientes: pendientes.length,
+    totalRealizadas: realizadas.length,
+    isAlDia: (pendientes.length === 0)
+  };
+}
+
+/**
+ * Inicializa y renderiza la vista completa de Logística & BI
+ */
+function renderVistaLogistica() {
+  const allEsts = Object.values(AppState.establecimientos || {});
+  if (allEsts.length === 0) return;
+
+  // 1. Poblar selectores de Localidad y Organismo si están vacíos
+  const selLoc = document.getElementById('logistica-filtro-localidad');
+  const selOrg = document.getElementById('logistica-filtro-organismo');
+
+  if (selLoc && selLoc.options.length <= 1) {
+    const locCounts = {};
+    allEsts.forEach(e => {
+      const loc = (e.localidad || 'Entre Ríos').trim();
+      locCounts[loc] = (locCounts[loc] || 0) + 1;
+    });
+    const sortedLocs = Object.keys(locCounts).sort((a, b) => a.localeCompare(b));
+    let locOptions = '<option value="">Todas las Localidades (' + sortedLocs.length + ')</option>';
+    sortedLocs.forEach(l => {
+      locOptions += `<option value="${escapeHtml(l)}">${escapeHtml(l)} (${locCounts[l]})</option>`;
+    });
+    selLoc.innerHTML = locOptions;
+    if (AppState.logisticaFiltroLoc) selLoc.value = AppState.logisticaFiltroLoc;
+  }
+
+  if (selOrg && selOrg.options.length <= 1) {
+    const orgs = new Set();
+    allEsts.forEach(e => {
+      if (e.organismo) orgs.add(e.organismo.trim());
+    });
+    const sortedOrgs = Array.from(orgs).sort((a, b) => a.localeCompare(b));
+    let orgOptions = '<option value="">Todos los Organismos (' + sortedOrgs.length + ')</option>';
+    sortedOrgs.forEach(o => {
+      orgOptions += `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`;
+    });
+    selOrg.innerHTML = orgOptions;
+    if (AppState.logisticaFiltroOrg) selOrg.value = AppState.logisticaFiltroOrg;
+  }
+
+  // 2. Poblar accesos directos de rutas principales (Top localidades con más sedes)
+  renderPildorasLocalidadesLogistica();
+
+  // 3. Filtrar y procesar datos
+  filtrarVistaLogistica();
+}
+window.renderVistaLogistica = renderVistaLogistica;
+
+/**
+ * Renderiza botones chip para acceso rápido a las localidades con más sedes
+ */
+function renderPildorasLocalidadesLogistica() {
+  const container = document.getElementById('logistica-pildoras-localidades');
+  if (!container) return;
+
+  const allEsts = Object.values(AppState.establecimientos || {});
+  const locCounts = {};
+  allEsts.forEach(e => {
+    const loc = (e.localidad || 'Entre Ríos').trim();
+    locCounts[loc] = (locCounts[loc] || 0) + 1;
+  });
+
+  const topLocs = Object.entries(locCounts).sort((a, b) => b[1] - a[1]).slice(0, 9);
+  const currentLoc = document.getElementById('logistica-filtro-localidad')?.value || AppState.logisticaFiltroLoc || '';
+
+  let html = `
+    <button type="button" class="chip ${!currentLoc ? 'on' : ''}" onclick="seleccionarLocalidadLogistica('')" style="font-size:11px;padding:3px 8px;min-height:26px;">
+      Todas (${allEsts.length})
+    </button>
+  `;
+
+  topLocs.forEach(([loc, count]) => {
+    const isSelected = (currentLoc === loc);
+    html += `
+      <button type="button" class="chip ${isSelected ? 'on' : ''}" onclick="seleccionarLocalidadLogistica('${escapeHtml(loc)}')" style="font-size:11px;padding:3px 8px;min-height:26px;">
+        ${escapeHtml(loc)} <span style="font-size:10px;opacity:0.8;margin-left:2px;">(${count})</span>
+      </button>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+window.renderPildorasLocalidadesLogistica = renderPildorasLocalidadesLogistica;
+
+/**
+ * Selecciona una localidad desde un chip de acceso directo
+ */
+function seleccionarLocalidadLogistica(loc) {
+  const selLoc = document.getElementById('logistica-filtro-localidad');
+  if (selLoc) selLoc.value = loc;
+  AppState.logisticaFiltroLoc = loc;
+  renderPildorasLocalidadesLogistica();
+  filtrarVistaLogistica();
+}
+window.seleccionarLocalidadLogistica = seleccionarLocalidadLogistica;
+
+/**
+ * Filtra los datos territoriales y actualiza la tabla y KPIs de Logística
+ */
+function filtrarVistaLogistica() {
+  const selLoc = document.getElementById('logistica-filtro-localidad');
+  const selOrg = document.getElementById('logistica-filtro-organismo');
+  const selEstado = document.getElementById('logistica-filtro-estado');
+  const inputBusqueda = document.getElementById('logistica-busqueda-texto');
+
+  const locVal = selLoc ? selLoc.value.trim() : '';
+  const orgVal = selOrg ? selOrg.value.trim() : '';
+  const estadoVal = selEstado ? selEstado.value : 'pendientes';
+  const txtVal = inputBusqueda ? inputBusqueda.value.trim().toLowerCase() : '';
+
+  AppState.logisticaFiltroLoc = locVal;
+  AppState.logisticaFiltroOrg = orgVal;
+  AppState.logisticaFiltroEstado = estadoVal;
+  AppState.logisticaBusqueda = txtVal;
+
+  const allEsts = Object.values(AppState.establecimientos || {});
+  const evaluadas = allEsts.map(evaluarLogisticaSede).filter(Boolean);
+
+  const filtradas = evaluadas.filter(e => {
+    if (locVal && e.localidad !== locVal) return false;
+    if (orgVal && e.organismo !== orgVal && !sonOrganismosCoincidentes(e.organismo, orgVal)) return false;
+
+    if (estadoVal === 'pendientes' && e.pendientes.length === 0) return false;
+    if (estadoVal === 'al_dia' && e.pendientes.length > 0) return false;
+    if (estadoVal === 'sup1000' && !e.esGranSup) return false;
+
+    if (txtVal) {
+      const match = (e.organismo && e.organismo.toLowerCase().includes(txtVal)) ||
+                    (e.nombreEstablecimiento && e.nombreEstablecimiento.toLowerCase().includes(txtVal)) ||
+                    (e.domicilio && e.domicilio.toLowerCase().includes(txtVal)) ||
+                    (e.localidad && e.localidad.toLowerCase().includes(txtVal)) ||
+                    (e.nroEstab && String(e.nroEstab).toLowerCase().includes(txtVal));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Ordenamiento inteligente para logística:
+  // 1. Por localidad
+  // 2. Por pendientes descendente (las que requieren más tareas primero)
+  filtradas.sort((a, b) => {
+    const locComp = (a.localidad || '').localeCompare(b.localidad || '');
+    if (locComp !== 0) return locComp;
+    return b.pendientes.length - a.pendientes.length;
+  });
+
+  window._logisticaEstablecimientosFiltrados = filtradas;
+
+  // Actualizar KPIs de la vista
+  const locsPresentes = new Set(filtradas.map(e => e.localidad || 'Entre Ríos'));
+  const sedesConPend = filtradas.filter(e => e.pendientes.length > 0).length;
+  const sedesInstrumental = filtradas.filter(e => e.esGranSup).length;
+  const totalTareas = filtradas.reduce((sum, e) => sum + e.pendientes.length, 0);
+
+  const kpiLoc = document.getElementById('log-kpi-localidades');
+  if (kpiLoc) kpiLoc.textContent = locsPresentes.size;
+
+  const kpiSedes = document.getElementById('log-kpi-sedes');
+  if (kpiSedes) kpiSedes.textContent = filtradas.length;
+
+  const kpiSedesSub = document.getElementById('log-kpi-sedes-sub');
+  if (kpiSedesSub) {
+    kpiSedesSub.textContent = locVal ? `En ${locVal}` : `De ${allEsts.length} sedes del universo`;
+  }
+
+  const kpiPend = document.getElementById('log-kpi-pendientes');
+  if (kpiPend) kpiPend.textContent = sedesConPend;
+
+  const kpiPendPct = document.getElementById('log-kpi-pendientes-pct');
+  if (kpiPendPct) {
+    const pct = filtradas.length > 0 ? Math.round((sedesConPend / filtradas.length) * 100) : 0;
+    kpiPendPct.textContent = `${pct}% de las sedes filtradas`;
+  }
+
+  const kpiInst = document.getElementById('log-kpi-instrumental');
+  if (kpiInst) kpiInst.textContent = sedesInstrumental;
+
+  const kpiTareas = document.getElementById('log-kpi-total-tareas');
+  if (kpiTareas) kpiTareas.textContent = totalTareas;
+
+  const contadorEl = document.getElementById('logistica-tabla-contador');
+  if (contadorEl) {
+    contadorEl.textContent = `Mostrando ${filtradas.length} sedes (${totalTareas} tareas pendientes en terreno)`;
+  }
+
+  // Renderizar tabla
+  renderTablaLogistica(filtradas);
+  renderPildorasLocalidadesLogistica();
+}
+window.filtrarVistaLogistica = filtrarVistaLogistica;
+
+/**
+ * Renderiza el cuerpo de la tabla logística
+ */
+function renderTablaLogistica(list) {
+  const tbody = document.getElementById('tabla-logistica-tbody');
+  if (!tbody) return;
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;padding:36px;color:var(--text-muted);font-size:13px;">
+          <i class="fa-solid fa-route" style="font-size:24px;color:#94a3b8;margin-bottom:8px;display:block;"></i>
+          No se encontraron sedes para planificar con los filtros seleccionados.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const html = list.map((est, idx) => {
+    const nroEstabDisplay = est.nroEstab ? `N° ${est.nroEstab}` : 'S/N';
+    const supDisplay = est.superficie ? `${est.superficie} m²` : '<span style="color:#94a3b8;">S/D</span>';
+
+    // Medidas e instrumental requerido
+    const instrumentalBadge = est.esGranSup ? `
+      <div style="margin-top:2px;">
+        <span class="badge badge-warn" style="font-size:9.5px;" title="Superficie ≥1.000 m²: requiere mediciones SRT">
+          <i class="fa-solid fa-bolt"></i> ≥1.000 m²
+        </span>
+      </div>
+    ` : '';
+
+    // Badges de acciones a realizar (pendientes)
+    let pendientesHtml = '';
+    if (est.pendientes.length === 0) {
+      pendientesHtml = `<span class="badge badge-ok"><i class="fa-solid fa-circle-check"></i> Al Día (Relevada)</span>`;
+    } else {
+      const pills = est.pendientes.map(p => `
+        <span class="badge ${p.instrumental ? 'badge-warn' : 'badge-alert'}" style="font-size:10px;padding:2px 6px;" title="${escapeHtml(p.desc)}">
+          <i class="fa-solid ${p.icon}"></i> Falta ${p.cod}
+        </span>
+      `).join(' ');
+
+      const instAlert = (est.esGranSup && est.pendientes.some(p => p.instrumental)) ? `
+        <div style="font-size:10px;color:#92400e;margin-top:3px;font-weight:600;">
+          <i class="fa-solid fa-toolbox"></i> Cargar telurómetro / luxómetro / sonómetro
+        </div>
+      ` : '';
+
+      pendientesHtml = `<div style="display:flex;flex-wrap:wrap;gap:3px;">${pills}</div>${instAlert}`;
+    }
+
+    // Badges de acciones ya realizadas
+    let realizadasHtml = '';
+    if (est.realizadas.length === 0) {
+      realizadasHtml = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Sin registro</span>`;
+    } else {
+      const pillsRealizadas = est.realizadas.slice(0, 4).map(r => `
+        <span class="badge badge-ok" style="font-size:9.5px;padding:1px 5px;" title="${escapeHtml(r.nombre)} ${r.fecha ? `(${r.fecha})` : ''}">
+          <i class="fa-solid fa-check"></i> ${r.codigo}${r.fecha ? ` <span style="font-weight:normal;opacity:0.85;">${r.fecha}</span>` : ''}
+        </span>
+      `).join(' ');
+      const mas = est.realizadas.length > 4 ? `<span style="font-size:10px;color:var(--text-muted);font-weight:600;">+${est.realizadas.length - 4}</span>` : '';
+      realizadasHtml = `<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;">${pillsRealizadas} ${mas}</div>`;
+    }
+
+    const mapQuery = encodeURIComponent(`${est.domicilio}, ${est.localidad}, Entre Rios`);
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+
+    // Estilo distintivo para el organismo
+    const orgNombre = est.organismo || 'Sin Organismo';
+    const orgAbrev = obtenerAbreviaturaOrganismo(orgNombre);
+
+    return `
+      <tr>
+        <td style="text-align:center;font-size:11px;color:var(--text-muted);">${idx + 1}</td>
+        <td>
+          <div style="font-weight:700;color:var(--text-main);">${escapeHtml(est.localidad)}</div>
+        </td>
+        <td>
+          <span style="font-size:11px;font-weight:700;background:#E3EDEF;color:var(--primary);padding:2px 6px;border-radius:2px;border:1px solid #B8D5DB;display:inline-block;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(orgNombre)}">
+            ${escapeHtml(orgAbrev)}
+          </span>
+          <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${escapeHtml(orgNombre)}</div>
+        </td>
+        <td>
+          <div style="font-weight:700;color:var(--text-main);cursor:pointer;" onclick="seleccionarEstablecimiento('${est.id}'); cambiarVistaPrincipal('sedes');" title="Abrir legajo de esta sede">
+            ${escapeHtml(est.nombreEstablecimiento)}
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">
+            ${nroEstabDisplay} · CUIT: ${est.cuit}
+          </div>
+        </td>
+        <td>
+          <div style="font-size:12px;color:var(--text-main);"><i class="fa-solid fa-location-dot" style="color:#A8470A;margin-right:4px;"></i>${escapeHtml(est.domicilio)}</div>
+          <a href="${mapsUrl}" target="_blank" style="font-size:10.5px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;" title="Ver ubicación en Google Maps">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9.5px;"></i> Ver en Google Maps
+          </a>
+        </td>
+        <td class="m" style="text-align:right;">
+          ${supDisplay}
+          ${instrumentalBadge}
+        </td>
+        <td>${pendientesHtml}</td>
+        <td>${realizadasHtml}</td>
+        <td style="text-align:center;">
+          <button type="button" class="chip" onclick="seleccionarEstablecimiento('${est.id}'); cambiarVistaPrincipal('sedes');" style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--primary);width:100%;justify-content:center;" title="Abrir legajo y cargar documentos">
+            <i class="fa-solid fa-folder-open"></i> Ficha
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = html;
+}
+
+/**
+ * Exporta la lista filtrada a una planilla CSV compatible con Excel
+ */
+function exportarHojaRutaLogisticaCSV() {
+  const list = window._logisticaEstablecimientosFiltrados || [];
+  if (list.length === 0) {
+    mostrarToast('No hay sedes para exportar con los filtros seleccionados.');
+    return;
+  }
+
+  let csv = "data:text/csv;charset=utf-8,\uFEFF";
+  csv += "LOCALIDAD;ORGANISMO;NRO_ESTABLECIMIENTO;NOMBRE_ESTABLECIMIENTO;DOMICILIO;SUPERFICIE_M2;GRAN_SUPERFICIE;ESTADO;ACCIONES_A_REALIZAR;ACCIONES_REALIZADAS;INSTRUMENTAL_REQUERIDO\n";
+
+  list.forEach(e => {
+    const pendStr = e.pendientes.map(p => p.cod).join(' + ') || 'NINGUNA';
+    const realStr = e.realizadas.map(r => `${r.codigo}${r.fecha ? ` (${r.fecha})` : ''}`).join(' | ') || 'NINGUNA';
+    const instStr = (e.esGranSup && e.pendientes.some(p => p.instrumental)) ? 'TELUROMETRO + LUXOMETRO + SONOMETRO' : 'ESTANDAR (PLANILLAS + EPP)';
+    const estadoStr = e.pendientes.length === 0 ? 'AL DIA' : `PENDIENTE (${e.pendientes.length})`;
+
+    csv += `"${(e.localidad || '').replace(/"/g, '""')}";`;
+    csv += `"${(e.organismo || '').replace(/"/g, '""')}";`;
+    csv += `"${(e.nroEstab || '').toString().replace(/"/g, '""')}";`;
+    csv += `"${(e.nombreEstablecimiento || '').replace(/"/g, '""')}";`;
+    csv += `"${(e.domicilio || '').replace(/"/g, '""')}";`;
+    csv += `"${(e.superficie || '').toString().replace(/"/g, '""')}";`;
+    csv += `"${e.esGranSup ? 'SI (>=1000 m2)' : 'NO'}";`;
+    csv += `"${estadoStr}";`;
+    csv += `"${pendStr}";`;
+    csv += `"${realStr}";`;
+    csv += `"${instStr}"\n`;
+  });
+
+  const encodedUri = encodeURI(csv);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  const fecha = new Date().toISOString().substring(0, 10);
+  link.setAttribute("download", `Hoja_de_Ruta_Logistica_HyS_${fecha}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  mostrarToast(`✓ Se descargó la Hoja de Ruta Logística (${list.length} sedes).`);
+}
+window.exportarHojaRutaLogisticaCSV = exportarHojaRutaLogisticaCSV;
+
+/**
+ * Abre una ventana imprimible optimizada para que los preventores lleven la hoja de ruta en campo
+ */
+function imprimirHojaRutaLogistica() {
+  const list = window._logisticaEstablecimientosFiltrados || [];
+  if (list.length === 0) {
+    mostrarToast('No hay sedes para imprimir con los filtros seleccionados.');
+    return;
+  }
+
+  const locVal = document.getElementById('logistica-filtro-localidad')?.value || 'Todas las Localidades';
+  const orgVal = document.getElementById('logistica-filtro-organismo')?.value || 'Todos los Organismos';
+
+  const filas = list.map((e, idx) => {
+    const pendStr = e.pendientes.map(p => `<span style="display:inline-block;border:1px solid #c2410c;background:#fff7ed;color:#c2410c;padding:1px 5px;font-size:10px;font-weight:bold;margin:1px;border-radius:2px;">${p.cod}</span>`).join(' ') || '<span style="color:#15803d;font-weight:bold;">AL DÍA</span>';
+    const supStr = e.superficie ? `${e.superficie} m²` : '-';
+    const instStr = (e.esGranSup && e.pendientes.some(p => p.instrumental)) ? '<span style="color:#b45309;font-weight:bold;font-size:10px;">⚡ INSTRUMENTAL (PAT/RUIDO/ILUM)</span>' : '<span style="color:#64748b;font-size:10px;">Estándar</span>';
+
+    return `
+      <tr style="border-bottom:1px solid #cbd5e1;">
+        <td style="padding:6px 8px;text-align:center;font-size:11px;">[ &nbsp; ] ${idx + 1}</td>
+        <td style="padding:6px 8px;font-weight:bold;font-size:11.5px;">${escapeHtml(e.localidad)}</td>
+        <td style="padding:6px 8px;font-size:11px;">${escapeHtml(e.organismo)}</td>
+        <td style="padding:6px 8px;font-size:11.5px;">
+          <strong>${escapeHtml(e.nombreEstablecimiento)}</strong>
+          <div style="font-size:10px;color:#64748b;">N° ${e.nroEstab || 'S/N'}</div>
+        </td>
+        <td style="padding:6px 8px;font-size:11px;">${escapeHtml(e.domicilio)}</td>
+        <td style="padding:6px 8px;text-align:right;font-size:10.5px;">${supStr}</td>
+        <td style="padding:6px 8px;">
+          ${pendStr}
+          <div style="margin-top:2px;">${instStr}</div>
+        </td>
+        <td style="padding:6px 8px;border-left:1px dashed #cbd5e1;width:120px;">
+          <div style="height:35px;border-bottom:1px solid #94a3b8;"></div>
+          <div style="font-size:8px;color:#94a3b8;text-align:center;margin-top:2px;">Firma / Fecha</div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Hoja de Ruta Logística HyS - IAPSER Seguros</title>
+      <style>
+        @page { size: A4 landscape; margin: 12mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 10px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #0F4C5C; color: #fff; text-align: left; padding: 7px 8px; font-size: 11px; text-transform: uppercase; }
+        .header-box { border-bottom: 2px solid #0F4C5C; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+        @media print {
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom:12px;display:flex;justify-content:space-between;background:#f8fafc;padding:10px 14px;border:1px solid #cbd5e1;border-radius:4px;">
+        <div><strong>Vista previa de impresión:</strong> Hoja de Ruta Operativa de Terreno (${list.length} sedes).</div>
+        <button onclick="window.print()" style="background:#0F4C5C;color:#fff;border:none;padding:6px 16px;border-radius:3px;font-weight:bold;cursor:pointer;">Imprimir / Guardar como PDF</button>
+      </div>
+
+      <div class="header-box">
+        <div>
+          <h2 style="margin:0;color:#0F4C5C;font-size:18px;">IAPSER SEGUROS · GOBIERNO DE ENTRE RÍOS</h2>
+          <div style="font-size:13px;font-weight:bold;margin-top:3px;">HOJA DE RUTA OPERATIVA · PLAN ANUAL DE HIGIENE Y SEGURIDAD</div>
+          <div style="font-size:11px;color:#475569;margin-top:2px;">Filtro territorial: <strong>${escapeHtml(locVal)}</strong> | Organismo: <strong>${escapeHtml(orgVal)}</strong></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;"><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-AR')}</div>
+          <div style="font-size:11px;"><strong>Total Sedes a Relevar:</strong> ${list.length}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;text-align:center;">Estado</th>
+            <th style="width:110px;">Localidad</th>
+            <th style="width:130px;">Organismo</th>
+            <th style="width:180px;">Establecimiento / N°</th>
+            <th style="width:200px;">Domicilio</th>
+            <th style="width:65px;text-align:right;">Sup.</th>
+            <th>Acciones a Realizar</th>
+            <th style="width:120px;text-align:center;">Conformidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filas}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `);
+  win.document.close();
+}
+window.imprimirHojaRutaLogistica = imprimirHojaRutaLogistica;
 
